@@ -10,3 +10,7 @@ next-env.d.ts
 .DS_Store
 .vercel
 coverage
+.dev.vars
+.open-next
+.wrangler
+.dev.vars

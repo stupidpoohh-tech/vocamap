@@ -44,6 +44,9 @@ Seed 계정 (비밀번호 `vocamap1234`):
 | `pnpm db:migrate` | migration 적용 |
 | `pnpm db:seed` | seed 데이터 삽입 |
 | `pnpm db:reset-seed` | seed 데이터 삭제 후 재삽입 |
+| `pnpm cf:preview` | 로컬 workerd에서 실행 (배포 전 확인용) |
+| `pnpm cf:deploy` | Cloudflare Workers 배포 |
+| `pnpm cf:size` | Worker 번들 크기 확인 |
 
 ## 환경 변수
 
@@ -68,16 +71,26 @@ Supabase 대신 **Neon**(무료 serverless Postgres)을 쓴다. 이유와 그로
 
 ## 배포
 
-Vercel + Neon 조합을 전제로 한다.
+**Cloudflare Workers** + Neon Postgres. workerd에서 전 기능 동작을 확인했다.
 
-1. Vercel에 GitHub repo 연결
-2. 환경 변수 등록 (`DATABASE_URL`, `AUTH_SECRET`, LLM 키)
-3. 배포 후 `pnpm db:migrate` 를 한 번 실행 (직접 연결 URL 사용)
+```bash
+cp .dev.vars.example .dev.vars   # 값 채우기
+pnpm cf:preview                  # 로컬 workerd에서 확인
+pnpm cf:deploy                   # 배포
+```
 
-migration은 빌드 단계에서 자동 실행하지 않는다. 스키마 변경을 배포 사고로 만들지
-않기 위한 의도적인 선택이다.
+Workers **유료 플랜($5/월)이 필요하다.** 번들은 1.21 MiB로 무료 한도(3 MiB) 안에
+들어오지만, 비밀번호 해싱이 무료 플랜의 CPU 한도 10 ms를 넘는다 — 어떤 안전한
+해시 알고리즘으로도 들어갈 수 없다.
+
+`pnpm dev`(Node)와 `pnpm cf:preview`(workerd)는 런타임이 다르다. **배포 전에는
+반드시 후자로 확인할 것.**
+
+Vercel로도 그대로 배포된다. 자세한 내용과 Workers 대응 과정에서 바꾼 것들은
+[`docs/DEPLOY.md`](docs/DEPLOY.md) 참고.
 
 ## 문서
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — 구조, 스키마, 설계 근거, 반론
+- [`docs/DEPLOY.md`](docs/DEPLOY.md) — 배포 절차, 플랜 선택, Workers 제약
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — 완료된 범위와 다음 단계

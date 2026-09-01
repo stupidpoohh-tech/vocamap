@@ -1,0 +1,6 @@
+# Local Cloudflare Workers dev (`pnpm cf:preview`). Wrangler reads this file
+# instead of .env — Workers get their environment from bindings, not dotenv.
+DATABASE_URL="postgresql://user:password@host/vocamap?sslmode=require"
+AUTH_SECRET="change-me-openssl-rand-base64-48"
+LLM_PROVIDER="mock"
+LLM_MODEL="mock"
