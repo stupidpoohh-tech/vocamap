@@ -4,9 +4,8 @@ import { db } from '@/lib/db'
 import {
   brainMaps,
   users,
-  vocabularies,
-  vocabularySetItems,
   vocabularySets,
+  vocabularies,
   wordPairs,
 } from '@/lib/db/schema'
 import { SEED_WORDS } from '@/lib/seed/words'
@@ -16,7 +15,18 @@ import { writeDraft } from '@/lib/data/brain-map'
 import { addToSet, assignSet, createSet, linkStudent } from '@/lib/data/teacher'
 import { hashPassword } from '@/lib/auth/password'
 
+/**
+ * Seeding comes in two halves, kept apart on purpose.
+ *
+ *   default    shared vocabulary + approved Brain Maps. Safe to run anywhere,
+ *              including production — it is exactly the content you want there.
+ *   --demo     additionally creates three accounts with a password that is
+ *              written in this file, plus a set assigned to the demo student.
+ *              Local only. Running this against a public deployment hands
+ *              anyone who can read this repository an admin login.
+ */
 const RESET = process.argv.includes('--reset')
+const WITH_DEMO = process.argv.includes('--demo')
 
 const DEMO = [
   { email: 'teacher@vocamap.local', name: '과외 선생님', role: 'teacher' as const },
@@ -24,6 +34,28 @@ const DEMO = [
   { email: 'admin@vocamap.local', name: '관리자', role: 'admin' as const },
 ]
 const DEMO_PASSWORD = 'vocamap1234'
+
+/**
+ * A deployment reachable from the internet must never carry the demo accounts.
+ * The check is deliberately crude and errs towards refusing: a local database
+ * is one on localhost, everything else is treated as real.
+ */
+function assertLocalDatabase(): void {
+  const url = process.env.DATABASE_URL ?? ''
+  const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url)
+  if (isLocal) return
+  throw new Error(
+    [
+      'Refusing to create demo accounts against a non-local database.',
+      '',
+      `  DATABASE_URL points at: ${url.replace(/:[^:@/]*@/, ':***@') || '(unset)'}`,
+      '',
+      'The demo accounts share a password that is committed to this repository,',
+      'and one of them is an admin. Run `pnpm db:seed` (without --demo) to seed',
+      'vocabulary and Brain Maps only, then create your own account by signing up.',
+    ].join('\n'),
+  )
+}
 
 async function resetSeed() {
   const seeded = await db
@@ -36,14 +68,13 @@ async function resetSeed() {
   }
   await db.delete(vocabularySets).where(eq(vocabularySets.isSeed, true))
   await db.delete(users).where(inArray(users.email, DEMO.map((d) => d.email)))
-  console.log(`✓ removed ${seeded.length} seed words and their demo users`)
+  console.log(`✓ removed ${seeded.length} seed words${WITH_DEMO ? ' and the demo users' : ''}`)
 }
 
-async function main() {
-  if (RESET) await resetSeed()
-
+async function createDemoUsers(): Promise<Map<string, string>> {
   const passwordHash = await hashPassword(DEMO_PASSWORD)
   const accounts = new Map<string, string>()
+
   for (const person of DEMO) {
     const [row] = await db
       .insert(users)
@@ -64,9 +95,18 @@ async function main() {
     accounts.set(person.role, id)
   }
 
-  const teacherId = accounts.get('teacher')!
-  const studentId = accounts.get('student')!
-  await linkStudent(teacherId, studentId)
+  return accounts
+}
+
+async function main() {
+  if (WITH_DEMO) assertLocalDatabase()
+  if (RESET) await resetSeed()
+
+  const accounts = WITH_DEMO ? await createDemoUsers() : new Map<string, string>()
+  const teacherId = accounts.get('teacher') ?? null
+  const studentId = accounts.get('student') ?? null
+
+  if (teacherId && studentId) await linkStudent(teacherId, studentId)
 
   const vocabularyIds: string[] = []
   let mapsWritten = 0
@@ -100,7 +140,17 @@ async function main() {
   }
 
   // Seed pairs are curated, so they ship approved alongside their maps.
-  await db.update(wordPairs).set({ status: 'approved', approvedBy: teacherId, approvedAt: new Date() })
+  await db
+    .update(wordPairs)
+    .set({ status: 'approved', approvedBy: teacherId, approvedAt: new Date() })
+
+  console.log(`✓ ${vocabularyIds.length} words, ${mapsWritten} approved brain maps`)
+
+  if (!teacherId || !studentId) {
+    console.log('✓ no demo accounts created — sign up in the app to make yours')
+    console.log('  (local testing: pnpm db:seed:demo)')
+    process.exit(0)
+  }
 
   const [existingSet] = await db
     .select({ id: vocabularySets.id })
@@ -120,19 +170,12 @@ async function main() {
   await addToSet(setId, vocabularyIds)
   await assignSet({ setId, studentId, assignedBy: teacherId })
 
-  const [{ count: setSize } = { count: 0 }] = await db
-    .select({ count: vocabularySetItems.vocabularyId })
-    .from(vocabularySetItems)
-    .where(eq(vocabularySetItems.setId, setId))
-    .then((rows) => [{ count: rows.length }])
-
-  console.log(`✓ ${vocabularyIds.length} words, ${mapsWritten} approved brain maps, set of ${setSize}`)
   console.log(`✓ demo logins (password: ${DEMO_PASSWORD})`)
   for (const person of DEMO) console.log(`    ${person.role.padEnd(7)} ${person.email}`)
   process.exit(0)
 }
 
 main().catch((error) => {
-  console.error(error)
+  console.error(error instanceof Error ? error.message : error)
   process.exit(1)
 })

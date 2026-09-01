@@ -57,8 +57,13 @@ Neon 무료 tier면 충분하고, DNS와 CDN은 Cloudflare로 통일됩니다.
 
 ```bash
 DATABASE_URL_UNPOOLED="<direct URL>" pnpm db:migrate
-DATABASE_URL="<pooled URL>" pnpm db:seed   # 선택
+DATABASE_URL="<pooled URL>" pnpm db:seed        # 예시 단어 + Brain Map (선택)
 ```
+
+`db:seed` 는 단어와 Brain Map만 넣습니다. **`db:seed:demo` 는 절대 쓰지 마세요** —
+비밀번호가 저장소에 적힌 계정 3개(admin 포함)를 만듭니다. localhost가 아니면
+거부하도록 막아 두었지만, 애초에 쓸 일이 없습니다. 본인 계정은 배포된 사이트에서
+회원가입으로 만드세요.
 
 ### 3-3. Secret 등록
 

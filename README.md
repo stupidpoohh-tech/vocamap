@@ -18,11 +18,11 @@ ENCOUNTER → RECALL → RETENTION → 어려운/중요 단어 감지
 pnpm install
 cp .env.example .env      # DATABASE_URL, AUTH_SECRET 채우기
 pnpm db:migrate
-pnpm db:seed
+pnpm db:seed:demo          # 로컬 전용 — 예시 단어 + 데모 계정
 pnpm dev
 ```
 
-Seed 계정 (비밀번호 `vocamap1234`):
+데모 계정 (비밀번호 `vocamap1234`, **로컬 전용**):
 
 | 역할 | 이메일 |
 | --- | --- |
@@ -33,6 +33,11 @@ Seed 계정 (비밀번호 `vocamap1234`):
 `pnpm db:reset-seed` 로 seed 데이터만 지우고 다시 넣을 수 있다. seed 단어는
 `is_seed = true` 로 표시되므로 실제 콘텐츠와 섞이지 않는다.
 
+> **`db:seed` 와 `db:seed:demo` 는 다르다.**
+> `db:seed` 는 단어와 Brain Map만 넣는다 — 프로덕션에 그대로 써도 되는 내용이다.
+> `db:seed:demo` 는 여기에 **비밀번호가 저장소에 적혀 있는 계정 3개**(admin 포함)를
+> 추가한다. localhost가 아닌 DB를 가리키면 실행을 거부한다.
+
 ## 스크립트
 
 | 명령 | 하는 일 |
@@ -42,8 +47,9 @@ Seed 계정 (비밀번호 `vocamap1234`):
 | `pnpm test` | 테스트 (DB 테스트는 `TEST_DATABASE_URL` 필요) |
 | `pnpm db:generate` | schema 변경 → migration 파일 생성 |
 | `pnpm db:migrate` | migration 적용 |
-| `pnpm db:seed` | seed 데이터 삽입 |
-| `pnpm db:reset-seed` | seed 데이터 삭제 후 재삽입 |
+| `pnpm db:seed` | 단어 + Brain Map 삽입 (프로덕션 안전) |
+| `pnpm db:seed:demo` | 위 + 데모 계정 (localhost 전용) |
+| `pnpm db:reset-seed` | seed 데이터 삭제 후 재삽입 (localhost 전용) |
 | `pnpm cf:preview` | 로컬 workerd에서 실행 (배포 전 확인용) |
 | `pnpm cf:deploy` | Cloudflare Workers 배포 |
 | `pnpm cf:size` | Worker 번들 크기 확인 |
