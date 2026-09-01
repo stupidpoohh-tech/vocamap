@@ -53,6 +53,7 @@ pnpm dev
 | `pnpm cf:preview` | 로컬 workerd에서 실행 (배포 전 확인용) |
 | `pnpm cf:deploy` | Cloudflare Workers 배포 |
 | `pnpm cf:size` | Worker 번들 크기 확인 |
+| `pnpm db:export-sql` | `db/setup.sql` 재생성 (스키마 변경 후) |
 
 ## 환경 변수
 
@@ -78,6 +79,10 @@ Supabase 대신 **Neon**(무료 serverless Postgres)을 쓴다. 이유와 그로
 ## 배포
 
 **Cloudflare Workers** + Neon Postgres. workerd에서 전 기능 동작을 확인했다.
+
+터미널 없이 배포하려면 [`docs/DEPLOY.md`](docs/DEPLOY.md) §3을 따른다 —
+`db/setup.sql` 을 Neon SQL Editor에 붙여넣고, Cloudflare 대시보드에서 GitHub
+저장소를 연결하면 끝난다.
 
 ```bash
 cp .dev.vars.example .dev.vars   # 값 채우기

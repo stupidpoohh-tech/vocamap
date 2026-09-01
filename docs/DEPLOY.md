@@ -42,61 +42,109 @@ Neon 무료 tier면 충분하고, DNS와 CDN은 Cloudflare로 통일됩니다.
 
 번들 크기는 1.21 MiB라 무료 한도 3 MiB 안에 들어옵니다. 여기는 문제가 아닙니다.
 
-## 3. 배포 절차
+## 3. 배포 절차 (터미널 없이)
 
-### 3-1. Neon
+전부 브라우저 화면에서 됩니다.
 
-1. [neon.tech](https://neon.tech) 프로젝트 생성
-2. **Pooled connection** 문자열 복사 → `DATABASE_URL`
-3. **Direct connection** 문자열 복사 → migration용
+### 3-1. Neon 프로젝트 만들기
 
-### 3-2. 스키마 적용
+1. [neon.tech](https://neon.tech) 로그인
+2. **Create project**
+3. Name `vocamap`, Region **AWS Asia Pacific (Tokyo)**
+4. **Create**
 
-로컬에서 한 번 실행합니다. 빌드 단계에 넣지 않습니다 — 스키마 변경을 배포 사고로
-만들지 않기 위해서입니다.
+생성 직후 연결 문자열 화면에서 **두 개**를 각각 복사해 둡니다.
+
+- **Pooled connection** — 주소에 `-pooler` 가 있음 → 앱이 쓸 주소
+- **Direct connection** — `-pooler` 없음 → 지금은 안 쓰지만 나중에 필요
+
+### 3-2. 스키마와 예시 데이터 넣기
+
+저장소의 **`db/setup.sql`** 파일 하나면 됩니다. 테이블·인덱스·제약조건 전부와
+예시 단어 10개(Brain Map 3개 포함)가 들어 있고, **계정과 비밀번호는 들어 있지
+않습니다.**
+
+1. Neon 왼쪽 메뉴 **SQL Editor**
+2. `db/setup.sql` 내용 전체를 붙여넣기
+3. **Run**
+
+빈 데이터베이스에 **한 번만** 실행합니다.
+
+이 파일은 손으로 쓴 게 아니라 실제 migration과 seed 스크립트로부터
+`pnpm db:export-sql` 로 생성됩니다. 스키마를 바꾸면 다시 생성해야 합니다.
+
+### 3-3. Cloudflare 유료 전환
+
+1. [dash.cloudflare.com](https://dash.cloudflare.com) 로그인
+2. 왼쪽 **Compute (Workers)** → **Plans**
+3. **Workers Paid** 선택 → 결제
+
+§2의 이유로 필수입니다.
+
+### 3-4. GitHub 저장소 연결해서 배포
+
+1. 왼쪽 **Compute (Workers)** → **Create**
+2. **Import a repository** 탭
+3. GitHub 계정 연결 → `stupidpoohh-tech/vocamap` 선택
+4. 빌드 설정:
+
+   | 항목 | 값 |
+   | --- | --- |
+   | Build command | `pnpm cf:build` |
+   | Deploy command | `npx wrangler deploy` |
+
+5. **Create and deploy**
+
+배포되면 `https://vocamap.<계정>.workers.dev` 주소가 나옵니다. 아직 DB 주소를 안
+줬으므로 접속하면 에러가 납니다 — 정상입니다.
+
+Node 버전은 `.node-version` 파일로 고정되어 있어 따로 설정하지 않아도 됩니다.
+
+### 3-5. 비밀값 넣기
+
+1. **Compute (Workers)** → `vocamap` 선택
+2. **Settings** 탭 → **Variables and Secrets**
+3. **Add** → Type **Secret** → 아래 3개를 하나씩
+
+   | Variable name | Value |
+   | --- | --- |
+   | `DATABASE_URL` | Neon **Pooled** 주소 |
+   | `AUTH_SECRET` | 무작위 문자열 48자 이상 |
+   | `ANTHROPIC_API_KEY` | Anthropic 키 (없으면 생략 가능) |
+
+4. **Deploy**
+
+`ANTHROPIC_API_KEY` 를 생략하면 AI 초안 생성만 안 되고 나머지는 전부 동작합니다.
+
+### 3-6. 확인
+
+3-4에서 받은 주소로 접속 → 로그인 화면이 뜨면 완료입니다.
+
+첫 사용자는 화면에서 **회원가입** 으로 직접 만듭니다. 배포된 DB에는 계정이
+하나도 없는 상태이므로, 먼저 가입하는 사람이 본인 계정이 됩니다.
+
+### 3-7. 이후 코드 변경
+
+기본 브랜치에 push 되면 Cloudflare가 자동으로 다시 빌드·배포합니다. 비밀값은 다시
+넣지 않아도 됩니다.
+
+## 3-B. 터미널을 쓰는 경우
+
+CLI가 편하다면 위 3-2·3-4·3-5 대신:
 
 ```bash
 DATABASE_URL_UNPOOLED="<direct URL>" pnpm db:migrate
-DATABASE_URL="<pooled URL>" pnpm db:seed        # 예시 단어 + Brain Map (선택)
+DATABASE_URL="<pooled URL>" pnpm db:seed
+npx wrangler login
+pnpm cf:deploy
+npx wrangler secret put DATABASE_URL
+npx wrangler secret put AUTH_SECRET
+npx wrangler secret put ANTHROPIC_API_KEY
 ```
 
 `db:seed` 는 단어와 Brain Map만 넣습니다. **`db:seed:demo` 는 절대 쓰지 마세요** —
 비밀번호가 저장소에 적힌 계정 3개(admin 포함)를 만듭니다. localhost가 아니면
-거부하도록 막아 두었지만, 애초에 쓸 일이 없습니다. 본인 계정은 배포된 사이트에서
-회원가입으로 만드세요.
-
-### 3-3. Secret 등록
-
-```bash
-npx wrangler secret put DATABASE_URL
-npx wrangler secret put AUTH_SECRET        # openssl rand -base64 48
-npx wrangler secret put ANTHROPIC_API_KEY
-```
-
-`LLM_PROVIDER` / `LLM_MODEL` 처럼 비밀이 아닌 값은 `wrangler.jsonc` 의 `vars` 에
-두면 됩니다.
-
-### 3-4. 배포
-
-```bash
-pnpm cf:deploy
-```
-
-### 3-5. 로컬에서 Worker로 확인
-
-```bash
-cp .dev.vars.example .dev.vars   # 값 채우기
-pnpm cf:preview
-```
-
-`pnpm dev`(Node)와 `pnpm cf:preview`(workerd)는 **런타임이 다릅니다.** 배포 전에는
-후자로 확인하세요. 아래 §4의 문제는 Node에서는 절대 재현되지 않습니다.
-
-크기 확인:
-
-```bash
-pnpm cf:size
-```
+거부하도록 막아 두었지만, 애초에 쓸 일이 없습니다.
 
 ## 4. Workers 때문에 바꾼 것
 
