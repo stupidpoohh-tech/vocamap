@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import {
@@ -17,7 +17,7 @@ import {
   type RetentionBand,
 } from '@/lib/learning/scheduler'
 import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
-import { collectWordSignals } from './study'
+import { collectWordSignals, isOutstandingRecommendation } from './study'
 
 export type DirectionState = {
   direction: Direction
@@ -198,20 +198,24 @@ export async function getBrainMapView(
   }
 }
 
+/**
+ * Records that the student opened this word's map. Always overwrites, so the
+ * column means "last opened" — `listRecommendedWords` compares it against the
+ * recommendation time, and a first-open timestamp from weeks ago would wrongly
+ * suppress every future recommendation for the word.
+ */
 export async function markBrainMapOpened(
   userId: string,
   vocabularyId: string,
   db: Db = defaultDb,
 ): Promise<void> {
+  const now = new Date()
   await db
     .insert(userVocabularyState)
-    .values({ userId, vocabularyId, brainMapOpenedAt: new Date() })
+    .values({ userId, vocabularyId, brainMapOpenedAt: now })
     .onConflictDoUpdate({
       target: [userVocabularyState.userId, userVocabularyState.vocabularyId],
-      set: {
-        brainMapOpenedAt: sql`coalesce(${userVocabularyState.brainMapOpenedAt}, now())`,
-        updatedAt: new Date(),
-      },
+      set: { brainMapOpenedAt: now, updatedAt: now },
     })
 }
 
@@ -235,13 +239,7 @@ export async function listRecommendedWords(
     })
     .from(userVocabularyState)
     .innerJoin(vocabularies, eq(vocabularies.id, userVocabularyState.vocabularyId))
-    .where(
-      and(
-        eq(userVocabularyState.userId, userId),
-        sql`${userVocabularyState.brainMapRecommendedAt} is not null`,
-        isNull(userVocabularyState.brainMapOpenedAt),
-      ),
-    )
+    .where(and(eq(userVocabularyState.userId, userId), isOutstandingRecommendation()))
     .orderBy(desc(userVocabularyState.brainMapRecommendedAt))
     .limit(limit)
 

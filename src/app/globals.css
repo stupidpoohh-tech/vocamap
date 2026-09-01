@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic',
+    sans-serif;
+
+  /* Ink and paper. Warm, low-contrast — this is read for long stretches. */
+  --color-paper: oklch(99% 0.004 90);
+  --color-surface: oklch(100% 0 0);
+  --color-line: oklch(91% 0.006 90);
+  --color-ink: oklch(24% 0.012 260);
+  --color-muted: oklch(52% 0.014 260);
+
+  /* Brand: a single confident indigo. */
+  --color-brand: oklch(52% 0.19 275);
+  --color-brand-soft: oklch(95% 0.03 275);
+
+  /* Node/answer state. Colour carries meaning here, never decoration. */
+  --color-good: oklch(58% 0.15 155);
+  --color-good-soft: oklch(95% 0.04 155);
+  --color-warn: oklch(70% 0.16 65);
+  --color-warn-soft: oklch(96% 0.05 65);
+  --color-bad: oklch(58% 0.19 25);
+  --color-bad-soft: oklch(96% 0.03 25);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* Room for the fixed bottom nav on mobile. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  ::selection {
+    background: var(--color-brand-soft);
+  }
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 1rem;
+  }
+  /* Used by the study screen so a wrong answer registers physically. */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .animate-shake {
+    animation: shake 0.32s ease-in-out;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-rise {
+    animation: rise 0.22s ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shake,
+  .animate-rise {
+    animation: none;
+  }
+}

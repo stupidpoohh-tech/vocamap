@@ -169,6 +169,52 @@ export class MockProvider implements LLMProvider {
   }
 }
 
+/* ──────────────────────────── Template (dev) ──────────────────────────── */
+
+/**
+ * Returned when `LLM_PROVIDER=mock`. Synthesises a schema-valid draft with no
+ * network call, so the whole draft → review → approve workflow can be walked
+ * locally without an API key or spend.
+ *
+ * The content is deliberately, visibly placeholder text. A reviewer who sees it
+ * in the queue must not be able to mistake it for real material and approve it.
+ */
+export class TemplateProvider implements LLMProvider {
+  readonly name = 'mock' as const
+  readonly model = 'template-dev'
+
+  async generateStructured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
+    const lemma = /Target word:\s*(\S+)/.exec(req.prompt)?.[1] ?? 'word'
+    const value = {
+      meaningCoreKo: `[예시 데이터] ${lemma}의 중심 의미가 여기에 들어갑니다.`,
+      meaningCoreEn: null,
+      primaryTranslations: [`[예시] ${lemma}의 뜻`],
+      meanings: [
+        {
+          ko: `[예시] ${lemma}의 첫 번째 용법`,
+          enDefinition: null,
+          connectionNote: '[예시] 이 뜻이 중심 의미에서 어떻게 나오는지 설명이 들어갑니다.',
+          exampleChunk: null,
+        },
+      ],
+      sentences: [
+        {
+          text: `This is a placeholder sentence using ${lemma}.`,
+          ko: '[예시] 자리표시용 문장입니다.',
+          targetMeaning: '[예시] 기본 용법',
+          highlight: lemma,
+          difficulty: 2,
+        },
+      ],
+      collocations: [],
+      wordFamily: [],
+      similarWords: [],
+    }
+    const raw = JSON.stringify(value)
+    return { data: parseOrThrow(req.schema, value, raw), raw, provider: this.name, model: this.model }
+  }
+}
+
 /* ─────────────────────────────── factory ─────────────────────────────── */
 
 function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown, raw: string): T {
@@ -199,7 +245,7 @@ export function getLLMProvider(): LLMProvider {
     case 'openai':
       return new OpenAIProvider(model)
     case 'mock':
-      return new MockProvider()
+      return new TemplateProvider()
     default:
       throw new LLMError(`Unknown LLM_PROVIDER "${name}"`)
   }

@@ -1,0 +1,57 @@
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { getActor } from '@/lib/auth/session'
+import { signOut } from '@/app/login/actions'
+
+/**
+ * Bottom navigation on mobile, a slim top bar on desktop. Four destinations
+ * only — the student's job here is to study, not to navigate.
+ */
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const actor = await getActor()
+  if (!actor) redirect('/login')
+
+  const links = [
+    { href: '/study', label: '학습', icon: '◎' },
+    { href: '/words', label: '단어', icon: '⌕' },
+    ...(actor.role === 'student' ? [] : [{ href: '/teacher', label: '교사', icon: '☰' }]),
+    ...(actor.role === 'admin' ? [{ href: '/admin', label: '검수', icon: '✓' }] : []),
+  ]
+
+  return (
+    <div className="min-h-dvh">
+      <header className="sticky top-0 z-20 border-b border-line bg-paper/85 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
+          <Link href="/study" className="text-sm font-bold tracking-wide text-brand">
+            VOCA BRAIN MAP
+          </Link>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm text-muted sm:inline">{actor.displayName}</span>
+            <form action={signOut}>
+              <button className="text-sm text-muted hover:text-ink">로그아웃</button>
+            </form>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-5 pb-28 pt-6">{children}</main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper/95 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex flex-1 flex-col items-center gap-0.5 py-3 text-xs font-medium text-muted hover:text-brand"
+            >
+              <span aria-hidden className="text-base leading-none">
+                {link.icon}
+              </span>
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+    </div>
+  )
+}

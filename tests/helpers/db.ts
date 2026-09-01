@@ -2,10 +2,26 @@ import { sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 
-export const hasDatabase = Boolean(process.env.DATABASE_URL)
+export const hasDatabase = Boolean(process.env.TEST_DATABASE_URL)
 
-/** Wipes every table. Only ever called against the test database. */
+/**
+ * Wipes every table.
+ *
+ * Guarded twice over, because getting this wrong destroys a developer's local
+ * seed data: `tests/setup.ts` only ever exposes `TEST_DATABASE_URL`, and this
+ * refuses to run unless the target database name marks itself as a test
+ * database. Name your test database `vocamap_test` (or anything containing
+ * "test").
+ */
 export async function resetDatabase(): Promise<void> {
+  const url = process.env.TEST_DATABASE_URL ?? ''
+  const database = url.split('/').pop()?.split('?')[0] ?? ''
+  if (!/test/i.test(database)) {
+    throw new Error(
+      `Refusing to truncate "${database}": TEST_DATABASE_URL must name a test database.`,
+    )
+  }
+
   await db.execute(sql`
     truncate table
       review_events, learning_events, brain_map_node_progress, user_confusions,

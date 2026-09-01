@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import {
@@ -169,13 +169,7 @@ export async function getTodaySummary(
   const [recommended] = await db
     .select({ value: count() })
     .from(userVocabularyState)
-    .where(
-      and(
-        eq(userVocabularyState.userId, userId),
-        sql`${userVocabularyState.brainMapRecommendedAt} is not null`,
-        isNull(userVocabularyState.brainMapOpenedAt),
-      ),
-    )
+    .where(and(eq(userVocabularyState.userId, userId), isOutstandingRecommendation()))
 
   return {
     dueCount: queue.filter((q) => !q.isNew && q.dueAt.getTime() <= now.getTime()).length,
@@ -185,6 +179,19 @@ export async function getTodaySummary(
 }
 
 /* ─────────────────────────── recording answers ─────────────────────────── */
+
+/**
+ * A recommendation is outstanding until the student opens the map *after* it
+ * was made. Browsing a word before it was ever recommended must not silence the
+ * recommendation that follows.
+ */
+export function isOutstandingRecommendation() {
+  return sql`${userVocabularyState.brainMapRecommendedAt} is not null
+    and (
+      ${userVocabularyState.brainMapOpenedAt} is null
+      or ${userVocabularyState.brainMapOpenedAt} < ${userVocabularyState.brainMapRecommendedAt}
+    )`
+}
 
 export type RecallAnswer = {
   userId: string

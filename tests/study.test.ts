@@ -11,7 +11,11 @@ import {
   recordNodeAnswer,
   recordRecallAnswer,
 } from '@/lib/data/study'
-import { getPersonalBrainMap, listRecommendedWords } from '@/lib/data/personal'
+import {
+  getPersonalBrainMap,
+  listRecommendedWords,
+  markBrainMapOpened,
+} from '@/lib/data/personal'
 import { createUser, hasDatabase, resetDatabase } from './helpers/db'
 
 async function scenario(words = ['maintain', 'affect', 'issue']) {
@@ -279,5 +283,49 @@ describe.skipIf(!hasDatabase)('personal state isolation', () => {
     expect(
       await db.select().from(userVocabularyState).where(eq(userVocabularyState.userId, other.id)),
     ).toHaveLength(0)
+  })
+})
+
+describe.skipIf(!hasDatabase)('recommendation lifecycle', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  it('keeps a recommendation outstanding when the map was browsed beforehand', async () => {
+    const { student, ids } = await scenario(['maintain'])
+
+    // The student browses the word first — out of curiosity, before anything
+    // has gone wrong with it.
+    await markBrainMapOpened(student.id, ids[0]!)
+    expect((await getTodaySummary(student.id)).recommendedCount).toBe(0)
+
+    // Only afterwards does a teacher flag it.
+    await markImportant({
+      userId: student.id,
+      vocabularyId: ids[0]!,
+      important: true,
+      reason: 'teacher_selected',
+      markedBy: student.id,
+    })
+
+    // The earlier visit must not swallow the new recommendation.
+    expect((await getTodaySummary(student.id)).recommendedCount).toBe(1)
+    expect((await listRecommendedWords(student.id)).map((r) => r.vocabularyId)).toContain(ids[0])
+  })
+
+  it('clears the recommendation once the student opens the map', async () => {
+    const { student, ids } = await scenario(['maintain'])
+    await markImportant({
+      userId: student.id,
+      vocabularyId: ids[0]!,
+      important: true,
+      reason: 'student_selected',
+      markedBy: student.id,
+    })
+    expect((await getTodaySummary(student.id)).recommendedCount).toBe(1)
+
+    await markBrainMapOpened(student.id, ids[0]!)
+    expect((await getTodaySummary(student.id)).recommendedCount).toBe(0)
+    expect(await listRecommendedWords(student.id)).toEqual([])
   })
 })
