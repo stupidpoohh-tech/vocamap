@@ -1,115 +1,128 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapLegend, RadialMap, type MapNode } from '@/components/brain-map/radial-map'
-import {
-  CollocationsPanel,
-  MeaningCorePanel,
-  SentencesPanel,
-  SimilarWordsPanel,
-  WordFamilyPanel,
-  type NodeAnswerHandler,
-} from '@/components/brain-map/node-panels'
-import { NODE_LABEL, type NodeType } from '@/lib/learning/nodes'
-import type { MasterBrainMap } from '@/lib/data/brain-map'
+import { MapLegend, SemanticMap } from '@/components/brain-map/semantic-map'
+import { Workspace, type WorkspaceAnswer } from '@/components/brain-map/workspace'
+import type { MapReason, SemanticNode } from '@/lib/data/semantic-map'
 import { answerNode, openBrainMap } from './actions'
 
+/**
+ * Map above, workspace below, on one page.
+ *
+ * Selecting a node never navigates: the map has to stay visible so the student
+ * can see which connection of the word they are working on right now.
+ */
 export function BrainMapExplorer({
-  master,
-  nodes,
   vocabularyId,
-  suggestedNodes,
+  lemma,
+  nodes: initialNodes,
+  reasons,
+  recommendedNodeId,
 }: {
-  master: MasterBrainMap
-  nodes: MapNode[]
   vocabularyId: string
-  suggestedNodes: NodeType[]
+  lemma: string
+  nodes: SemanticNode[]
+  reasons: MapReason[]
+  recommendedNodeId: string | null
 }) {
-  const [active, setActive] = useState<NodeType | null>(null)
-  const [liveNodes, setLiveNodes] = useState(nodes)
+  const [nodes, setNodes] = useState(initialNodes)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   // Opening the map is itself a signal — it tells us the recommendation landed.
   useEffect(() => {
     void openBrainMap(vocabularyId)
   }, [vocabularyId])
 
-  const firstSuggestion = suggestedNodes.find(
-    (n) => liveNodes.find((l) => l.node === n)?.status !== 'locked',
-  )
+  const selected = nodes.find((n) => n.id === selectedId) ?? null
+  const recommended = nodes.find((n) => n.id === recommendedNodeId) ?? null
 
-  const handleAnswer: NodeAnswerHandler = (input) => {
-    // Reflect the node's new state immediately, then persist.
-    void answerNode({ vocabularyId, ...input }).then((result) => {
-      setLiveNodes((prev) =>
+  const handleAnswer: WorkspaceAnswer = (input) => {
+    // Reflect the node's new state straight away, then persist.
+    void answerNode({
+      vocabularyId,
+      node: input.node.progressNode,
+      questionType: questionTypeFor(input.node.kind),
+      correct: input.correct,
+      responseTimeMs: input.responseTimeMs,
+      pairId: input.node.pairId,
+      payload: input.payload,
+    }).then(() => {
+      setNodes((prev) =>
         prev.map((n) =>
-          n.node === input.node ? { ...n, status: result.nodeStatus as MapNode['status'] } : n,
+          n.id === input.node.id
+            ? { ...n, status: input.correct ? 'learning' : 'weak' }
+            : n,
         ),
       )
     })
   }
 
   return (
-    <section className="mt-8">
-      <RadialMap
-        lemma={master.lemma}
-        nodes={liveNodes}
-        activeNode={active}
-        onSelect={(node) => setActive((current) => (current === node ? null : node))}
-      />
+    <div className="mt-6">
+      {reasons.length ? <ReasonStrip reasons={reasons} recommended={recommended} /> : null}
 
-      <div className="mt-2">
-        <MapLegend />
-      </div>
-
-      {active === null ? (
-        <p className="mt-6 text-center text-sm text-muted">
-          {firstSuggestion ? (
-            <>
-              <span className="font-medium text-ink">{NODE_LABEL[firstSuggestion]}</span>
-              부터 열어보는 걸 추천해요.
-            </>
-          ) : (
-            '노드를 눌러 학습을 시작하세요.'
-          )}
-        </p>
-      ) : (
-        <div className="mt-6 animate-rise">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-bold">{NODE_LABEL[active]}</h2>
-            <button
-              onClick={() => setActive(null)}
-              className="text-sm text-muted hover:text-ink"
-              aria-label="닫기"
-            >
-              닫기 ✕
-            </button>
-          </div>
-          <NodeContent node={active} master={master} onAnswer={handleAnswer} />
+      <section className="mt-6">
+        <SemanticMap
+          lemma={lemma}
+          nodes={nodes}
+          selectedId={selectedId}
+          onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
+        />
+        <div className="mt-4 sm:mt-2">
+          <MapLegend />
         </div>
-      )}
+      </section>
+
+      <div className="mt-8">
+        <Workspace node={selected} onAnswer={handleAnswer} />
+      </div>
+    </div>
+  )
+}
+
+function ReasonStrip({
+  reasons,
+  recommended,
+}: {
+  reasons: MapReason[]
+  recommended: SemanticNode | null
+}) {
+  return (
+    <section className="border-y border-line py-3.5">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+        이 단어가 맵으로 펼쳐진 이유
+      </p>
+      <ul className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        {reasons.map((reason) => (
+          <li key={reason.text} className="flex items-center gap-1.5 text-sm break-keep">
+            <span
+              aria-hidden
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                reason.tone === 'warn' ? 'bg-warn' : 'bg-line'
+              }`}
+            />
+            <span className={reason.tone === 'warn' ? '' : 'text-muted'}>{reason.text}</span>
+          </li>
+        ))}
+      </ul>
+      {recommended ? (
+        <p className="mt-2 text-sm text-muted break-keep">
+          추천 시작 · <span className="font-semibold text-ink">{recommended.label}</span>
+        </p>
+      ) : null}
     </section>
   )
 }
 
-function NodeContent({
-  node,
-  master,
-  onAnswer,
-}: {
-  node: NodeType
-  master: MasterBrainMap
-  onAnswer: NodeAnswerHandler
-}) {
-  switch (node) {
-    case 'meaning_core':
-      return <MeaningCorePanel map={master} />
-    case 'sentences':
-      return <SentencesPanel map={master} onAnswer={onAnswer} />
-    case 'similar_words':
-      return <SimilarWordsPanel map={master} onAnswer={onAnswer} />
-    case 'collocations':
-      return <CollocationsPanel map={master} onAnswer={onAnswer} />
-    case 'word_family':
-      return <WordFamilyPanel map={master} onAnswer={onAnswer} />
+function questionTypeFor(kind: SemanticNode['kind']) {
+  switch (kind) {
+    case 'confusable':
+      return 'similar_battle' as const
+    case 'collocation':
+      return 'collocation_cloze' as const
+    case 'wordFamily':
+      return 'word_family_cloze' as const
+    default:
+      return 'sentence_translation' as const
   }
 }

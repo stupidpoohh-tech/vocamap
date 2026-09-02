@@ -1,87 +1,101 @@
-import { NODE_ANGLE, NODE_SHORT, type NodeType } from '@/lib/learning/nodes'
+import { layoutNodes } from '@/lib/learning/map-layout'
 
 /**
- * A non-interactive Brain Map, for the landing page.
+ * A non-interactive Brain Map for the landing page.
  *
- * Shares its geometry with the real map so the picture a visitor sees is the
- * screen they will actually get. Rendered as plain elements rather than the
- * live component on purpose: buttons that look pressable but do nothing are
- * worse than a picture.
+ * Shares the layout engine with the real map, so the picture a visitor sees is
+ * the screen they will get — including that the nodes carry real vocabulary
+ * rather than category names. Rendered as plain elements on purpose: buttons
+ * that look pressable but do nothing are worse than a picture.
  */
 
-type Tone = 'idle' | 'active' | 'weak' | 'done'
-
-const TONE: Record<Tone, { chip: string; dot: string }> = {
-  idle: { chip: 'border-line bg-surface text-muted', dot: 'bg-line' },
-  active: { chip: 'border-brand/40 bg-surface text-ink', dot: 'bg-brand' },
-  weak: { chip: 'border-bad/50 bg-bad-soft text-bad', dot: 'bg-bad' },
-  done: { chip: 'border-good/50 bg-good-soft text-good', dot: 'bg-good' },
+type Demo = {
+  id: string
+  eyebrow: string
+  label: string
+  importance: number
+  tone: 'idle' | 'active' | 'weak' | 'done'
 }
 
-// Chosen to show the colour language in one glance: something mastered,
-// something struggling, something not started.
-const DEMO: Record<NodeType, Tone> = {
-  meaning_core: 'done',
-  sentences: 'active',
-  similar_words: 'weak',
-  collocations: 'active',
-  word_family: 'idle',
+// Chosen to show the whole language in one glance: what matters, what is
+// shaky, and what has not been met yet.
+const DEMO: Demo[] = [
+  { id: 'vs-keep', eyebrow: '자주 헷갈림', label: 'maintain vs keep', importance: 1, tone: 'weak' },
+  { id: 'core', eyebrow: '핵심 의미', label: '유지하다', importance: 0.95, tone: 'done' },
+  { id: 'quality', eyebrow: '함께 쓰는 표현', label: 'maintain quality', importance: 0.82, tone: 'active' },
+  { id: 'order', eyebrow: '함께 쓰는 표현', label: 'maintain order', importance: 0.66, tone: 'active' },
+  { id: 'machine', eyebrow: '확장 의미', label: 'maintain a machine', importance: 0.5, tone: 'idle' },
+  { id: 'maintenance', eyebrow: '파생어', label: 'maintenance', importance: 0.44, tone: 'idle' },
+]
+
+const TONE: Record<Demo['tone'], string> = {
+  idle: 'bg-line',
+  active: 'bg-brand',
+  weak: 'bg-bad',
+  done: 'bg-good',
 }
+
+const SIZE = {
+  hero: 'w-[11rem] px-3 py-2',
+  primary: 'w-[10rem] px-3 py-2',
+  secondary: 'w-[9rem] px-2.5 py-1.5',
+  peripheral: 'w-[8rem] px-2.5 py-1.5',
+} as const
 
 export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
-  const nodes = Object.keys(DEMO) as NodeType[]
+  const placed = layoutNodes(DEMO.map((d) => ({ id: d.id, importance: d.importance })))
 
   return (
     <div
-      className="relative mx-auto aspect-square w-full max-w-[21rem]"
+      className="relative aspect-[16/12] w-full"
       role="img"
-      aria-label={`${lemma} 단어의 Brain Map 예시 — 핵심 의미, 예문, 비슷한 단어, 함께 쓰는 표현, 파생어 다섯 갈래`}
+      aria-label={`${lemma}의 Brain Map 예시 — 핵심 의미, 헷갈리는 단어, 함께 쓰는 표현, 파생어가 연결되어 있습니다`}
     >
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden>
-        {nodes.map((node) => {
-          const rad = (NODE_ANGLE[node] * Math.PI) / 180
-          return (
-            <line
-              key={node}
-              x1={50}
-              y1={50}
-              x2={50 + Math.cos(rad) * 34}
-              y2={50 + Math.sin(rad) * 34}
-              stroke="currentColor"
-              strokeWidth={DEMO[node] === 'idle' ? 0.4 : 0.8}
-              className={DEMO[node] === 'idle' ? 'text-line' : 'text-brand/35'}
-            />
-          )
-        })}
+        {placed.map((p) => (
+          <line
+            key={p.id}
+            x1={50}
+            y1={50}
+            x2={p.x}
+            y2={p.y}
+            stroke="currentColor"
+            strokeWidth={p.strokeWidth}
+            strokeOpacity={p.strokeOpacity}
+            className="text-brand/70"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
       </svg>
 
-      <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
-        <div className="flex h-26 w-26 items-center justify-center rounded-full border-2 border-brand bg-brand text-center shadow-lg shadow-brand/20">
-          <span
-            className={`px-2 font-bold uppercase leading-tight tracking-wide text-white ${
-              lemma.length <= 8 ? 'text-sm' : 'text-xs'
-            }`}
-          >
-            {lemma}
-          </span>
-        </div>
+      <div className="absolute left-1/2 top-1/2 z-10 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-brand bg-brand text-center shadow-sm shadow-brand/20">
+        <span className="px-2 text-sm font-semibold lowercase tracking-tight text-white">
+          {lemma}
+        </span>
       </div>
 
-      {nodes.map((node) => {
-        const rad = (NODE_ANGLE[node] * Math.PI) / 180
-        const tone = TONE[DEMO[node]]
+      {placed.map((p) => {
+        const node = DEMO.find((d) => d.id === p.id)!
         return (
           <div
-            key={node}
+            key={p.id}
             aria-hidden
-            className={`absolute z-10 flex w-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 rounded-2xl border px-2 py-2.5 text-center ${tone.chip}`}
-            style={{
-              left: `${50 + Math.cos(rad) * 38}%`,
-              top: `${50 + Math.sin(rad) * 38}%`,
-            }}
+            className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface text-left ${SIZE[p.tier]}`}
+            style={{ left: `${p.x}%`, top: `${p.y}%` }}
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
-            <span className="text-[11px] font-semibold leading-tight">{NODE_SHORT[node]}</span>
+            <span className="block truncate text-[10px] font-medium uppercase tracking-wide text-muted">
+              {node.eyebrow}
+            </span>
+            <span
+              className={`mt-0.5 block font-semibold break-keep ${
+                p.tier === 'hero' ? 'text-[13px]' : 'text-[12px]'
+              }`}
+            >
+              {node.label}
+            </span>
+            <span className="mt-1 flex items-center gap-1.5">
+              <span className={`h-1.5 w-1.5 rounded-full ${TONE[node.tone]}`} />
+            </span>
           </div>
         )
       })}
