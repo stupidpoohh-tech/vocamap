@@ -35,6 +35,18 @@ export interface LLMProvider {
   generateStructured<T>(request: StructuredRequest<T>): Promise<StructuredResult<T>>
 }
 
+/**
+ * Cost/quality dial for generation, from `LLM_EFFORT`.
+ *
+ * Brain Map generation is a bounded task with a strict schema and validation
+ * behind it, so the default sits below the API's own default of `high`. Raise
+ * it if drafts start needing heavy editing.
+ */
+function effort(): string | undefined {
+  const value = process.env.LLM_EFFORT ?? 'medium'
+  return value === 'default' ? undefined : value
+}
+
 function assertServer(): void {
   if (typeof window !== 'undefined') {
     throw new LLMError('LLM providers must never be called from the browser.')
@@ -79,9 +91,19 @@ class AnthropicProvider implements LLMProvider {
       body: JSON.stringify({
         model: this.model,
         max_tokens: req.maxTokens ?? 4096,
-        system: req.system,
+        // Tools and system are byte-identical on every generation, and together
+        // run past the minimum cacheable prefix, so a breakpoint on the system
+        // block lets both be read back at a tenth of the input price. Only the
+        // per-word user message varies, and it sits after the breakpoint.
+        system: [
+          { type: 'text', text: req.system, cache_control: { type: 'ephemeral' } },
+        ],
         tools: [tool],
         tool_choice: { type: 'tool', name: req.schemaName },
+        // Thinking tokens bill as output and dominate the cost of a generation,
+        // so effort is the dial that actually moves the bill. Sent only when
+        // configured, because older models reject the field outright.
+        ...(effort() ? { output_config: { effort: effort() } } : {}),
         messages: [{ role: 'user', content: req.prompt }],
       }),
     })
@@ -238,7 +260,7 @@ export function setLLMProvider(provider: LLMProvider | null): void {
 export function getLLMProvider(): LLMProvider {
   if (override) return override
   const name = (process.env.LLM_PROVIDER ?? 'anthropic') as ProviderName
-  const model = process.env.LLM_MODEL ?? 'claude-sonnet-4-5'
+  const model = process.env.LLM_MODEL ?? 'claude-opus-5'
   switch (name) {
     case 'anthropic':
       return new AnthropicProvider(model)

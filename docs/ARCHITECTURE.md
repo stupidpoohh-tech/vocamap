@@ -146,6 +146,23 @@ AI = Creator   →   Teacher/Admin = Curator   →   Student = Learner
 `prompt_version` 과 `generated_by_model` 을 모든 Map에 남기므로, 나중에 품질 문제가
 생기면 어느 프롬프트가 만든 것인지 추적하고 선별 재생성할 수 있다.
 
+### 비용
+
+실측: 입력 약 1,600 토큰(system 406 + 프롬프트 61 + tool schema 1,136), 출력 본문
+약 1,160 토큰. **비용을 지배하는 것은 thinking 토큰**이다 — 출력으로 과금되고,
+effort 설정에 따라 수 배로 움직인다.
+
+`LLM_EFFORT` 가 그 조절 손잡이다. API 기본값은 `high` 이지만, Brain Map 생성은 스키마와
+검증이 뒤를 받치는 경계가 뚜렷한 작업이라 기본을 `medium` 으로 낮춰 두었다. 초안 품질이
+아쉬우면 올리면 된다.
+
+tool schema와 system 프롬프트는 매 호출 바이트 단위로 동일하고 합쳐서 최소 캐시
+프리픽스를 넘기므로, system 블록에 캐시 breakpoint를 두어 입력의 대부분을 1/10 가격에
+읽는다. 다만 출력이 비용을 지배하므로 절감폭은 10% 안팎이다.
+
+**한 단어당 한 번만 낸다.** 검수된 Map은 모든 학생이 공유하므로, 단어 수가 곧 총비용이고
+학생 수는 비용에 영향을 주지 않는다.
+
 ### 버전 관리
 
 `brain_map_revisions` 에 JSONB snapshot을 append한다. 자식 테이블 6개를 전부
