@@ -166,13 +166,37 @@ npx wrangler secret put ANTHROPIC_API_KEY
 
 배포된 주소에 **`/api/health`** 를 붙여 접속하면 DB 상태를 볼 수 있습니다.
 
-```
-정상  {"ok":true,"database":"ok","seededWords":12,"strippedParams":["channel_binding"]}
-장애  {"ok":false,"database":"error","code":"3D000","hint":"해당 이름의 데이터베이스가 없습니다."}
+```json
+{
+  "ok": false,
+  "code": "CONNECT_TIMEOUT",
+  "hint": "...",
+  "connectionString": {
+    "scheme": "ok",
+    "hostSuffix": "aws.neon.tech",
+    "pooled": true,
+    "sslmode": "require",
+    "strippedParams": ["channel_binding"],
+    "problems": []
+  }
+}
 ```
 
-`code` 별 의미는 응답의 `hint` 에 함께 나옵니다. 자격 증명이나 호스트 주소는 절대
-노출하지 않습니다.
+`connectionString` 은 **값을 노출하지 않고 형태만** 알려줍니다. 비밀번호, 전체
+호스트명, DB 이름은 절대 나오지 않습니다. `problems` 가 비어 있으면 붙여넣기는
+제대로 된 것이고, 원인은 다른 데 있습니다.
+
+`problems` 가 잡아내는 실수:
+
+- 값이 따옴표로 감싸여 있음
+- `psql` 명령 전체를 붙여넣음
+- 앞뒤 공백·줄바꿈
+- `postgresql://` 로 시작하지 않음
+- Neon 주소인데 `sslmode=require` 누락
+- Pooled 가 아닌 Direct 주소 사용
+
+앞의 셋은 앱이 접속할 때 자동으로 정리하므로 동작은 하지만, 시크릿을 고쳐 두는
+편이 낫습니다.
 
 더 자세한 로그는 Cloudflare 대시보드 → **Compute (Workers)** → `vocamap` →
 **Logs** 에서 볼 수 있습니다.
