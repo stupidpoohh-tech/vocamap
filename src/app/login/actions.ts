@@ -65,5 +65,7 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
 
 export async function signOut(): Promise<void> {
   await destroySession()
-  redirect('/login')
+  // Back to the landing page, not the login form: signing out should not look
+  // like an invitation to sign straight back in.
+  redirect('/')
 }

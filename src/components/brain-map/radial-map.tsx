@@ -1,6 +1,12 @@
 'use client'
 
-import { NODE_LABEL, NODE_SHORT, type NodeStatus, type NodeType } from '@/lib/learning/nodes'
+import {
+  NODE_ANGLE,
+  NODE_LABEL,
+  NODE_SHORT,
+  type NodeStatus,
+  type NodeType,
+} from '@/lib/learning/nodes'
 
 /**
  * The Brain Map.
@@ -14,14 +20,6 @@ import { NODE_LABEL, NODE_SHORT, type NodeStatus, type NodeType } from '@/lib/le
  * Colour is state, never decoration — a student can read their progress from
  * across the room without reading a word.
  */
-
-const ANGLES: Record<NodeType, number> = {
-  meaning_core: -90,
-  collocations: -18,
-  word_family: 54,
-  sentences: 126,
-  similar_words: 198,
-}
 
 const STATUS_STYLE: Record<NodeStatus, { dot: string; ring: string; text: string }> = {
   locked: { dot: 'bg-line', ring: 'border-line bg-surface', text: 'text-muted/60' },
@@ -49,7 +47,7 @@ export function RadialMap({
       {/* Spokes, drawn behind the nodes. */}
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden>
         {nodes.map((n) => {
-          const rad = (ANGLES[n.node] * Math.PI) / 180
+          const rad = (NODE_ANGLE[n.node] * Math.PI) / 180
           return (
             <line
               key={n.node}
@@ -80,7 +78,7 @@ export function RadialMap({
       </div>
 
       {nodes.map((n) => {
-        const rad = (ANGLES[n.node] * Math.PI) / 180
+        const rad = (NODE_ANGLE[n.node] * Math.PI) / 180
         const style = STATUS_STYLE[n.status]
         const disabled = n.status === 'locked'
 

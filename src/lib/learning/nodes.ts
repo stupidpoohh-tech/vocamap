@@ -34,3 +34,16 @@ export const NODE_STATUS_LABEL: Record<NodeStatus, string> = {
   weak: '약함',
   mastered: '완료',
 }
+
+/**
+ * Where each node sits on the Brain Map, in degrees (0° = right, clockwise).
+ * Shared so the interactive map and the landing page's illustration cannot
+ * drift into showing two different shapes for the same idea.
+ */
+export const NODE_ANGLE: Record<NodeType, number> = {
+  meaning_core: -90,
+  collocations: -18,
+  word_family: 54,
+  sentences: 126,
+  similar_words: 198,
+}

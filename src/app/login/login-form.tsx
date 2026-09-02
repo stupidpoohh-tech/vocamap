@@ -6,8 +6,12 @@ import { signIn, signUp, type AuthFormState } from './actions'
 
 const initial: AuthFormState = {}
 
-export function LoginForm() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+export function LoginForm({
+  initialMode = 'signin',
+}: {
+  initialMode?: 'signin' | 'signup'
+}) {
+  const [mode, setMode] = useState<'signin' | 'signup'>(initialMode)
   const action = mode === 'signin' ? signIn : signUp
   const [state, formAction, pending] = useActionState(action, initial)
 
