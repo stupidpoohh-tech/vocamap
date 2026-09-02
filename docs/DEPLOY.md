@@ -239,16 +239,28 @@ Hyperdrive는 Cloudflare 엣지 안에서 연결을 종단하고 풀링해 줍�
 
 ### 연결하기
 
-`wrangler.jsonc` 에 아래를 추가하면 됩니다(코드 변경이므로 대신 처리합니다).
+`wrangler.jsonc` 에 이미 연결되어 있습니다.
 
 ```jsonc
-"hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<복사한 ID>" }]
+"hyperdrive": [{ "binding": "HYPERDRIVE", "id": "..." }]
 ```
 
 `src/lib/db/index.ts` 는 이 바인딩이 있으면 우선 사용하고, 없으면 `DATABASE_URL` 로
-돌아갑니다. 따라서 로컬 개발과 Vercel 배포는 그대로 동작합니다.
+돌아갑니다. 따라서 Node 스크립트, 테스트, Vercel 배포는 그대로 동작합니다.
 
 적용되면 `/api/health` 의 `via` 가 `direct` 에서 `hyperdrive` 로 바뀝니다.
+
+### 로컬에서 `pnpm cf:preview` 를 쓸 때
+
+바인딩이 있으면 wrangler 가 로컬에서도 연결 대상을 알아야 합니다. 환경변수로
+로컬 DB를 지정하세요 — 저장소에 로컬 접속 정보를 넣지 않기 위해서입니다.
+
+```
+WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgresql://user:pw@localhost:5432/vocamap
+```
+
+DB를 다른 Neon 프로젝트로 옮기면, 새 연결 문자열을 **Hyperdrive 설정 쪽에서**
+바꿔야 합니다. `DATABASE_URL` 시크릿만 바꾸면 Worker 는 계속 예전 DB를 봅니다.
 
 > Hyperdrive가 주는 연결 문자열에는 `sslmode=disable` 이 들어 있습니다. postgres.js
 > 는 `ssl` 값이 truthy 이기만 하면 TLS를 켜므로 이 문자열은 오히려 TLS를 **켜서**

@@ -4,3 +4,9 @@ DATABASE_URL="postgresql://user:password@host/vocamap?sslmode=require"
 AUTH_SECRET="change-me-openssl-rand-base64-48"
 LLM_PROVIDER="mock"
 LLM_MODEL="mock"
+
+# Only needed when the Hyperdrive binding is present in wrangler.jsonc, which it
+# is. Wrangler needs a local database to stand in for Hyperdrive during
+# `pnpm cf:preview`; set it in your shell rather than here, since .dev.vars is
+# read by the Worker and this is read by wrangler itself:
+#   WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgresql://user:pw@localhost:5432/vocamap
