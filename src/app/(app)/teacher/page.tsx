@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireActor } from '@/lib/auth/session'
 import { listSets, listStudents } from '@/lib/data/teacher'
-import { Badge, Card, EmptyState, PageHeader } from '@/components/ui'
+import { Badge, EmptyState, PageHeader } from '@/components/ui'
 import { AddStudentForm, ImportWordsForm } from './forms'
 
 export default async function TeacherPage() {
@@ -51,7 +51,12 @@ export default async function TeacherPage() {
           <ul className="mb-3 flex flex-col gap-2">
             {sets.map((set) => (
               <li key={set.id}>
-                <Card className="flex items-center justify-between gap-4 px-5 py-4">
+                {/* Opens the word list filtered to this set — the way into a
+                    word, and from there into its Brain Map. */}
+                <Link
+                  href={`/words?set=${set.id}`}
+                  className="card flex items-center justify-between gap-4 px-5 py-4 transition hover:border-brand"
+                >
                   <div className="min-w-0">
                     <p className="font-semibold">{set.title}</p>
                     {set.description ? (
@@ -62,7 +67,7 @@ export default async function TeacherPage() {
                     {set.isSeed ? <Badge>예시</Badge> : null}
                     <Badge tone="brand">{set.wordCount}개</Badge>
                   </div>
-                </Card>
+                </Link>
               </li>
             ))}
           </ul>

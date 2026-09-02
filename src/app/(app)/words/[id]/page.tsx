@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireActor } from '@/lib/auth/session'
 import { getBrainMapView } from '@/lib/data/personal'
-import { Card } from '@/components/ui'
+import { Badge, Card } from '@/components/ui'
 import { RETENTION_BAND_LABEL } from '@/lib/learning/scheduler'
 import { relativeKo } from '@/lib/utils'
 import { BrainMapExplorer } from './brain-map-explorer'
@@ -66,6 +66,20 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
       {personal.recommendation.recommend && personal.recommendation.message ? (
         <div className="mt-4 rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
           {personal.recommendation.message}
+        </div>
+      ) : null}
+
+      {/* A curator needs to know whether what they are looking at is live, and
+          how to act on it. Without this a generated draft looks identical to an
+          approved map and the review step is invisible. */}
+      {isCurator && master ? (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+          <Badge tone={master.status === 'approved' ? 'good' : 'warn'}>
+            {master.status === 'approved' ? '학생에게 공개됨' : '검수 대기 — 학생에게 안 보임'}
+          </Badge>
+          <Link href={`/admin/${master.id}`} className="text-sm font-medium text-brand">
+            검수 화면에서 열기 →
+          </Link>
         </div>
       ) : null}
 

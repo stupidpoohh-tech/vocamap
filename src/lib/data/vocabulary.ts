@@ -1,7 +1,12 @@
 import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
-import { vocabularies, vocabularyTranslations } from '@/lib/db/schema'
+import {
+  brainMaps,
+  vocabularies,
+  vocabularySetItems,
+  vocabularyTranslations,
+} from '@/lib/db/schema'
 
 export type VocabularyInput = {
   lemma: string
@@ -202,4 +207,92 @@ export async function listVocabularySummaries(
     }
   }
   return [...byId.values()]
+}
+
+/* ─────────────────────── the curator's word list ─────────────────────── */
+
+export type BrainMapState = 'approved' | 'draft' | 'none'
+
+export type LibraryWord = VocabularySummary & { brainMapStatus: BrainMapState }
+
+/**
+ * The shared word library, as a teacher needs to see it: every word with the
+ * state of its Brain Map, worst first.
+ *
+ * Students read `assignments`; a teacher is not assigned anything, so showing
+ * them that same list leaves them staring at an empty page with no route into
+ * a word — which is where Brain Maps are made.
+ */
+export async function listLibraryWords(
+  opts: { setId?: string; limit?: number } = {},
+  db: Db = defaultDb,
+): Promise<LibraryWord[]> {
+  // Words with nothing yet are the ones needing attention, so they lead.
+  const rank = sql<number>`case
+    when ${brainMaps.status} is null then 0
+    when ${brainMaps.status} = 'approved' then 2
+    else 1
+  end`
+
+  const rows = await db
+    .select({
+      id: vocabularies.id,
+      lemma: vocabularies.lemma,
+      partOfSpeech: vocabularies.partOfSpeech,
+      level: vocabularies.level,
+      translation: vocabularyTranslations.text,
+      status: brainMaps.status,
+      rank,
+    })
+    .from(vocabularies)
+    .leftJoin(
+      vocabularyTranslations,
+      and(
+        eq(vocabularyTranslations.vocabularyId, vocabularies.id),
+        eq(vocabularyTranslations.isPrimary, true),
+      ),
+    )
+    .leftJoin(brainMaps, eq(brainMaps.vocabularyId, vocabularies.id))
+    .where(
+      opts.setId
+        ? inArray(
+            vocabularies.id,
+            db
+              .select({ id: vocabularySetItems.vocabularyId })
+              .from(vocabularySetItems)
+              .where(eq(vocabularySetItems.setId, opts.setId)),
+          )
+        : sql`true`,
+    )
+    .orderBy(rank, asc(vocabularies.lemma))
+    .limit(opts.limit ?? 200)
+
+  return rows.map((row) => ({
+    id: row.id,
+    lemma: row.lemma,
+    partOfSpeech: row.partOfSpeech,
+    level: row.level,
+    translation: row.translation,
+    brainMapStatus:
+      row.status === 'approved' ? 'approved' : row.status ? 'draft' : 'none',
+  }))
+}
+
+/** Brain Map state for a set of words, keyed by vocabulary id. */
+export async function brainMapStates(
+  vocabularyIds: string[],
+  db: Db = defaultDb,
+): Promise<Map<string, BrainMapState>> {
+  if (!vocabularyIds.length) return new Map()
+  const rows = await db
+    .select({ vocabularyId: brainMaps.vocabularyId, status: brainMaps.status })
+    .from(brainMaps)
+    .where(inArray(brainMaps.vocabularyId, vocabularyIds))
+
+  const states = new Map<string, BrainMapState>()
+  for (const id of vocabularyIds) states.set(id, 'none')
+  for (const row of rows) {
+    states.set(row.vocabularyId, row.status === 'approved' ? 'approved' : 'draft')
+  }
+  return states
 }
