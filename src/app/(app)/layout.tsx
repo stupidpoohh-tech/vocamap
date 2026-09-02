@@ -14,8 +14,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const links = [
     { href: '/study', label: '학습', icon: '◎' },
     { href: '/words', label: '단어', icon: '⌕' },
-    ...(actor.role === 'student' ? [] : [{ href: '/teacher', label: '교사', icon: '☰' }]),
-    ...(actor.role === 'admin' ? [{ href: '/admin', label: '검수', icon: '✓' }] : []),
+    // Curation is a teacher's job as much as an admin's — the review page and
+    // every action behind it accept both — so the link must follow suit.
+    // Hiding it from teachers left an account that could approve drafts with no
+    // way to reach the screen that approves them.
+    ...(actor.role === 'student'
+      ? []
+      : [
+          { href: '/teacher', label: '교사', icon: '☰' },
+          { href: '/admin', label: '검수', icon: '✓' },
+        ]),
   ]
 
   return (
