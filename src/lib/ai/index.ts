@@ -1,5 +1,5 @@
 export { getLLMProvider, setLLMProvider, MockProvider, LLMError } from './provider'
 export type { LLMProvider, StructuredRequest, StructuredResult } from './provider'
-export { brainMapDraftSchema, validateDraftConsistency } from './schema'
+export { brainMapDraftSchema, draftQualityNotes, validateDraftConsistency } from './schema'
 export type { BrainMapDraft } from './schema'
 export { BRAIN_MAP_SYSTEM, brainMapPrompt, PROMPT_VERSION } from './prompts'

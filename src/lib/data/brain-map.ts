@@ -20,6 +20,7 @@ import {
   type BrainMapDraft,
   brainMapDraftSchema,
   brainMapPrompt,
+  draftQualityNotes,
   getLLMProvider,
   validateDraftConsistency,
 } from '@/lib/ai'
@@ -239,6 +240,9 @@ export async function ensureBrainMap(
     const brainMapId = await writeDraft(vocabularyId, result.data, {
       model: result.model,
       createdBy: opts.requestedBy ?? null,
+      // Quality notes ride along for the curator rather than rejecting a draft
+      // that already cost money to produce.
+      reviewNote: draftQualityNotes(result.data).join('\n') || null,
     }, db)
 
     await db
@@ -274,7 +278,12 @@ export async function ensureBrainMap(
 export async function writeDraft(
   vocabularyId: string,
   draft: BrainMapDraft,
-  meta: { model?: string | null; createdBy?: string | null; status?: 'draft_ai' | 'approved' } = {},
+  meta: {
+    model?: string | null
+    createdBy?: string | null
+    status?: 'draft_ai' | 'approved'
+    reviewNote?: string | null
+  } = {},
   db: Db = defaultDb,
 ): Promise<string> {
   const [vocab] = await db.select().from(vocabularies).where(eq(vocabularies.id, vocabularyId)).limit(1)
@@ -290,6 +299,7 @@ export async function writeDraft(
         meaningCoreEn: draft.meaningCoreEn,
         generatedByModel: meta.model ?? null,
         promptVersion: PROMPT_VERSION,
+        reviewNote: meta.reviewNote ?? null,
         createdBy: meta.createdBy ?? null,
       })
       .onConflictDoUpdate({
@@ -301,6 +311,7 @@ export async function writeDraft(
           meaningCoreEn: draft.meaningCoreEn,
           generatedByModel: meta.model ?? null,
           promptVersion: PROMPT_VERSION,
+          reviewNote: meta.reviewNote ?? null,
           updatedAt: new Date(),
         },
       })

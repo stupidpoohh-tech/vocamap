@@ -12,7 +12,7 @@ You are not writing a dictionary entry. You are writing the material a good tuto
 Hard rules:
 - Sentences must be natural English that an educated native speaker would actually write. Never translate Korean phrasing into English.
 - Every sentence must make the target word's meaning inferable from context.
-- Do not reuse the same usage across sentences; each sentence must show a genuinely different use.
+- The sentences as a set must cover more than one use of the word. Two or three examples of the same sense are fine and often better than one — what is not acceptable is a set that only ever shows a single use.
 - Keep sentences under about 15 words, and keep surrounding vocabulary easier than the target word.
 - Avoid niche, technical, or culturally obscure contexts with no learning value.
 - Similar words must be words a Korean learner genuinely confuses with the target, and whose difference you can state crisply. Do not produce a thesaurus list.

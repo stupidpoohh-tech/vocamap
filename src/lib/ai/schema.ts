@@ -85,9 +85,13 @@ export type BrainMapDraft = z.infer<typeof brainMapDraftSchema>
 export type SimilarWordDraft = z.infer<typeof similarWordSchema>
 
 /**
- * Checks the schema cannot express: cross-field consistency. A `highlight` that
- * does not occur in its sentence would break the UI, and a cloze prompt without
- * a blank is not answerable.
+ * Faults that would break the screen, so a draft carrying one is not worth
+ * storing: a highlight the sentence does not contain has nothing to mark up,
+ * and a cloze prompt without exactly one blank is not answerable.
+ *
+ * Judgement calls about quality do NOT belong here — see `draftQualityNotes`.
+ * A generation costs money, and throwing one away over a matter of taste is
+ * the wrong trade when a curator reviews every draft anyway.
  */
 export function validateDraftConsistency(draft: BrainMapDraft): string[] {
   const problems: string[] = []
@@ -96,15 +100,6 @@ export function validateDraftConsistency(draft: BrainMapDraft): string[] {
     if (s.highlight && !s.text.toLowerCase().includes(s.highlight.toLowerCase())) {
       problems.push(`sentences[${i}].highlight is not a substring of the sentence`)
     }
-  })
-
-  const seenMeanings = new Set<string>()
-  draft.sentences.forEach((s, i) => {
-    const key = s.targetMeaning.toLowerCase()
-    if (seenMeanings.has(key) && draft.sentences.length > 2) {
-      problems.push(`sentences[${i}] repeats usage "${s.targetMeaning}"`)
-    }
-    seenMeanings.add(key)
   })
 
   draft.similarWords.forEach((p, i) => {
@@ -117,6 +112,42 @@ export function validateDraftConsistency(draft: BrainMapDraft): string[] {
   })
 
   return problems
+}
+
+/**
+ * Quality notes shown to the curator. Never block a draft.
+ *
+ * The rule being checked is that the sentences show more than one use of the
+ * word — not that every sentence shows a different one. A word with two senses
+ * and six sentences *should* repeat: three examples of each is good material,
+ * and demanding uniqueness rejected exactly that.
+ */
+export function draftQualityNotes(draft: BrainMapDraft): string[] {
+  const notes: string[] = []
+  const total = draft.sentences.length
+  if (total < 3) return notes
+
+  const counts = new Map<string, number>()
+  for (const sentence of draft.sentences) {
+    const key = sentence.targetMeaning.trim().toLowerCase()
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+
+  if (counts.size < 2) {
+    notes.push(`예문 ${total}개가 모두 같은 용법입니다. 다른 쓰임을 보여주는 예문이 필요합니다.`)
+    return notes
+  }
+
+  // Half the set on one usage is fine (two senses, evenly covered). Beyond that
+  // the other senses are being crowded out.
+  const limit = Math.ceil(total / 2)
+  for (const [usage, count] of counts) {
+    if (count > limit) {
+      notes.push(`예문 ${total}개 중 ${count}개가 "${usage}" 한 용법에 몰려 있습니다.`)
+    }
+  }
+
+  return notes
 }
 
 export const brainMapJsonSchema = z.toJSONSchema(brainMapDraftSchema, { io: 'output' })

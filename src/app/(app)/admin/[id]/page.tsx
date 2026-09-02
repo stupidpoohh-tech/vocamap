@@ -30,6 +30,19 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         action={<Badge tone={map.status === 'approved' ? 'good' : 'warn'}>{map.status}</Badge>}
       />
 
+      {head.reviewNote ? (
+        <div className="mb-4 rounded-xl border border-warn/40 bg-warn-soft px-4 py-3">
+          <p className="text-xs font-semibold tracking-wide text-warn">확인이 필요한 점</p>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {head.reviewNote.split('\n').filter(Boolean).map((note) => (
+              <li key={note} className="text-sm leading-relaxed text-warn break-keep">
+                {note}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <ReviewActions brainMapId={map.id} vocabularyId={map.vocabularyId} status={map.status} />
 
       <div className="mt-8 flex flex-col gap-6">

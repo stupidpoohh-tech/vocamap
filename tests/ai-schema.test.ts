@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   brainMapDraftSchema,
+  draftQualityNotes,
   validateDraftConsistency,
   type BrainMapDraft,
 } from '@/lib/ai/schema'
@@ -69,19 +70,59 @@ describe('cross-field consistency checks', () => {
     expect(problems.join(' ')).toContain('highlight')
   })
 
-  it('rejects sentences that demonstrate the same usage twice', () => {
-    const repeat = {
+  it('allows several sentences to share a usage', () => {
+    // A word with two senses and six sentences should repeat: three examples
+    // of each is good material. Demanding a unique usage per sentence rejected
+    // exactly that, and threw away a generation that had already been paid for.
+    const sentence = (targetMeaning: string, text: string) => ({
+      text,
+      ko: '한국어 번역',
+      targetMeaning,
+      highlight: 'attribute',
+      difficulty: 2,
+    })
+    const draft = {
+      ...minimal,
+      sentences: [
+        sentence('원인을 ~라고 여기다', 'They attribute the delay to bad weather.'),
+        sentence('원인을 ~라고 여기다', 'Critics attribute the win to luck.'),
+        sentence('원인을 ~라고 여기다', 'She attributes her health to swimming.'),
+        sentence('고유한 특성', 'Patience is his best attribute.'),
+        sentence('고유한 특성', 'Speed is an attribute of the new engine.'),
+        sentence('작품을 ~의 것으로 보다', 'The play is attributed to an unknown writer.'),
+      ],
+    }
+    expect(validateDraftConsistency(draft)).toEqual([])
+    expect(draftQualityNotes(draft)).toEqual([])
+  })
+
+  it('warns, without rejecting, when every sentence shows one usage', () => {
+    const same = {
       text: 'They maintain high standards.',
       ko: '그들은 높은 기준을 유지한다.',
       targetMeaning: '유지하다',
       highlight: 'maintain high standards',
       difficulty: 1,
     }
-    const problems = validateDraftConsistency({
-      ...minimal,
-      sentences: [repeat, { ...repeat, text: 'We maintain high standards too.', highlight: 'maintain high standards' }, repeat],
+    const draft = { ...minimal, sentences: [same, same, same] }
+    expect(validateDraftConsistency(draft)).toEqual([])
+    expect(draftQualityNotes(draft).join(' ')).toContain('모두 같은 용법')
+  })
+
+  it('warns when one usage crowds out the others', () => {
+    const make = (targetMeaning: string) => ({
+      text: 'They maintain high standards.',
+      ko: '한국어 번역',
+      targetMeaning,
+      highlight: 'maintain',
+      difficulty: 1,
     })
-    expect(problems.join(' ')).toContain('repeats usage')
+    const draft = {
+      ...minimal,
+      sentences: [make('a'), make('a'), make('a'), make('a'), make('b')],
+    }
+    expect(validateDraftConsistency(draft)).toEqual([])
+    expect(draftQualityNotes(draft).join(' ')).toContain('몰려 있습니다')
   })
 
   it('rejects a battle question without exactly one blank', () => {
@@ -106,6 +147,7 @@ describe('cross-field consistency checks', () => {
       if (!word.brainMap) continue
       const parsed = brainMapDraftSchema.parse(word.brainMap)
       expect(validateDraftConsistency(parsed), `seed word "${word.lemma}"`).toEqual([])
+      expect(draftQualityNotes(parsed), `seed word "${word.lemma}"`).toEqual([])
     }
   })
 })
