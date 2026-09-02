@@ -116,6 +116,22 @@ Node 버전은 `.node-version` 파일로 고정되어 있어 따로 설정하지
 
 `ANTHROPIC_API_KEY` 를 생략하면 AI 초안 생성만 안 되고 나머지는 전부 동작합니다.
 
+### 3-5-1. 연결 문자열 주의점
+
+Neon이 보여주는 연결 문자열에는 `channel_binding=require` 가 붙어 있습니다. 이는
+libpq 전용 옵션이고 이 앱이 쓰는 드라이버(postgres.js)는 구현하지 않습니다. 그대로
+두면 드라이버가 이 값을 **서버 설정값으로 잘못 전달**해서 모든 쿼리가 실패합니다.
+
+```
+42704  unrecognized configuration parameter "channel_binding"
+```
+
+앱이 연결 시 이 파라미터를 자동으로 제거하므로 **붙여넣은 그대로 쓰셔도 됩니다.**
+`sslmode` 는 건드리지 않으니 TLS는 그대로 적용됩니다.
+
+증상이 고약한 이유: 랜딩과 로그인 화면은 DB를 건드리지 않아 멀쩡해 보이고, 회원가입
+같은 **첫 DB 쓰기에서만** 터집니다.
+
 ### 3-6. 확인
 
 3-4에서 받은 주소로 접속 → 로그인 화면이 뜨면 완료입니다.
@@ -145,6 +161,21 @@ npx wrangler secret put ANTHROPIC_API_KEY
 `db:seed` 는 단어와 Brain Map만 넣습니다. **`db:seed:demo` 는 절대 쓰지 마세요** —
 비밀번호가 저장소에 적힌 계정 3개(admin 포함)를 만듭니다. localhost가 아니면
 거부하도록 막아 두었지만, 애초에 쓸 일이 없습니다.
+
+## 3-C. 문제가 생겼을 때
+
+배포된 주소에 **`/api/health`** 를 붙여 접속하면 DB 상태를 볼 수 있습니다.
+
+```
+정상  {"ok":true,"database":"ok","seededWords":12,"strippedParams":["channel_binding"]}
+장애  {"ok":false,"database":"error","code":"3D000","hint":"해당 이름의 데이터베이스가 없습니다."}
+```
+
+`code` 별 의미는 응답의 `hint` 에 함께 나옵니다. 자격 증명이나 호스트 주소는 절대
+노출하지 않습니다.
+
+더 자세한 로그는 Cloudflare 대시보드 → **Compute (Workers)** → `vocamap` →
+**Logs** 에서 볼 수 있습니다.
 
 ## 4. Workers 때문에 바꾼 것
 

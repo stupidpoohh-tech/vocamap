@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { hashPassword, verifyPassword } from '@/lib/auth/password'
 import { createSession, destroySession } from '@/lib/auth/session'
+import { isConnectionFailure } from '@/lib/db/errors'
 
 export type AuthFormState = { error?: string }
 
@@ -14,20 +15,29 @@ export async function signIn(_prev: AuthFormState, formData: FormData): Promise<
   const password = String(formData.get('password') ?? '')
   if (!email || !password) return { error: '이메일과 비밀번호를 입력해 주세요.' }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(sql`lower(${users.email}) = ${email}`)
-    .limit(1)
+  let destination: string
+  // Everything that can fail lives in here; `redirect` throws a control-flow
+  // signal that must not be swallowed, so it stays outside.
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email}`)
+      .limit(1)
 
-  // Same message either way: distinguishing them tells an attacker which
-  // addresses are registered.
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    return { error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
+    // Same message either way: distinguishing them tells an attacker which
+    // addresses are registered.
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      return { error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
+    }
+
+    await createSession(user.id)
+    destination = user.role === 'student' ? '/study' : '/teacher'
+  } catch (error) {
+    return { error: describeFailure(error, 'signIn') }
   }
 
-  await createSession(user.id)
-  redirect(user.role === 'student' ? '/study' : '/teacher')
+  redirect(destination)
 }
 
 export async function signUp(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
@@ -41,26 +51,33 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
   if (!displayName) return { error: '이름을 입력해 주세요.' }
   if (role !== 'student' && role !== 'teacher') return { error: '역할이 올바르지 않습니다.' }
 
-  const [existing] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(sql`lower(${users.email}) = ${email}`)
-    .limit(1)
-  if (existing) return { error: '이미 가입된 이메일입니다.' }
+  let destination: string
+  try {
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email}`)
+      .limit(1)
+    if (existing) return { error: '이미 가입된 이메일입니다.' }
 
-  const [created] = await db
-    .insert(users)
-    .values({
-      email,
-      displayName,
-      role,
-      passwordHash: await hashPassword(password),
-    })
-    .returning({ id: users.id, role: users.role })
-  if (!created) return { error: '가입에 실패했습니다. 다시 시도해 주세요.' }
+    const [created] = await db
+      .insert(users)
+      .values({
+        email,
+        displayName,
+        role,
+        passwordHash: await hashPassword(password),
+      })
+      .returning({ id: users.id, role: users.role })
+    if (!created) return { error: '가입에 실패했습니다. 다시 시도해 주세요.' }
 
-  await createSession(created.id)
-  redirect(created.role === 'student' ? '/study' : '/teacher')
+    await createSession(created.id)
+    destination = created.role === 'student' ? '/study' : '/teacher'
+  } catch (error) {
+    return { error: describeFailure(error, 'signUp') }
+  }
+
+  redirect(destination)
 }
 
 export async function signOut(): Promise<void> {
@@ -68,4 +85,21 @@ export async function signOut(): Promise<void> {
   // Back to the landing page, not the login form: signing out should not look
   // like an invitation to sign straight back in.
   redirect('/')
+}
+
+/**
+ * Turns an unexpected failure into something the person in front of the screen
+ * can act on, and puts the real cause in the Worker log.
+ *
+ * Without this the action simply throws, Next.js redacts it in production, and
+ * the browser shows an unexplained 500 — which is exactly how a database that
+ * was never reachable looked like a broken sign-up form.
+ */
+function describeFailure(error: unknown, where: string): string {
+  console.error(`[auth:${where}]`, error)
+
+  if (isConnectionFailure(error)) {
+    return '데이터베이스에 연결하지 못했습니다. 관리자는 /api/health 에서 상태를 확인해 주세요.'
+  }
+  return '처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'
 }

@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
+import { normaliseConnectionString } from './connection-string'
 
 export type Db = PostgresJsDatabase<typeof schema>
 
@@ -25,7 +26,7 @@ function connectionString(): string {
       'DATABASE_URL is not set. Copy .env.example to .env and point it at a Postgres instance.',
     )
   }
-  return url
+  return normaliseConnectionString(url)
 }
 
 function create(): Db {
