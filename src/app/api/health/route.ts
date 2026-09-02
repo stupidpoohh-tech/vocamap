@@ -27,6 +27,7 @@ const HINTS: Record<string, string> = {
 
 export async function GET() {
   const viaHyperdrive = Boolean(hyperdriveConnectionString())
+  const version = process.env.APP_COMMIT ? process.env.APP_COMMIT.slice(0, 7) : 'local'
   const url = inspectConnectionString(process.env.DATABASE_URL)
   const startedAt = Date.now()
 
@@ -43,6 +44,7 @@ export async function GET() {
     )
     return Response.json({
       ok: true,
+      version,
       database: 'ok',
       via: viaHyperdrive ? 'hyperdrive' : 'direct',
       elapsedMs: Date.now() - startedAt,
@@ -55,6 +57,7 @@ export async function GET() {
     return Response.json(
       {
         ok: false,
+        version,
         database: 'error',
         via: viaHyperdrive ? 'hyperdrive' : 'direct',
         elapsedMs: Date.now() - startedAt,
