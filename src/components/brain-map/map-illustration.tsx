@@ -30,7 +30,7 @@ const DEMO: Demo[] = [
 
 const TONE: Record<Demo['tone'], string> = {
   idle: 'bg-line',
-  active: 'bg-brand',
+  active: 'bg-data-learning',
   weak: 'bg-bad',
   done: 'bg-good',
 }
@@ -68,7 +68,7 @@ export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
         ))}
       </svg>
 
-      <div className="absolute left-1/2 top-1/2 z-10 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-brand bg-brand text-center shadow-sm shadow-brand/20">
+      <div className="absolute left-1/2 top-1/2 z-10 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-center">
         <span className="px-2 text-sm font-semibold lowercase tracking-tight text-white">
           {lemma}
         </span>
@@ -80,10 +80,10 @@ export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
           <div
             key={p.id}
             aria-hidden
-            className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-surface text-left ${SIZE[p.tier]}`}
+            className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-surface text-left ${SIZE[p.tier]}`}
             style={{ left: `${p.x}%`, top: `${p.y}%` }}
           >
-            <span className="block truncate text-[10px] font-medium uppercase tracking-wide text-muted">
+            <span className="block truncate text-[10px] font-medium uppercase tracking-wide text-ink-3">
               {node.eyebrow}
             </span>
             <span

@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { requireActor } from '@/lib/auth/session'
 import { listStudyWords, mapCounts } from '@/lib/data/library'
 import { listRecommendedWords } from '@/lib/data/personal'
-import { Badge, EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
+import { EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { BookmarkButton } from '@/components/words/bookmark-button'
 
 /**
@@ -97,31 +97,30 @@ export default async function MapPage({
         <ul
           className={
             words.words.length > 8
-              ? 'flex max-h-[62vh] flex-col gap-2 overflow-y-auto overscroll-contain rounded-xl border border-line/70 bg-line/10 p-2'
-              : 'flex flex-col gap-2'
+              ? 'max-h-[58vh] divide-y divide-line-soft overflow-y-auto overscroll-contain border-t border-line'
+              : 'divide-y divide-line-soft border-t border-line'
           }
         >
           {words.words.map((word) => (
-            <li key={word.id} className="card flex items-center gap-3 px-4 py-3.5">
-              <Link href={`/words/${word.id}`} className="min-w-0 flex-1">
-                <p className="font-semibold">{word.lemma}</p>
-                <p className="truncate text-sm text-muted">{word.translation ?? '—'}</p>
+            <li key={word.id} className="flex items-center gap-3 py-3">
+              <Link href={`/words/${word.id}`} className="group min-w-0 flex-1">
+                <span className="block truncate text-[0.9375rem] text-ink group-hover:text-brand">
+                  {word.lemma}
+                </span>
+                <span className="mt-0.5 block truncate text-[0.8125rem] text-ink-3">
+                  {word.translation ?? '—'}
+                </span>
               </Link>
+
+              {/* Only what is true of this row and not of every other one. The
+                  tab already says whether these maps are published or waiting,
+                  so a badge repeating it on all twenty-five rows says nothing. */}
               {word.wrongCount > 0 ? (
-                <span className="shrink-0 text-[11px] font-semibold tabular-nums text-bad">
-                  ✕{word.wrongCount}
+                <span className="numeral shrink-0 text-[0.6875rem] text-data-weak">
+                  {word.wrongCount}회 틀림
                 </span>
               ) : null}
-              {view === 'pending' ? (
-                <Badge tone="warn" className="hidden shrink-0 sm:inline-flex">
-                  검수 대기
-                </Badge>
-              ) : null}
-              {view === 'missing' ? (
-                <Badge tone="neutral" className="hidden shrink-0 sm:inline-flex">
-                  맵 없음
-                </Badge>
-              ) : null}
+
               <BookmarkButton vocabularyId={word.id} bookmarked={word.bookmarked} />
             </li>
           ))}
@@ -143,19 +142,16 @@ async function Recommended({ userId }: { userId: string }) {
   if (!words.length) return null
 
   return (
-    <section className="mb-5 rounded-xl border border-warn/30 bg-warn-soft/50 px-4 py-3">
-      <p className="text-xs font-semibold text-warn">깊이 볼 만한 단어</p>
-      <ul className="mt-2 flex flex-wrap gap-2">
+    <section className="mb-5">
+      <p className="text-xs text-ink-3">자주 틀려서 깊이 볼 만한 단어</p>
+      <ul className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
         {words.map((word) => (
           <li key={word.vocabularyId}>
             <Link
               href={`/words/${word.vocabularyId}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-warn/40 bg-surface px-3 py-1.5 text-sm font-semibold hover:border-warn"
+              className="text-[0.9375rem] text-ink underline decoration-line underline-offset-4 transition hover:decoration-brand"
             >
               {word.lemma}
-              <span aria-hidden className="text-warn">
-                →
-              </span>
             </Link>
           </li>
         ))}

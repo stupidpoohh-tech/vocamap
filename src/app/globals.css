@@ -4,24 +4,57 @@
   --font-sans: ui-sans-serif, system-ui, 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic',
     sans-serif;
 
-  /* Ink and paper. Warm, low-contrast — this is read for long stretches. */
-  --color-paper: oklch(99% 0.004 90);
+  /* ── Surfaces ────────────────────────────────────────────────────────────
+     Neutral carries the screen. Everything here is within a few percent of
+     white; separation comes from spacing and a hairline, not from filled
+     boxes. */
+  --color-paper: oklch(99.2% 0.002 250);
   --color-surface: oklch(100% 0 0);
-  --color-line: oklch(91% 0.006 90);
-  --color-ink: oklch(24% 0.012 260);
-  --color-muted: oklch(52% 0.014 260);
+  --color-sunken: oklch(97.6% 0.003 250);
+  --color-line: oklch(93.2% 0.004 250);
+  --color-line-soft: oklch(96.4% 0.003 250);
 
-  /* Brand: a single confident indigo. */
-  --color-brand: oklch(52% 0.19 275);
-  --color-brand-soft: oklch(95% 0.03 275);
+  /* ── Text, in three steps ────────────────────────────────────────────────
+     Two was never enough: with only ink and muted, a label and the value it
+     labels ended up the same weight, and hierarchy had to be faked with bold. */
+  --color-ink: oklch(23% 0.008 265);
+  --color-ink-2: oklch(48% 0.008 265);
+  --color-ink-3: oklch(66% 0.006 265);
+  /* Kept as an alias so existing markup reads correctly; equals ink-2. */
+  --color-muted: oklch(48% 0.008 265);
 
-  /* Node/answer state. Colour carries meaning here, never decoration. */
-  --color-good: oklch(58% 0.15 155);
-  --color-good-soft: oklch(95% 0.04 155);
-  --color-warn: oklch(70% 0.16 65);
-  --color-warn-soft: oklch(96% 0.05 65);
-  --color-bad: oklch(58% 0.19 25);
-  --color-bad-soft: oklch(96% 0.03 25);
+  /* ── Brand ───────────────────────────────────────────────────────────────
+     One accent, deliberately desaturated, and rationed: the primary action,
+     the selected state, a focus ring. Not headings, not every number, not the
+     navigation. */
+  --color-brand: oklch(48% 0.108 268);
+  --color-brand-soft: oklch(96.5% 0.017 268);
+  --color-brand-line: oklch(88% 0.045 268);
+
+  /* ── Data colours ────────────────────────────────────────────────────────
+     Separate from the brand on purpose. When learning state borrowed the
+     brand hue, "selected" and "you know this" looked like the same fact. */
+  --color-data-known: oklch(62% 0.075 175);
+  --color-data-learning: oklch(60% 0.085 265);
+  --color-data-review: oklch(72% 0.095 75);
+  --color-data-weak: oklch(63% 0.12 25);
+  --color-data-none: oklch(80% 0.004 250);
+
+  /* ── Semantic, for messages rather than decoration ───────────────────── */
+  --color-good: oklch(52% 0.09 165);
+  --color-good-soft: oklch(96.5% 0.02 165);
+  --color-warn: oklch(56% 0.09 70);
+  --color-warn-soft: oklch(96.5% 0.025 70);
+  --color-bad: oklch(53% 0.13 25);
+  --color-bad-soft: oklch(96.5% 0.022 25);
+
+  /* ── Radius, with a hierarchy ────────────────────────────────────────────
+     One radius everywhere flattens the structure: a chip and the container
+     holding it read as the same kind of thing. */
+  --radius-chip: 0.5rem;
+  --radius-control: 0.625rem;
+  --radius-card: 0.875rem;
+  --radius-container: 1.125rem;
 }
 
 @layer base {
@@ -32,44 +65,62 @@
     background: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    /* Korean prose needs the room; headings and numbers tighten locally. */
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
-    /* Room for the fixed bottom nav on mobile. */
     padding-bottom: env(safe-area-inset-bottom);
+  }
+  h1,
+  h2,
+  h3 {
+    line-height: 1.3;
+    letter-spacing: -0.011em;
   }
   ::selection {
     background: var(--color-brand-soft);
   }
   button:focus-visible,
   a:focus-visible,
-  input:focus-visible {
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
     outline: 2px solid var(--color-brand);
     outline-offset: 2px;
+    border-radius: 2px;
   }
 }
 
 @layer utilities {
+  /* Reserved for a genuinely independent unit that holds several related
+     elements. A single number never gets one. */
   .card {
     background: var(--color-surface);
     border: 1px solid var(--color-line);
-    border-radius: 1rem;
+    border-radius: var(--radius-card);
   }
-  /* Used by the study screen so a wrong answer registers physically. */
+
+  /* Numbers read as data, not as prose. */
+  .numeral {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-6px); }
-    40% { transform: translateX(6px); }
-    60% { transform: translateX(-4px); }
-    80% { transform: translateX(4px); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
   }
   .animate-shake {
-    animation: shake 0.32s ease-in-out;
+    animation: shake 0.3s ease-in-out;
   }
   @keyframes rise {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
   .animate-rise {
-    animation: rise 0.22s ease-out;
+    animation: rise 0.2s ease-out;
   }
 }
 

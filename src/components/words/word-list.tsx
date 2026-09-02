@@ -22,10 +22,13 @@ const SCROLL_AFTER = 8
 /**
  * A paper vocabulary notebook, on a screen.
  *
- * The half a student is testing themselves on is covered until they tap, which
- * is the whole point of a 단어장 — a list that shows both columns is a list you
- * read, not one you learn from. Which half is covered follows the direction, so
- * the same list drills 영→한 and 한→영 without becoming two screens.
+ * The half a student is testing themselves on stays covered until they tap,
+ * which is the whole point of a 단어장 — a list showing both columns is a list
+ * you read, not one you learn from.
+ *
+ * Every row used to be a bordered card, so twenty-five words came out as
+ * twenty-five boxes and the eye followed the boxes. Rows are separated by a
+ * hairline and their own spacing now; the words are the only shapes left.
  */
 export function WordList({
   items,
@@ -41,9 +44,9 @@ export function WordList({
 
   if (!items.length) {
     return (
-      <div className="card px-6 py-10 text-center text-sm text-muted break-keep">
+      <p className="py-12 text-center text-[0.8125rem] leading-relaxed text-ink-3 break-keep">
         {emptyHint ?? '표시할 단어가 없어요.'}
-      </div>
+      </p>
     )
   }
 
@@ -57,14 +60,16 @@ export function WordList({
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between px-1">
-        <p className="text-xs text-muted">
+      <div className="flex items-baseline justify-between gap-3 pb-1.5">
+        <p className="numeral text-xs text-ink-3">
           {items.length}개
-          {showAll
-            ? ' · 모두 펼쳤어요'
-            : direction === 'en_ko'
-              ? ' · 뜻을 가렸어요'
-              : ' · 단어를 가렸어요'}
+          <span className="ml-1.5">
+            {showAll
+              ? '모두 펼침'
+              : direction === 'en_ko'
+                ? '뜻 가림'
+                : '단어 가림'}
+          </span>
         </p>
         <button
           type="button"
@@ -72,21 +77,18 @@ export function WordList({
             setShowAll((on) => !on)
             setRevealed(new Set())
           }}
-          className="text-xs font-semibold text-brand"
+          className="text-xs text-ink-2 transition hover:text-ink"
         >
           {showAll ? '모두 가리기' : '모두 보기'}
         </button>
       </div>
 
-      {/* The list scrolls inside its own box past a screenful. Paging alone
-          still left a page you had to scroll for a minute to reach the pager;
-          this keeps the header, the test button and the pager all reachable
-          without leaving the top of the screen. */}
+      {/* Past a screenful the list scrolls in its own region so the header, the
+          action and the pager stay reachable without a long scroll. */}
       <ul
         className={cn(
-          'flex flex-col gap-2',
-          items.length > SCROLL_AFTER &&
-            'max-h-[62vh] overflow-y-auto overscroll-contain rounded-xl border border-line/70 bg-line/10 p-2',
+          'divide-y divide-line-soft border-t border-line',
+          items.length > SCROLL_AFTER && 'max-h-[58vh] overflow-y-auto overscroll-contain',
         )}
       >
         {items.map((item) => {
@@ -95,57 +97,51 @@ export function WordList({
           const open = showAll || revealed.has(item.id)
 
           return (
-            <li key={item.id} className="card flex items-center gap-3 px-4 py-3">
+            <li key={item.id} className="flex items-center gap-2 py-2.5">
               <button
                 type="button"
                 onClick={() => toggle(item.id)}
                 aria-expanded={open}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                className="flex min-w-0 flex-1 items-baseline gap-3 text-left"
               >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold break-keep">{front}</span>
-                  {/* The covered state is drawn, not left blank: a bar the same
-                      height as the text says "there is something here" and keeps
-                      the row from changing height when it opens. */}
-                  {open ? (
-                    <span className="mt-0.5 block h-5 truncate text-sm leading-5 text-muted">
-                      {back}
-                    </span>
-                  ) : (
-                    <span className="mt-0.5 flex h-5 items-center">
-                      <span aria-hidden className="h-2 w-20 rounded-full bg-line" />
-                      <span className="sr-only">
-                        {direction === 'en_ko' ? '뜻 가려짐' : '단어 가려짐'}
-                      </span>
-                    </span>
-                  )}
+                <span className="min-w-0 flex-1 truncate text-[0.9375rem] text-ink break-keep">
+                  {front}
                 </span>
-                {!open ? (
-                  <span className="shrink-0 rounded-md bg-line/50 px-2 py-0.5 text-[11px] font-medium text-muted">
-                    보기
+                {/* The covered half is drawn, not left blank: a bar the width of
+                    the answer says "there is something here" and keeps the row
+                    from changing height when it opens. */}
+                {open ? (
+                  <span className="min-w-0 flex-1 truncate text-sm text-ink-2 break-keep">
+                    {back}
                   </span>
-                ) : null}
+                ) : (
+                  <span className="flex flex-1 items-center">
+                    <span aria-hidden className="h-1.5 w-16 rounded-full bg-line" />
+                    <span className="sr-only">
+                      {direction === 'en_ko' ? '뜻 가려짐' : '단어 가려짐'}
+                    </span>
+                  </span>
+                )}
               </button>
 
               {item.wrongCount > 0 ? (
                 <span
-                  className="shrink-0 text-[11px] font-semibold text-bad tabular-nums"
+                  className="numeral shrink-0 text-[0.6875rem] text-data-weak"
                   title={`${item.wrongCount}번 틀렸어요`}
                 >
-                  ✕{item.wrongCount}
+                  {item.wrongCount}회 틀림
                 </span>
               ) : null}
 
               {/* Published maps only. A draft is a curator's business and the
-                  맵 tab is where they see it — a student meeting "검수 대기"
-                  here would just be shown a door they cannot open. */}
+                  맵 tab is where they see it. */}
               {item.mapStatus === 'approved' ? (
                 <Link
                   href={`/words/${item.id}`}
                   onClick={(event) => event.stopPropagation()}
-                  className="shrink-0 rounded-full border border-brand/40 px-2.5 py-1 text-[11px] font-semibold text-brand transition hover:bg-brand-soft"
+                  className="shrink-0 rounded-chip px-1.5 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
                 >
-                  MAP
+                  맵
                 </Link>
               ) : null}
 

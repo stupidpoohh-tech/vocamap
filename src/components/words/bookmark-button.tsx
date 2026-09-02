@@ -5,14 +5,15 @@ import { cn } from '@/lib/utils'
 import { setBookmark } from '@/app/(app)/actions'
 
 /**
- * One tap to put a word into the vault, or take it out.
+ * One tap to say "I don't know this one".
  *
- * This is how a student says "I don't know this one" while reading a set, so it
- * has to be a single tap in the row itself — anything that opens a screen would
- * not survive twenty words.
+ * This is how a student marks a word while reading a set, so it has to be a
+ * single tap in the row itself — anything that opens a screen would not survive
+ * twenty words.
  *
- * Optimistic because it sits in a long list — waiting on a round trip before
- * the star fills makes rapid picking feel broken.
+ * Drawn as a mark, not as a control. It used to be a bordered pill sitting in a
+ * bordered card inside a bordered list, and three nested outlines around one
+ * star is exactly the noise that buries the vocabulary next to it.
  */
 export function BookmarkButton({
   vocabularyId,
@@ -40,14 +41,16 @@ export function BookmarkButton({
         })
       }}
       className={cn(
-        'flex shrink-0 items-center gap-1.5 rounded-full border font-semibold transition',
-        size === 'lg' ? 'px-3 py-1.5 text-xs' : 'px-2.5 py-1 text-xs',
-        optimistic
-          ? 'border-brand bg-brand-soft text-brand'
-          : 'border-line bg-surface text-muted hover:border-brand hover:text-brand',
+        'flex shrink-0 items-center gap-1.5 rounded-chip transition',
+        size === 'lg' ? 'px-2 py-1 text-xs' : 'p-1.5',
+        // The filled state is the only place colour appears in a row, which is
+        // what makes a page of saved words readable at a glance.
+        optimistic ? 'text-brand' : 'text-ink-3 hover:text-ink-2',
       )}
     >
-      <span aria-hidden>{optimistic ? '★' : '☆'}</span>
+      <span aria-hidden className="text-sm leading-none">
+        {optimistic ? '★' : '☆'}
+      </span>
       {size === 'lg' ? (optimistic ? '담았어요' : '모르는 단어') : null}
     </button>
   )

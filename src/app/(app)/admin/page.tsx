@@ -32,7 +32,7 @@ export default async function AdminPage() {
               >
                 <div className="min-w-0">
                   <p className="font-semibold">{item.lemma}</p>
-                  <p className="truncate text-xs text-muted">
+                  <p className="truncate text-xs text-ink-3">
                     v{item.version} · {item.model ?? '수기 작성'}
                   </p>
                 </div>

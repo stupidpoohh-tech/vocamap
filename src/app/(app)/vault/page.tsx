@@ -36,8 +36,15 @@ export default async function VaultPage({
     <div className="animate-rise">
       <PageHeader
         title="보관함"
-        subtitle={
-          scope === 'wrong' ? '틀린 적 있는 단어예요' : '단어 탭에서 ☆ 로 담아 둔 단어예요'
+        subtitle={scope === 'wrong' ? '틀린 적 있는 단어예요' : '단어 탭에서 담아 둔 단어예요'}
+        // Drilling the vault is the reason to keep one, so it is this screen's
+        // single action and it sits with the title.
+        action={
+          words.total > 0 ? (
+            <Link href={`/study/session?scope=${scope}&dir=${direction}`}>
+              <Button>시험 보기</Button>
+            </Link>
+          ) : null
         }
       />
 
@@ -50,24 +57,16 @@ export default async function VaultPage({
         </TabLink>
       </TabBar>
 
-      <TabBar className="mb-4">
-        <TabLink href={href({ tab, dir: 'en_ko' })} active={direction === 'en_ko'}>
-          영어 → 한국어
-        </TabLink>
-        <TabLink href={href({ tab, dir: 'ko_en' })} active={direction === 'ko_en'}>
-          한국어 → 영어
-        </TabLink>
-      </TabBar>
-
-      {/* The reason to keep a vault is to be tested on it, so this is the
-          page's primary action rather than a link under the list. */}
-      {words.total > 0 ? (
-        <Link href={`/study/session?scope=${scope}&dir=${direction}`} className="mb-4 block">
-          <Button size="lg" className="w-full">
-            {scope === 'wrong' ? '틀린 단어로 시험 보기' : '담은 단어로 시험 보기'} · {words.total}개
-          </Button>
-        </Link>
-      ) : null}
+      {/* Which way round the list is covered is a display option, not a
+          destination, so it reads as two words rather than a second tab bar. */}
+      <div className="mb-1 flex justify-end gap-3 text-xs">
+        <DirectionLink href={href({ tab, dir: 'en_ko' })} active={direction === 'en_ko'}>
+          영 → 한
+        </DirectionLink>
+        <DirectionLink href={href({ tab, dir: 'ko_en' })} active={direction === 'ko_en'}>
+          한 → 영
+        </DirectionLink>
+      </div>
 
       <WordList
         items={words.words}
@@ -86,6 +85,26 @@ export default async function VaultPage({
         href={(next) => href({ tab, dir, page: next ? String(next) : undefined })}
       />
     </div>
+  )
+}
+
+function DirectionLink({
+  href: to,
+  active,
+  children,
+}: {
+  href: string
+  active: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      href={to}
+      aria-current={active ? 'true' : undefined}
+      className={active ? 'text-ink' : 'text-ink-3 transition hover:text-ink-2'}
+    >
+      {children}
+    </Link>
   )
 }
 

@@ -14,12 +14,19 @@ import { cn } from '@/lib/utils'
  * single dot, so the map stays a map instead of turning into a dashboard.
  */
 
+/**
+ * Learning state, on its own palette.
+ *
+ * "Learning" used to be the brand colour, which made "this is selected" and
+ * "you are part-way through this" the same shade — two unrelated facts sharing
+ * one signal. The map's state colours are now a family of their own.
+ */
 const STATUS_DOT: Record<NodeStatus, string> = {
-  completed: 'bg-good',
-  learning: 'bg-brand',
-  needsReview: 'bg-warn',
-  weak: 'bg-bad',
-  unseen: 'bg-line',
+  completed: 'bg-data-known',
+  learning: 'bg-data-learning',
+  needsReview: 'bg-data-review',
+  weak: 'bg-data-weak',
+  unseen: 'bg-data-none',
 }
 
 const STATUS_LABEL: Record<NodeStatus, string> = {
@@ -91,7 +98,9 @@ export function SemanticMap({
   return (
     <>
       {/* Constellation — desktop and tablet. */}
-      <div className="relative hidden aspect-[16/10] w-full sm:block">
+      {/* Sized for the three to five cards a map now carries. The old box was
+          proportioned for a dozen and left a hole in the middle of the page. */}
+      <div className="relative mx-auto hidden aspect-[16/11] w-full max-w-xl sm:block">
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden>
           {onMap.map((node) => {
             const p = placed.get(node.id)
@@ -107,7 +116,7 @@ export function SemanticMap({
                 stroke="currentColor"
                 strokeWidth={active ? p.strokeWidth + 0.7 : p.strokeWidth}
                 strokeOpacity={active ? 0.85 : selectedId ? p.strokeOpacity * 0.5 : p.strokeOpacity}
-                className={active ? 'text-brand' : 'text-brand/70'}
+                className={active ? 'text-brand' : 'text-ink-3'}
                 vectorEffect="non-scaling-stroke"
               />
             )
@@ -138,20 +147,42 @@ export function SemanticMap({
       </div>
 
       {overflow.length ? (
-        <div className="mt-2 hidden sm:block">
-          <p className="mb-2 text-xs text-muted">그 밖의 연결</p>
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-1 hidden sm:block">
+          <p className="text-xs text-ink-3">그 밖의 연결</p>
+          {/* Rows, not cards. These are the connections that did not earn a
+              place on the map, and three more bordered boxes under it competed
+              with the thing they were demoted from. */}
+          <ul className="mt-1 divide-y divide-line-soft border-t border-line">
             {overflow.map((node) => (
-              <NodeCard
-                key={node.id}
-                node={node}
-                tier="peripheral"
-                selected={selectedId === node.id}
-                dimmed={false}
-                onSelect={onSelect}
-              />
+              <li key={node.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(node.id)}
+                  aria-pressed={selectedId === node.id}
+                  className="flex w-full items-baseline gap-3 py-2 text-left"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                      STATUS_DOT[node.status],
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 truncate text-sm break-keep',
+                      selectedId === node.id ? 'text-brand' : 'text-ink',
+                    )}
+                  >
+                    {node.label}
+                  </span>
+                  <span className="shrink-0 truncate text-xs text-ink-3">
+                    {node.secondaryLabel ?? node.eyebrow}
+                  </span>
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ) : null}
 
@@ -198,13 +229,15 @@ function CentreWord({ lemma, inline = false }: { lemma: string; inline?: boolean
   return (
     <div
       className={cn(
-        'z-10 flex items-center justify-center rounded-full border border-brand bg-brand text-center shadow-sm shadow-brand/20',
+        // The one filled shape on the map, and the only place the brand colour
+        // appears at full strength. Everything orbiting it is drawn in ink.
+        'z-10 flex items-center justify-center rounded-full bg-brand text-center',
         inline ? 'h-20 w-20' : 'absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2',
       )}
     >
       <span
         className={cn(
-          'px-2 font-semibold lowercase tracking-tight text-white',
+          'px-2 font-medium lowercase tracking-tight text-white',
           lemma.length <= 9 ? 'text-base' : lemma.length <= 13 ? 'text-sm' : 'text-xs',
         )}
       >
@@ -241,22 +274,22 @@ function NodeCard({
       aria-pressed={selected}
       style={fullWidth ? undefined : { width: '100%' }}
       className={cn(
-        'group rounded-xl border bg-surface text-left transition',
+        'group rounded-card border bg-surface text-left transition',
         fullWidth ? 'w-full px-4 py-3' : spec.pad,
+        // Selection is the only strong state on the map. "Urgent" is a hint,
+        // so it is a slightly darker hairline rather than a second accent.
         selected
-          ? 'border-brand ring-1 ring-brand'
+          ? 'border-brand'
           : urgent
-            ? 'border-brand/45 shadow-[0_1px_0_theme(colors.line)]'
-            : 'border-line hover:border-brand/50',
+            ? 'border-ink-3/40 hover:border-ink-3'
+            : 'border-line hover:border-ink-3/50',
         dimmed && !selected && 'opacity-45',
       )}
     >
       <span className="flex items-center gap-1.5">
-        <span className="truncate text-[10px] font-medium uppercase tracking-wide text-muted">
-          {node.eyebrow}
-        </span>
+        <span className="truncate text-[10px] text-ink-3">{node.eyebrow}</span>
         {node.recommended ? (
-          <span className="shrink-0 text-[10px] font-semibold text-brand">· 추천</span>
+          <span className="shrink-0 text-[10px] text-brand">추천</span>
         ) : null}
       </span>
 
@@ -265,7 +298,7 @@ function NodeCard({
           list below the map renders the same node unclamped. */}
       <span
         className={cn(
-          'mt-1 block font-semibold break-keep',
+          'mt-1 block font-medium break-keep',
           fullWidth ? '' : 'line-clamp-2',
           spec.label,
         )}
@@ -275,7 +308,7 @@ function NodeCard({
 
       <span className="mt-1.5 flex items-center gap-1.5">
         <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[node.status])} />
-        <span className="truncate text-[11px] text-muted">
+        <span className="truncate text-[11px] text-ink-3">
           {node.secondaryLabel ?? STATUS_LABEL[node.status]}
         </span>
       </span>
@@ -283,22 +316,22 @@ function NodeCard({
   )
 }
 
-export function MapLegend() {
-  const items: Array<[NodeStatus, string]> = [
-    ['completed', '완료'],
-    ['learning', '학습 중'],
-    ['needsReview', '보완 필요'],
-    ['weak', '약함'],
-    ['unseen', '아직 안 봄'],
-  ]
+export function MapLegend({ statuses }: { statuses: NodeStatus[] }) {
+  // Only the states this word actually has. A fixed five-colour key asked the
+  // reader to memorise four things that were not on the map in front of them.
+  const present = ORDERED_STATUS.filter((status) => statuses.includes(status))
+  if (present.length < 2) return null
+
   return (
-    <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs text-muted">
-      {items.map(([status, label]) => (
+    <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs text-ink-3">
+      {present.map((status) => (
         <li key={status} className="flex items-center gap-1.5">
           <span className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[status])} aria-hidden />
-          {label}
+          {STATUS_LABEL[status]}
         </li>
       ))}
     </ul>
   )
 }
+
+const ORDERED_STATUS: NodeStatus[] = ['weak', 'needsReview', 'learning', 'completed', 'unseen']

@@ -5,7 +5,7 @@ import { requireActor } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { brainMaps } from '@/lib/db/schema'
 import { getMasterBrainMap, type MasterBrainMap } from '@/lib/data/brain-map'
-import { Badge, PageHeader } from '@/components/ui'
+import { PageHeader, Tag } from '@/components/ui'
 import { ReviewActions } from './review-actions'
 import { CoreEditor } from './core-editor'
 import { ItemSection, type EditableItem } from './item-editor'
@@ -35,21 +35,25 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="animate-rise">
-      <Link href="/admin" className="text-sm text-muted hover:text-ink">
+      <Link href="/admin" className="text-sm text-ink-3 hover:text-ink">
         ← 검수
       </Link>
       <PageHeader
         title={map.lemma}
         subtitle={`v${map.version} · ${head.generatedByModel ?? '수기 작성'} · ${head.promptVersion ?? '—'}`}
-        action={<Badge tone={map.status === 'approved' ? 'good' : 'warn'}>{map.status}</Badge>}
+        action={
+          <Tag tone={map.status === 'approved' ? 'good' : 'warn'}>
+            {map.status === 'approved' ? '공개됨' : '검수 대기'}
+          </Tag>
+        }
       />
 
       {head.reviewNote ? (
-        <div className="mb-4 rounded-xl border border-warn/40 bg-warn-soft px-4 py-3">
-          <p className="text-xs font-semibold tracking-wide text-warn">확인이 필요한 점</p>
+        <div className="mb-5 rounded-card bg-warn-soft px-4 py-3">
+          <p className="text-xs text-warn/80">확인이 필요한 점</p>
           <ul className="mt-1.5 flex flex-col gap-1">
             {head.reviewNote.split('\n').filter(Boolean).map((note) => (
-              <li key={note} className="text-sm leading-relaxed text-warn break-keep">
+              <li key={note} className="text-[0.8125rem] leading-relaxed text-warn break-keep">
                 {note}
               </li>
             ))}
@@ -60,12 +64,12 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       <ReviewActions brainMapId={map.id} vocabularyId={map.vocabularyId} status={map.status} />
 
       {map.status === 'approved' ? (
-        <p className="mt-3 rounded-xl bg-line/30 px-4 py-2.5 text-xs text-muted break-keep">
+        <p className="mt-3 text-xs text-ink-3 break-keep">
           이미 공개된 맵이에요. 여기서 고치면 학생 화면에 바로 반영돼요.
         </p>
       ) : null}
 
-      <div className="mt-8 flex flex-col gap-6">
+      <div className="mt-8 flex flex-col gap-7">
         <CoreEditor {...common} ko={map.meaningCoreKo} en={map.meaningCoreEn} />
 
         <ItemSection
@@ -126,10 +130,10 @@ function meaningItems(map: MasterBrainMap): EditableItem[] {
       <>
         <p className="font-medium break-keep">{m.ko}</p>
         {m.connectionNote ? (
-          <p className="mt-1 text-muted break-keep">{m.connectionNote}</p>
+          <p className="mt-1 text-ink-3 break-keep">{m.connectionNote}</p>
         ) : null}
         {m.exampleChunk ? (
-          <p className="mt-1 font-mono text-xs text-muted">{m.exampleChunk}</p>
+          <p className="mt-1 font-mono text-xs text-ink-3">{m.exampleChunk}</p>
         ) : null}
       </>
     ),
@@ -149,8 +153,8 @@ function sentenceItems(map: MasterBrainMap): EditableItem[] {
     summary: (
       <>
         <p className="break-keep">{s.text}</p>
-        <p className="mt-1 text-muted break-keep">{s.ko}</p>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-ink-3 break-keep">{s.ko}</p>
+        <p className="mt-1 text-xs text-ink-3">
           용법: {s.targetMeaning ?? '—'} · 난이도 {s.difficulty ?? '—'}
           {s.highlight ? ` · 강조 "${s.highlight}"` : ''}
         </p>
@@ -172,12 +176,12 @@ function collocationItems(map: MasterBrainMap): EditableItem[] {
       <>
         <p>
           <span className="font-mono font-medium">{c.expression}</span>
-          <span className="ml-2 text-muted">{c.ko}</span>
+          <span className="ml-2 text-ink-3">{c.ko}</span>
         </p>
         {c.exampleSentence ? (
-          <p className="mt-1 text-xs text-muted break-keep">{c.exampleSentence}</p>
+          <p className="mt-1 text-xs text-ink-3 break-keep">{c.exampleSentence}</p>
         ) : null}
-        <p className="mt-1 text-xs text-muted">중요도 {c.importance}</p>
+        <p className="mt-1 text-xs text-ink-3">중요도 {c.importance}</p>
       </>
     ),
   }))
@@ -196,11 +200,11 @@ function familyItems(map: MasterBrainMap): EditableItem[] {
       <>
         <p>
           <span className="font-medium">{f.lemma}</span>
-          <span className="ml-2 text-xs text-muted">{f.partOfSpeech}</span>
-          <span className="ml-2 text-muted">{f.ko}</span>
+          <span className="ml-2 text-xs text-ink-3">{f.partOfSpeech}</span>
+          <span className="ml-2 text-ink-3">{f.ko}</span>
         </p>
         {f.exampleSentence ? (
-          <p className="mt-1 text-xs text-muted break-keep">{f.exampleSentence}</p>
+          <p className="mt-1 text-xs text-ink-3 break-keep">{f.exampleSentence}</p>
         ) : null}
       </>
     ),
@@ -223,8 +227,8 @@ function pairItems(
         <p className="font-semibold">
           {map.lemma} ↔ {p.otherLemma}
         </p>
-        <p className="mt-1 text-muted break-keep">{p.coreDifference}</p>
-        {p.usageRule ? <p className="mt-1 text-xs text-muted break-keep">{p.usageRule}</p> : null}
+        <p className="mt-1 text-ink-3 break-keep">{p.coreDifference}</p>
+        {p.usageRule ? <p className="mt-1 text-xs text-ink-3 break-keep">{p.usageRule}</p> : null}
       </>
     ),
     // The battle questions belong to the pair, so they are edited inside it.
@@ -244,7 +248,7 @@ function pairItems(
               <p className="break-keep">
                 {q.prompt} → <span className="font-semibold">{q.answer}</span>
               </p>
-              <p className="mt-1 text-xs text-muted break-keep">{q.explanation}</p>
+              <p className="mt-1 text-xs text-ink-3 break-keep">{q.explanation}</p>
             </>
           ),
         }))}

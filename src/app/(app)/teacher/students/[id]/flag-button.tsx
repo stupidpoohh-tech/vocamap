@@ -31,7 +31,7 @@ export function FlagButton({
       className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
         flagged
           ? 'border-warn bg-warn-soft text-warn'
-          : 'border-line text-muted hover:border-warn hover:text-warn'
+          : 'border-line text-ink-3 hover:border-warn hover:text-warn'
       }`}
     >
       {flagged ? '★ 지정됨' : '중요 지정'}

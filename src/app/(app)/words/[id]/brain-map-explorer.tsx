@@ -69,7 +69,7 @@ export function BrainMapExplorer({
           onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
         />
         <div className="mt-4 sm:mt-2">
-          <MapLegend />
+          <MapLegend statuses={nodes.map((n) => n.status)} />
         </div>
       </section>
 
@@ -88,26 +88,25 @@ function ReasonStrip({
   recommended: SemanticNode | null
 }) {
   return (
-    <section className="border-y border-line py-3.5">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
-        이 단어가 맵으로 펼쳐진 이유
-      </p>
-      <ul className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+    <section className="border-t border-line pt-3">
+      <p className="text-xs text-ink-3">이 단어가 맵으로 펼쳐진 이유</p>
+      <ul className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
         {reasons.map((reason) => (
-          <li key={reason.text} className="flex items-center gap-1.5 text-sm break-keep">
-            <span
-              aria-hidden
-              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                reason.tone === 'warn' ? 'bg-warn' : 'bg-line'
-              }`}
-            />
-            <span className={reason.tone === 'warn' ? '' : 'text-muted'}>{reason.text}</span>
+          <li
+            key={reason.text}
+            className={`text-[0.8125rem] break-keep ${
+              // The reasons that came from the student getting something wrong
+              // are the point of the strip; the rest are context.
+              reason.tone === 'warn' ? 'text-ink' : 'text-ink-3'
+            }`}
+          >
+            {reason.text}
           </li>
         ))}
       </ul>
       {recommended ? (
-        <p className="mt-2 text-sm text-muted break-keep">
-          추천 시작 · <span className="font-semibold text-ink">{recommended.label}</span>
+        <p className="mt-1.5 text-[0.8125rem] text-ink-3 break-keep">
+          여기서 시작해 보세요 · <span className="text-ink">{recommended.label}</span>
         </p>
       ) : null}
     </section>

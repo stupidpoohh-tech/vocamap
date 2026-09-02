@@ -36,7 +36,7 @@ export function ImportWordsForm({
           placeholder={'한 줄에 한 단어\nmaintain, 유지하다, verb\nsignificant, 중요한\ncontribute'}
           required
         />
-        <p className="-mt-1 text-xs text-muted">
+        <p className="-mt-1 text-xs text-ink-3">
           단어만 적어도 되고, 쉼표로 뜻과 품사를 함께 적어도 됩니다. 이미 등록된 단어는 기존
           Brain Map을 그대로 재사용합니다.
         </p>
@@ -45,7 +45,7 @@ export function ImportWordsForm({
           <select
             name="studentId"
             defaultValue=""
-            className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-base"
+            className="w-full rounded-card border border-line bg-surface px-4 py-3 text-base"
           >
             <option value="">배정하지 않음</option>
             {students.map((s) => (

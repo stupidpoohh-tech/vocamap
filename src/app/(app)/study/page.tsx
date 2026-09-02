@@ -7,16 +7,7 @@ import {
   listWordSets,
   wordSetName,
 } from '@/lib/data/library'
-import {
-  Badge,
-  Button,
-  EmptyState,
-  Input,
-  Pager,
-  PageHeader,
-  TabBar,
-  TabLink,
-} from '@/components/ui'
+import { Button, EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
 import { SkeletonLine } from '@/components/ui/skeleton'
 
@@ -45,55 +36,55 @@ export default async function StudyPage({
   // be unreachable the moment the book is browsed set by set.
   const unassigned = set === 'none'
   const setId = unassigned ? undefined : set
-  const insideSet = Boolean(set)
-
   const setParam = unassigned ? 'none' : setId
+  const insideSet = Boolean(set)
+  const browsing = !insideSet && !query
 
+  // One focal point per view. On the shelf that is today's session; inside a
+  // set it is that set's own test. Showing both put two filled buttons on one
+  // screen and made the reader pick which one the app meant.
   return (
     <div className="animate-rise">
-      {/* Back before anything else: the shelf is where every other screen here
-          came from, so the way out belongs at the top. */}
-      {insideSet || query ? (
-        <Link
-          href={query && setParam ? `/study?set=${setParam}` : '/study'}
-          className="mb-3 inline-block text-sm text-muted hover:text-ink"
-        >
-          ← {query && setParam ? '세트로 돌아가기' : '세트 목록'}
-        </Link>
+      {browsing ? (
+        <>
+          <PageHeader title="단어" subtitle="세트를 열어 단어를 보고, 모르는 단어를 담아요" />
+
+          {/* Streamed on its own so the shelf below does not wait on it: the
+              counts and the words are independent questions. */}
+          <Suspense fallback={<DueStripSkeleton />}>
+            <DueStrip userId={actor.id} direction={direction} />
+          </Suspense>
+
+          <form action="/study" className="mb-5">
+            <Input
+              name="q"
+              defaultValue=""
+              placeholder="영어 단어 또는 한국어 뜻으로 검색"
+              aria-label="단어 검색"
+            />
+          </form>
+
+          <Shelf userId={actor.id} role={actor.role} />
+        </>
       ) : (
-        <PageHeader title="단어" subtitle="세트를 열어 단어를 보고, 모르는 단어를 담아요" />
-      )}
+        <>
+          <Link
+            href={query && setParam ? `/study?set=${setParam}` : '/study'}
+            className="mb-4 inline-block text-[0.8125rem] text-ink-3 transition hover:text-ink-2"
+          >
+            ← {query && setParam ? '세트로' : '세트 목록'}
+          </Link>
 
-      {/* Streamed on its own so the list below does not wait on it. The counts
-          and the words are independent questions, and making the shelf wait for
-          the scheduler put a round trip in front of every visit. */}
-      <Suspense fallback={<DueStripSkeleton />}>
-        <DueStrip userId={actor.id} direction={direction} />
-      </Suspense>
-
-      <form action="/study" className="mb-5">
-        {set ? <input type="hidden" name="set" value={set} /> : null}
-        <input type="hidden" name="dir" value={direction} />
-        <Input
-          name="q"
-          defaultValue={query}
-          placeholder="영어 단어 또는 한국어 뜻으로 검색"
-          aria-label="단어 검색"
-        />
-      </form>
-
-      {query || insideSet ? (
-        <WordsView
-          userId={actor.id}
-          role={actor.role}
-          query={query}
-          setId={setId}
-          unassigned={unassigned}
-          direction={direction}
-          page={Math.max(0, Number(page ?? 0) || 0)}
-        />
-      ) : (
-        <Shelf userId={actor.id} role={actor.role} />
+          <WordsView
+            userId={actor.id}
+            role={actor.role}
+            query={query}
+            setId={setId}
+            unassigned={unassigned}
+            direction={direction}
+            page={Math.max(0, Number(page ?? 0) || 0)}
+          />
+        </>
       )}
     </div>
   )
@@ -102,30 +93,37 @@ export default async function StudyPage({
 /* ───────────────────────────── today's numbers ──────────────────────────── */
 
 /**
- * Spaced repetition still leads: what is due today is the one thing the student
- * should do before browsing.
+ * What is waiting for you today, and the one action that clears it.
+ *
+ * This used to be a bordered box holding two numbers at the same size as their
+ * labels — a card built for a single fact, with no way to tell which number
+ * mattered. It is a line of type now: the count leads at size, its unit and
+ * label trail behind it, and the button is the screen's one filled control.
  */
 async function DueStrip({ userId, direction }: { userId: string; direction: ListDirection }) {
   const summary = await getTodaySummary(userId)
   const total = summary.dueCount + summary.newCount
 
-  return (
-    <div className="mb-5 flex min-h-[3.5rem] flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
-      <p className="text-sm">
-        <span className="text-muted">오늘 복습 </span>
-        <span className="font-bold tabular-nums text-brand">{summary.dueCount}</span>
-        <span className="text-muted"> · 새 단어 </span>
-        <span className="font-bold tabular-nums">{summary.newCount}</span>
+  if (total === 0) {
+    return (
+      <p className="mb-7 min-h-[2.75rem] text-[0.8125rem] leading-relaxed text-ink-3 break-keep">
+        오늘 복습할 단어가 없어요. 아래에서 세트를 열어 시험 볼 수 있어요.
       </p>
-      {total > 0 ? (
-        <Link href={`/study/session?scope=due&dir=${direction}`}>
-          <Button>복습 시험 · {total}문제</Button>
-        </Link>
-      ) : (
-        <span className="text-xs text-muted break-keep">
-          오늘 복습할 단어가 없어요. 세트를 열어 시험 볼 수 있어요.
+    )
+  }
+
+  return (
+    <div className="mb-7 flex min-h-[2.75rem] items-center justify-between gap-4">
+      <p className="flex items-baseline gap-1.5 break-keep">
+        <span className="numeral text-[1.75rem] font-semibold leading-none text-ink">{total}</span>
+        <span className="text-sm text-ink-2">문제</span>
+        <span className="numeral ml-1 text-xs text-ink-3">
+          복습 {summary.dueCount} · 새 단어 {summary.newCount}
         </span>
-      )}
+      </p>
+      <Link href={`/study/session?scope=due&dir=${direction}`} className="shrink-0">
+        <Button>시험 시작</Button>
+      </Link>
     </div>
   )
 }
@@ -133,8 +131,8 @@ async function DueStrip({ userId, direction }: { userId: string; direction: List
 /** The same height as the real strip, so nothing below it moves when it lands. */
 function DueStripSkeleton() {
   return (
-    <div className="mb-5 flex min-h-[3.5rem] items-center rounded-xl border border-line bg-surface px-4 py-3">
-      <SkeletonLine className="w-40" />
+    <div className="mb-7 flex min-h-[2.75rem] items-center">
+      <SkeletonLine className="w-32" />
     </div>
   )
 }
@@ -158,29 +156,36 @@ async function Shelf({ userId, role }: { userId: string; role: string }) {
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="divide-y divide-line-soft border-t border-line">
       {sets.map((set) => (
         <li key={set.id ?? 'none'}>
           <Link
             href={`/study?set=${set.id ?? 'none'}`}
-            className="card flex items-center justify-between gap-4 px-5 py-4 transition hover:border-brand"
+            className="group flex items-center gap-4 py-3.5 transition"
           >
-            <div className="min-w-0">
-              <p className="flex items-center gap-2 font-semibold">
-                <span className="truncate">{set.title}</span>
-                {set.assigned ? <Badge tone="brand">배정됨</Badge> : null}
-              </p>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline gap-2">
+                <span className="truncate text-[0.9375rem] text-ink group-hover:text-brand">
+                  {set.title}
+                </span>
+                {/* Assignment is the one thing here worth a mark, and it is a
+                    word rather than a coloured pill. */}
+                {set.assigned ? (
+                  <span className="shrink-0 text-[0.6875rem] text-brand">배정</span>
+                ) : null}
+              </span>
               {set.description ? (
-                <p className="mt-0.5 truncate text-sm text-muted">{set.description}</p>
+                <span className="mt-0.5 block truncate text-[0.8125rem] text-ink-3">
+                  {set.description}
+                </span>
               ) : null}
-              <p className="mt-1 text-xs text-muted tabular-nums">
-                단어 {set.wordCount}개
-                {set.savedCount > 0 ? ` · 담은 단어 ${set.savedCount}개` : ''}
-                {set.mappedCount > 0 ? ` · 맵 ${set.mappedCount}개` : ''}
-              </p>
-            </div>
-            <span aria-hidden className="shrink-0 text-muted">
-              →
+            </span>
+
+            {/* Counts, ranked: how many words is the fact, how many you kept is
+                the qualifier. Both are metadata, so neither is emphasised. */}
+            <span className="numeral shrink-0 text-right text-xs text-ink-3">
+              <span className="text-ink-2">{set.wordCount}</span>개
+              {set.savedCount > 0 ? <span className="ml-1.5">담음 {set.savedCount}</span> : null}
             </span>
           </Link>
         </li>
@@ -225,7 +230,16 @@ async function WordsView({
     <>
       <PageHeader
         title={query ? `"${query}" 검색 결과` : (title ?? '단어')}
-        subtitle="모르는 단어는 ☆ 을 눌러 보관함에 담아요"
+        subtitle={query ? undefined : '모르는 단어는 ☆ 을 눌러 보관함에 담아요'}
+        // The set's own test is this view's single action, so it sits with the
+        // title rather than as a second full-width button under the tabs.
+        action={
+          words.total > 0 && !query ? (
+            <Link href={testHref}>
+              <Button>시험 보기</Button>
+            </Link>
+          ) : null
+        }
       />
 
       <TabBar>
@@ -242,14 +256,6 @@ async function WordsView({
           한국어 → 영어
         </TabLink>
       </TabBar>
-
-      {words.total > 0 && !query ? (
-        <Link href={testHref} className="mb-4 block">
-          <Button variant="secondary" className="w-full">
-            이 세트로 시험 보기 · 단어 {words.total}개
-          </Button>
-        </Link>
-      ) : null}
 
       <WordList
         items={words.words}

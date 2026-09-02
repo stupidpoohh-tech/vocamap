@@ -43,14 +43,14 @@ export function CoreEditor({
     })
 
   return (
-    <section className="card p-5">
+    <section>
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="text-sm font-bold tracking-wide text-brand">중심 개념</h2>
+        <h2 className="text-[0.8125rem] font-medium text-ink-2">중심 개념</h2>
         {!editing ? (
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-xs font-semibold text-brand"
+            className="text-xs text-brand transition"
           >
             수정
           </button>
@@ -60,7 +60,7 @@ export function CoreEditor({
       {editing ? (
         <div className="flex flex-col gap-2.5">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted">
+            <span className="mb-1 block text-xs text-ink-3">
               한국어<span className="ml-0.5 text-bad">*</span>
             </span>
             <Textarea
@@ -72,13 +72,13 @@ export function CoreEditor({
             {errors.ko ? (
               <span className="mt-1 block text-xs font-medium text-bad">{errors.ko}</span>
             ) : (
-              <span className="mt-1 block text-xs text-muted break-keep">
+              <span className="mt-1 block text-xs text-ink-3 break-keep">
                 모든 용법을 관통하는 하나의 개념이에요. 사전 뜻을 나열하지 않아요.
               </span>
             )}
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted">영어 (선택)</span>
+            <span className="mb-1 block text-xs text-ink-3">영어 (선택)</span>
             <Input
               value={draftEn}
               onChange={(e) => setDraftEn(e.target.value)}
@@ -111,8 +111,8 @@ export function CoreEditor({
         </div>
       ) : (
         <>
-          <p className="font-semibold break-keep">{ko ?? '—'}</p>
-          {en ? <p className="mt-1 text-sm italic text-muted">{en}</p> : null}
+          <p className="text-[0.9375rem] break-keep">{ko ?? '—'}</p>
+          {en ? <p className="mt-1 text-sm italic text-ink-3">{en}</p> : null}
         </>
       )}
     </section>

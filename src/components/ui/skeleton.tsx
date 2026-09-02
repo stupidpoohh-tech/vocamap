@@ -42,7 +42,7 @@ export function SkeletonScreen({ rows = 6 }: { rows?: number }) {
   return (
     <div className="animate-rise" role="status" aria-label="불러오는 중">
       <SkeletonHeader />
-      <SkeletonLine className="mb-5 h-12 w-full rounded-xl opacity-40" />
+      <SkeletonLine className="mb-5 h-12 w-full rounded-card opacity-40" />
       <SkeletonRows count={rows} />
     </div>
   )

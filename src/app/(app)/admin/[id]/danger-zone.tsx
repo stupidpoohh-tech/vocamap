@@ -40,8 +40,8 @@ export function DangerZone({
     })
 
   return (
-    <section className="mt-10 rounded-xl border border-bad/30 px-5 py-4">
-      <h2 className="text-sm font-bold tracking-wide text-bad">삭제</h2>
+    <section className="mt-12 border-t border-line pt-5">
+      <h2 className="text-[0.8125rem] font-medium text-ink-2">삭제</h2>
 
       <div className="mt-3 flex flex-col gap-3">
         <Row
@@ -94,8 +94,8 @@ function Row({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold">{title}</p>
-        <p className="mt-0.5 text-xs text-muted break-keep">{detail}</p>
+        <p className="text-[0.8125rem] text-ink">{title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-ink-3 break-keep">{detail}</p>
       </div>
       {active ? (
         <div className="flex shrink-0 gap-2">

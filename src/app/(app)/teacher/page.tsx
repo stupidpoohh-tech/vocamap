@@ -16,7 +16,7 @@ export default async function TeacherPage() {
       <PageHeader title="교사" subtitle="학생과 단어 세트를 관리합니다." />
 
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-bold">학생 {students.length}명</h2>
+        <h2 className="mb-3 text-lg font-semibold">학생 {students.length}명</h2>
         {students.length === 0 ? (
           <EmptyState
             title="아직 학생이 없어요"
@@ -32,7 +32,7 @@ export default async function TeacherPage() {
                 >
                   <div className="min-w-0">
                     <p className="font-semibold">{student.displayName}</p>
-                    <p className="truncate text-sm text-muted">{student.email}</p>
+                    <p className="truncate text-sm text-ink-3">{student.email}</p>
                   </div>
                   <span className="text-sm text-brand">보기 →</span>
                 </Link>
@@ -44,7 +44,7 @@ export default async function TeacherPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-bold">단어 세트</h2>
+        <h2 className="mb-3 text-lg font-semibold">단어 세트</h2>
         {sets.length === 0 ? (
           <EmptyState title="아직 세트가 없어요" hint="아래에서 단어 목록을 붙여넣어 만들 수 있어요." />
         ) : (
@@ -60,7 +60,7 @@ export default async function TeacherPage() {
                   <div className="min-w-0">
                     <p className="font-semibold">{set.title}</p>
                     {set.description ? (
-                      <p className="truncate text-sm text-muted">{set.description}</p>
+                      <p className="truncate text-sm text-ink-3">{set.description}</p>
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -75,7 +75,7 @@ export default async function TeacherPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold">단어 가져오기</h2>
+        <h2 className="mb-3 text-lg font-semibold">단어 가져오기</h2>
         <ImportWordsForm students={students} />
       </section>
     </div>

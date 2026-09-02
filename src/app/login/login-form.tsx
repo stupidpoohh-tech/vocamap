@@ -17,14 +17,18 @@ export function LoginForm({
 
   return (
     <Card>
-      <div className="mb-5 flex gap-1 rounded-xl bg-line/40 p-1">
+      {/* Two text tabs with an underline. This was a segmented control — a
+          filled track holding two rounded buttons and a shadow — for a choice
+          between two words. */}
+      <div className="mb-5 flex gap-5 border-b border-line">
         {(['signin', 'signup'] as const).map((value) => (
           <button
             key={value}
             type="button"
             onClick={() => setMode(value)}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
-              mode === value ? 'bg-surface text-ink shadow-sm' : 'text-muted'
+            aria-pressed={mode === value}
+            className={`-mb-px border-b-2 pb-2.5 text-sm transition ${
+              mode === value ? 'border-brand text-ink' : 'border-transparent text-ink-3 hover:text-ink-2'
             }`}
           >
             {value === 'signin' ? '로그인' : '회원가입'}
@@ -39,7 +43,7 @@ export function LoginForm({
             <select
               name="role"
               defaultValue="student"
-              className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-base"
+              className="w-full rounded-control border border-line bg-surface px-3 py-2.5 text-[0.9375rem]"
             >
               <option value="student">학생</option>
               <option value="teacher">선생님</option>

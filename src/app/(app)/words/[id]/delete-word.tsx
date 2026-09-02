@@ -23,7 +23,7 @@ export function DeleteWord({ vocabularyId, lemma }: { vocabularyId: string; lemm
       <button
         type="button"
         onClick={() => setConfirming(true)}
-        className="mt-6 text-xs font-semibold text-muted hover:text-bad"
+        className="mt-6 text-xs text-ink-3 transition hover:text-bad"
       >
         이 단어 삭제
       </button>
@@ -31,9 +31,9 @@ export function DeleteWord({ vocabularyId, lemma }: { vocabularyId: string; lemm
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-bad/30 px-4 py-3 text-left">
-      <p className="text-sm font-semibold text-bad">{lemma}를 단어장에서 지울까요?</p>
-      <p className="mt-1 text-xs text-muted break-keep">
+    <div className="mt-6 rounded-card border border-bad/25 px-4 py-3 text-left">
+      <p className="text-[0.8125rem] text-bad">{lemma}를 단어장에서 지울까요?</p>
+      <p className="mt-1 text-xs leading-relaxed text-ink-3 break-keep">
         모든 학생의 암기 카드와 정답·오답 기록까지 함께 사라지고, 되돌릴 수 없어요.
       </p>
       <div className="mt-3 flex gap-2">

@@ -80,11 +80,17 @@ export function ItemSection({
     })
 
   return (
-    <section className={dense ? '' : 'card p-5'}>
+    // Sections are separated by space and a heading, not by a box. Each one
+    // used to be a card holding a stack of bordered rows — a card inside a
+    // card — which put two outlines around every sentence a curator reads.
+    <section className={dense ? 'mt-3' : ''}>
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className={cn('font-bold tracking-wide', dense ? 'text-xs text-muted' : 'text-sm text-brand')}>
+        {/* A section heading is a label, not an accent. These were brand
+            coloured and bold, which made the form's scaffolding louder than
+            the content a curator came here to read. */}
+        <h2 className={cn('font-medium', dense ? 'text-xs text-ink-3' : 'text-[0.8125rem] text-ink-2')}>
           {title}
-          <span className="ml-1.5 text-xs font-medium tabular-nums text-muted">
+          <span className="numeral ml-1.5 text-xs text-ink-3">
             {items.length}/{ITEM_MAX[kind]}
           </span>
         </h2>
@@ -96,24 +102,24 @@ export function ItemSection({
               setAdding(true)
               setEditingId(null)
             }}
-            className="shrink-0 text-xs font-semibold text-brand disabled:text-muted"
+            className="shrink-0 text-xs text-brand transition disabled:text-ink-3"
           >
             {full ? '가득 참' : (addLabel ?? `+ ${ITEM_LABEL[kind]} 추가`)}
           </button>
         ) : null}
       </div>
 
-      {note ? <p className="mb-3 text-xs text-muted break-keep">{note}</p> : null}
+      {note ? <p className="mb-3 text-xs text-ink-3 break-keep">{note}</p> : null}
 
       {overflowing ? (
-        <p className="mb-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn break-keep">
+        <p className="mb-3 rounded-chip bg-warn-soft px-2.5 py-1.5 text-xs text-warn break-keep">
           맵에는 중요도가 높은 {onMap}개까지만 올라가요. 나머지는 맵 아래 목록에서 볼 수 있어요.
         </p>
       ) : null}
 
-      <ul className="flex flex-col gap-2">
+      <ul className="divide-y divide-line-soft border-t border-line">
         {items.map((item) => (
-          <li key={item.id} className="rounded-lg border border-line bg-surface px-3 py-2.5">
+          <li key={item.id} className="py-2.5">
             {editingId === item.id ? (
               <ItemForm
                 kind={kind}
@@ -155,14 +161,14 @@ export function ItemSection({
                     )}
                   </div>
                 </div>
-                {item.children ? <div className="mt-3">{item.children}</div> : null}
+                {item.children ? <div className="mt-2 pl-3">{item.children}</div> : null}
               </>
             )}
           </li>
         ))}
 
         {adding ? (
-          <li className="rounded-lg border border-brand/50 bg-brand-soft/30 px-3 py-2.5">
+          <li className="border-l-2 border-brand py-2.5 pl-3">
             <ItemForm
               kind={kind}
               initial={{}}
@@ -177,9 +183,7 @@ export function ItemSection({
         ) : null}
 
         {!items.length && !adding ? (
-          <li className="rounded-lg border border-dashed border-line px-3 py-4 text-center text-xs text-muted">
-            아직 없어요.
-          </li>
+          <li className="py-3 text-xs text-ink-3">아직 없어요.</li>
         ) : null}
       </ul>
 
@@ -197,8 +201,10 @@ function RowButton({
     <button
       type="button"
       className={cn(
-        'rounded-md px-2 py-1 text-xs font-semibold transition disabled:opacity-50',
-        tone === 'danger' ? 'text-bad hover:bg-bad-soft' : 'text-muted hover:bg-line/50 hover:text-ink',
+        'rounded-chip px-1.5 py-0.5 text-xs transition disabled:opacity-50',
+        tone === 'danger'
+          ? 'text-ink-3 hover:bg-bad-soft hover:text-bad'
+          : 'text-ink-3 hover:bg-sunken hover:text-ink',
       )}
       {...props}
     >
@@ -259,7 +265,7 @@ function ItemForm({
 
       {fields.map((field) => (
         <label key={field.name} className="block">
-          <span className="mb-1 block text-xs font-medium text-muted">
+          <span className="mb-1 block text-xs text-ink-3">
             {field.label}
             {field.required ? <span className="ml-0.5 text-bad">*</span> : null}
           </span>
@@ -268,7 +274,7 @@ function ItemForm({
             <select
               value={values[field.name] ?? ''}
               onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
-              className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm"
+              className="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm"
             >
               {field.options?.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -299,7 +305,7 @@ function ItemForm({
               {errors[field.name]}
             </span>
           ) : field.hint ? (
-            <span className="mt-1 block text-xs text-muted break-keep">{field.hint}</span>
+            <span className="mt-1 block text-xs text-ink-3 break-keep">{field.hint}</span>
           ) : null}
         </label>
       ))}
