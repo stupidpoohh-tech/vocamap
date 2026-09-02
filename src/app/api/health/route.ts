@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { inspectConnectionString } from '@/lib/db/connection-string'
+import { hyperdriveConnectionString } from '@/lib/db'
 import { databaseErrorCode } from '@/lib/db/errors'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +26,9 @@ const HINTS: Record<string, string> = {
 }
 
 export async function GET() {
+  const viaHyperdrive = Boolean(hyperdriveConnectionString())
   const url = inspectConnectionString(process.env.DATABASE_URL)
+  const startedAt = Date.now()
 
   if (url.scheme === 'missing') {
     return Response.json(
@@ -41,6 +44,8 @@ export async function GET() {
     return Response.json({
       ok: true,
       database: 'ok',
+      via: viaHyperdrive ? 'hyperdrive' : 'direct',
+      elapsedMs: Date.now() - startedAt,
       seededWords: row?.words ?? 0,
       connectionString: url,
     })
@@ -51,6 +56,8 @@ export async function GET() {
       {
         ok: false,
         database: 'error',
+        via: viaHyperdrive ? 'hyperdrive' : 'direct',
+        elapsedMs: Date.now() - startedAt,
         code,
         hint: HINTS[code] ?? '알 수 없는 오류입니다. Cloudflare 대시보드의 Logs 를 확인해 주세요.',
         connectionString: url,

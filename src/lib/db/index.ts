@@ -19,7 +19,42 @@ declare global {
 const isWorkerd =
   typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers'
 
+/**
+ * Cloudflare's per-request context, which OpenNext parks on a well-known global
+ * symbol. Read directly rather than through `getCloudflareContext()` so this
+ * module keeps working unchanged under Node, where the symbol is simply absent.
+ */
+function cloudflareEnv(): Record<string, unknown> | undefined {
+  const context = (globalThis as Record<symbol, unknown>)[
+    Symbol.for('__cloudflare-context__')
+  ] as { env?: Record<string, unknown> } | undefined
+  return context?.env
+}
+
+/**
+ * Hyperdrive's local connection string, when the binding is present.
+ *
+ * A Worker cannot reliably open a raw TCP connection to a database across the
+ * public internet — ours timed out against Neon in production while working
+ * fine locally. Hyperdrive terminates the connection inside Cloudflare's edge
+ * and pools it, which fixes both that and the cost of the per-request client
+ * this runtime forces on us.
+ */
+export function hyperdriveConnectionString(): string | undefined {
+  const binding = cloudflareEnv()?.HYPERDRIVE
+  if (binding && typeof binding === 'object' && 'connectionString' in binding) {
+    const value = (binding as { connectionString?: unknown }).connectionString
+    if (typeof value === 'string' && value.length > 0) return value
+  }
+  return undefined
+}
+
 function connectionString(): string {
+  // Hyperdrive wins when bound; DATABASE_URL stays the fallback so the app runs
+  // unchanged under Node, in tests, and on any host without Hyperdrive.
+  const hyperdrive = hyperdriveConnectionString()
+  if (hyperdrive) return normaliseConnectionString(hyperdrive)
+
   const url = process.env.DATABASE_URL
   if (!url) {
     throw new Error(

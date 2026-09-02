@@ -11,4 +11,14 @@
     "binding": "ASSETS"
   },
   "observability": { "enabled": true }
+
+  // Hyperdrive — add once a config exists in the Cloudflare dashboard.
+  //
+  // A Worker cannot reliably open a raw TCP connection to a database over the
+  // public internet; against Neon it times out in production while working
+  // locally. Hyperdrive terminates and pools the connection inside Cloudflare's
+  // edge. `src/lib/db/index.ts` prefers this binding and falls back to
+  // DATABASE_URL when it is absent, so the app runs either way.
+  //
+  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<config id>" }]
 }

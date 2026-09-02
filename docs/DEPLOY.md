@@ -201,6 +201,44 @@ npx wrangler secret put ANTHROPIC_API_KEY
 더 자세한 로그는 Cloudflare 대시보드 → **Compute (Workers)** → `vocamap` →
 **Logs** 에서 볼 수 있습니다.
 
+## 3-D. Hyperdrive (필수)
+
+`/api/health` 가 `CONNECT_TIMEOUT` 이고 `connectionString.problems` 가 비어 있다면,
+연결 문자열은 정상이고 **Worker에서 Neon으로 직접 TCP 접속이 되지 않는** 상황입니다.
+Worker가 공용 인터넷 너머의 DB로 원시 TCP를 여는 것은 신뢰할 수 없습니다 — 로컬
+workerd 에서는 되는데 배포하면 타임아웃이 납니다.
+
+Hyperdrive는 Cloudflare 엣지 안에서 연결을 종단하고 풀링해 줍니다. Workers 유료
+플랜에 **추가 비용 없이 포함**되어 있고, 요청마다 새 연결을 맺던 비용도 함께
+사라집니다.
+
+### 만들기
+
+1. 왼쪽 **Storage & Databases** → **Hyperdrive**
+2. **Create configuration**
+3. Name `vocamap-db`
+4. Connection string 에 Neon **Pooled** 주소 붙여넣기
+5. **Create**
+6. 만들어진 설정의 **ID** 를 복사
+
+### 연결하기
+
+`wrangler.jsonc` 에 아래를 추가하면 됩니다(코드 변경이므로 대신 처리합니다).
+
+```jsonc
+"hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<복사한 ID>" }]
+```
+
+`src/lib/db/index.ts` 는 이 바인딩이 있으면 우선 사용하고, 없으면 `DATABASE_URL` 로
+돌아갑니다. 따라서 로컬 개발과 Vercel 배포는 그대로 동작합니다.
+
+적용되면 `/api/health` 의 `via` 가 `direct` 에서 `hyperdrive` 로 바뀝니다.
+
+> Hyperdrive가 주는 연결 문자열에는 `sslmode=disable` 이 들어 있습니다. postgres.js
+> 는 `ssl` 값이 truthy 이기만 하면 TLS를 켜므로 이 문자열은 오히려 TLS를 **켜서**
+> 실패시킵니다. 앱이 자동으로 제거합니다. (실제 암호화는 Hyperdrive가 Cloudflare
+> 내부에서 담당합니다.)
+
 ## 4. Workers 때문에 바꾼 것
 
 ### DB 클라이언트를 요청 단위로
@@ -230,9 +268,7 @@ Cloudflare는 **한 요청에서 만든 I/O 객체를 다른 요청에서 쓰는
 
 ## 5. 나중에 볼 것
 
-- **Hyperdrive** — Cloudflare가 Postgres 커넥션을 자기 쪽에서 풀링해 줍니다. 요청마다
-  새 연결을 맺는 비용이 줄어듭니다. 유료 플랜에 포함이고, 학생 수가 늘어 지연이
-  체감되면 그때 붙이면 됩니다. 지금은 Neon pooled endpoint로 충분합니다.
+- ~~Hyperdrive는 나중에~~ — **필수입니다.** §3-D 참조.
 - **커스텀 도메인** — Workers 라우트에 도메인 연결
 - **R2 증분 캐시** — 현재는 전부 동적 렌더라 이득이 없습니다
 
