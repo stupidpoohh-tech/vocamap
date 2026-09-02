@@ -26,7 +26,15 @@ export function BrainMapExplorer({
   recommendedNodeId: string | null
 }) {
   const [nodes, setNodes] = useState(initialNodes)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Opens on the recommended node rather than on an empty panel telling the
+  // student to pick something: the point of the map is to get to a question,
+  // and the map already says which one to start with.
+  const [selectedId, setSelectedId] = useState<string | null>(
+    recommendedNodeId ?? initialNodes.find((n) => n.exercises.length)?.id ?? null,
+  )
+  // Dimming the rest of the map is a response to a choice, not a starting
+  // state — a map that arrives with four of five nodes faded is not a map.
+  const [chosen, setChosen] = useState(false)
 
   // Opening the map is itself a signal — it tells us the recommendation landed.
   useEffect(() => {
@@ -58,22 +66,28 @@ export function BrainMapExplorer({
   }
 
   return (
-    <div className="mt-6">
+    <div className="mt-5">
       {reasons.length ? <ReasonStrip reasons={reasons} recommended={recommended} /> : null}
 
-      <section className="mt-6">
+      {/* Tighter on a phone: the map should arrive without a scroll. */}
+      <section className="mt-4 sm:mt-6">
         <SemanticMap
           lemma={lemma}
           nodes={nodes}
           selectedId={selectedId}
-          onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
+          dimOthers={chosen}
+          onSelect={(id) => {
+            setChosen(true)
+            setSelectedId((current) => (current === id ? null : id))
+          }}
         />
         <div className="mt-4 sm:mt-2">
           <MapLegend statuses={nodes.map((n) => n.status)} />
         </div>
       </section>
 
-      <div className="mt-8">
+      {/* Clear of the fixed bottom bar. */}
+      <div className="mt-6 pb-4 sm:mt-8">
         <Workspace node={selected} onAnswer={handleAnswer} />
       </div>
     </div>
@@ -87,26 +101,22 @@ function ReasonStrip({
   reasons: MapReason[]
   recommended: SemanticNode | null
 }) {
+  // One strip, two lines. This was a heading, a wrapped list and a separate
+  // recommendation sentence — three bands of small grey text ahead of the map
+  // they were describing.
+  const why = reasons.map((r) => r.text)
+  const urgent = reasons.some((r) => r.tone === 'warn')
+
   return (
-    <section className="border-t border-line pt-3">
-      <p className="text-xs text-ink-3">이 단어가 맵으로 펼쳐진 이유</p>
-      <ul className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        {reasons.map((reason) => (
-          <li
-            key={reason.text}
-            className={`text-[0.8125rem] break-keep ${
-              // The reasons that came from the student getting something wrong
-              // are the point of the strip; the rest are context.
-              reason.tone === 'warn' ? 'text-ink' : 'text-ink-3'
-            }`}
-          >
-            {reason.text}
-          </li>
-        ))}
-      </ul>
+    <section className="border-t border-line pt-3 text-[0.8125rem] leading-relaxed">
+      <p className="break-keep">
+        <span className="text-ink-3">이 단어가 펼쳐진 이유 </span>
+        <span className={urgent ? 'text-ink' : 'text-ink-2'}>{why.join(' · ')}</span>
+      </p>
       {recommended ? (
-        <p className="mt-1.5 text-[0.8125rem] text-ink-3 break-keep">
-          여기서 시작해 보세요 · <span className="text-ink">{recommended.label}</span>
+        <p className="mt-0.5 break-keep">
+          <span className="text-ink-3">추천 시작 </span>
+          <span className="text-ink">{recommended.label}</span>
         </p>
       ) : null}
     </section>

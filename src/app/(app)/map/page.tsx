@@ -5,6 +5,7 @@ import { listStudyWords, mapCounts } from '@/lib/data/library'
 import { listRecommendedWords } from '@/lib/data/personal'
 import { EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { BookmarkButton } from '@/components/words/bookmark-button'
+import { DeleteWordButton } from '@/components/words/delete-word-button'
 
 /**
  * SCREEN 3 — the maps.
@@ -119,6 +120,17 @@ export default async function MapPage({
                 <span className="numeral shrink-0 text-[0.6875rem] text-data-weak">
                   {word.wrongCount}회 틀림
                 </span>
+              ) : null}
+
+              {/* Curators only. A student has no business deleting the shared
+                  library, and the row is the only place a word with no map can
+                  be reached from. */}
+              {isCurator ? (
+                <DeleteWordButton
+                  vocabularyId={word.id}
+                  lemma={word.lemma}
+                  hasMap={word.mapStatus !== 'none'}
+                />
               ) : null}
 
               <BookmarkButton vocabularyId={word.id} bookmarked={word.bookmarked} />

@@ -1,7 +1,14 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { layoutNodes, type PlacedNode, type SizeTier } from '@/lib/learning/map-layout'
+import {
+  layoutMobileNodes,
+  MOBILE_CENTRE,
+  mobileFrameHeight,
+  MOBILE_DEFAULT_NODES,
+  MOBILE_MAX_NODES,
+} from '@/lib/learning/mobile-map-layout'
 import type { NodeStatus, SemanticNode } from '@/lib/data/semantic-map'
 import { cn } from '@/lib/utils'
 
@@ -62,11 +69,14 @@ export function SemanticMap({
   lemma,
   nodes,
   selectedId,
+  dimOthers = false,
   onSelect,
 }: {
   lemma: string
   nodes: SemanticNode[]
   selectedId: string | null
+  /** Fade the unselected nodes. Off until the reader picks one themselves. */
+  dimOthers?: boolean
   onSelect: (id: string) => void
 }) {
   // Which nodes belong on the map is decided upstream, where the curriculum
@@ -138,7 +148,7 @@ export function SemanticMap({
                 node={node}
                 tier={p.tier}
                 selected={selectedId === node.id}
-                dimmed={Boolean(selectedId) && selectedId !== node.id}
+                dimmed={dimOthers && selectedId !== node.id}
                 onSelect={onSelect}
               />
             </div>
@@ -186,61 +196,209 @@ export function SemanticMap({
         </div>
       ) : null}
 
-      {/* Phones get the same hierarchy without shrinking the type: the centre
-          word, then nodes in importance order down a connecting rail. */}
-      <div className="sm:hidden">
-        <div className="mb-4 flex justify-center">
-          <CentreWord lemma={lemma} inline />
-        </div>
-        <ol className="relative flex flex-col gap-2.5 pl-5">
-          <span aria-hidden className="absolute bottom-4 left-1.5 top-0 w-px bg-line" />
-          {[...nodes]
-            .sort((a, b) => b.importance - a.importance)
-            .map((node) => (
-              <li key={node.id} className="relative">
-                <span
-                  aria-hidden
-                  className="absolute -left-3.5 top-1/2 h-px w-3 -translate-y-1/2 bg-line"
-                />
-                <NodeCard
-                  node={node}
-                  tier={tierFor(node.importance)}
-                  selected={selectedId === node.id}
-                  dimmed={false}
-                  onSelect={onSelect}
-                  fullWidth
-                />
-              </li>
-            ))}
-        </ol>
-      </div>
+      {/* Phones get their own map, not this one at a smaller scale — see
+          `MobileSemanticMap`. */}
+      <MobileSemanticMap
+        lemma={lemma}
+        nodes={nodes}
+        selectedId={selectedId}
+        onSelect={onSelect}
+      />
     </>
   )
 }
 
-function tierFor(importance: number): SizeTier {
-  if (importance >= 0.9) return 'hero'
-  if (importance >= 0.7) return 'primary'
-  if (importance >= 0.45) return 'secondary'
-  return 'peripheral'
+/* ─────────────────────────────── on a phone ─────────────────────────────── */
+
+/**
+ * The same map, laid out for a narrow screen.
+ *
+ * This was a vertical list of cards, which is the one thing a Brain Map must
+ * not be: a student scrolling past six stacked boxes learns that the word has
+ * six attachments, not that they radiate from it. The centre word, the
+ * connectors and three or four nodes now fit in a single frame at 320px, with
+ * the rest behind an expand control rather than tacked on below.
+ */
+function MobileSemanticMap({
+  lemma,
+  nodes,
+  selectedId,
+  onSelect,
+}: {
+  lemma: string
+  nodes: SemanticNode[]
+  selectedId: string | null
+  onSelect: (id: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  const byImportance = useMemo(
+    () => [...nodes].sort((a, b) => b.importance - a.importance),
+    [nodes],
+  )
+  const visible = expanded
+    ? byImportance.slice(0, MOBILE_MAX_NODES)
+    : byImportance.slice(0, MOBILE_DEFAULT_NODES)
+  // What expanding would actually add, not how many nodes exist: the frame
+  // holds six, and promising "+6 more" to reveal two is a lie.
+  const hidden = Math.min(MOBILE_MAX_NODES, byImportance.length) - visible.length
+
+  const placed = useMemo(
+    () =>
+      new Map(
+        layoutMobileNodes(
+          visible.map((n) => ({
+            id: n.id,
+            importance: n.importance,
+            relationStrength: n.relationStrength,
+          })),
+        ).map((p) => [p.id, p]),
+      ),
+    [visible],
+  )
+
+  const height = mobileFrameHeight(visible.length)
+
+  return (
+    <div className="sm:hidden">
+      {/* Full-bleed: the page's side padding costs the map 40px it needs to
+          keep two nodes and the word on one line at 320px. */}
+      <div className="relative -mx-5" style={{ height }}>
+        <svg
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          {visible.map((node) => {
+            const p = placed.get(node.id)
+            if (!p) return null
+            const active = selectedId === node.id
+            return (
+              <line
+                key={node.id}
+                x1={50}
+                y1={50}
+                x2={p.x}
+                y2={p.y}
+                stroke="currentColor"
+                strokeWidth={active ? p.strokeWidth + 0.6 : p.strokeWidth}
+                strokeOpacity={active ? 0.9 : p.strokeOpacity}
+                className={active ? 'text-brand' : 'text-ink-3'}
+                vectorEffect="non-scaling-stroke"
+              />
+            )
+          })}
+        </svg>
+
+        {/* Soft rounded rather than a strict circle: a circle wide enough for
+            one syllable clipped every real headword. */}
+        <div
+          className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand px-3"
+          style={{ height: MOBILE_CENTRE.height, maxWidth: MOBILE_CENTRE.width }}
+        >
+          <span className="truncate text-[13px] font-medium lowercase tracking-tight text-white">
+            {lemma}
+          </span>
+        </div>
+
+        {visible.map((node) => {
+          const p = placed.get(node.id)
+          if (!p) return null
+          return (
+            <div
+              key={node.id}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.width }}
+            >
+              <MobileNode
+                node={node}
+                selected={selectedId === node.id}
+                onSelect={onSelect}
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      {hidden > 0 || expanded ? (
+        <div className="-mt-1 text-center">
+          <button
+            type="button"
+            onClick={() => setExpanded((on) => !on)}
+            className="rounded-chip px-2 py-1 text-xs text-ink-3 transition hover:text-ink-2"
+          >
+            {expanded ? '연결 접기' : `+ ${hidden}개 연결 더보기`}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
-function CentreWord({ lemma, inline = false }: { lemma: string; inline?: boolean }) {
+/**
+ * A node at phone size: the vocabulary, at most two lines, and a status dot.
+ * No gloss paragraph — long text belongs in the workspace below, not in a card
+ * the reader is meant to take in at a glance.
+ */
+function MobileNode({
+  node,
+  selected,
+  onSelect,
+}: {
+  node: SemanticNode
+  selected: boolean
+  onSelect: (id: string) => void
+}) {
+  const urgent = node.recommended || (node.status === 'weak' && node.importance >= 0.7)
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(node.id)}
+      aria-pressed={selected}
+      className={cn(
+        'w-full rounded-card border bg-surface px-2 py-1.5 text-left transition',
+        selected
+          ? 'border-brand'
+          : urgent
+            ? 'border-ink-3/45'
+            : 'border-line',
+      )}
+    >
+      <span className="flex items-center gap-1">
+        <span className={cn('h-1 w-1 shrink-0 rounded-full', STATUS_DOT[node.status])} />
+        <span className="truncate text-[9px] text-ink-3">{node.eyebrow}</span>
+        {node.recommended ? (
+          <span className="ml-auto shrink-0 text-[9px] text-brand">추천</span>
+        ) : null}
+      </span>
+      <span
+        className={cn(
+          'mt-0.5 line-clamp-2 block text-[12px] leading-[1.35] break-keep',
+          // Importance shows in weight as well as in size and distance, which
+          // is what stops the map reading as a menu of equals.
+          node.importance >= 0.85 ? 'font-medium text-ink' : 'text-ink',
+        )}
+      >
+        {node.label}
+      </span>
+    </button>
+  )
+}
+
+/** The word itself, at the centre of the desktop map. */
+function CentreWord({ lemma }: { lemma: string }) {
   return (
     <div
       className={cn(
         // The one filled shape on the map, and the only place the brand colour
         // appears at full strength. Everything orbiting it is drawn in ink.
-        'z-10 flex items-center justify-center rounded-full bg-brand text-center',
-        inline ? 'h-20 w-20' : 'absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2',
+        'absolute left-1/2 top-1/2 z-10 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2',
+        'items-center justify-center rounded-full bg-brand text-center',
       )}
     >
-      <span
-        className={cn(
-          'px-2 font-medium lowercase tracking-tight text-white',
-          lemma.length <= 9 ? 'text-base' : lemma.length <= 13 ? 'text-sm' : 'text-xs',
-        )}
-      >
+      <span className="px-2 text-[15px] font-medium lowercase tracking-tight text-white">
         {lemma}
       </span>
     </div>
