@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MAP_NODE_TARGET } from './prompts'
 
 /**
  * The contract for every Brain Map the LLM produces. Nothing reaches the
@@ -65,6 +66,20 @@ export const similarWordSchema = z.object({
     .max(5),
 })
 
+/**
+ * The caps are the density rule made structural.
+ *
+ * A Brain Map is 3-5 nodes: one core meaning, at most one confusable, one or
+ * two collocations, at most one further sense. Each cap leaves the model less
+ * room than that and the curator one slot of headroom on top, so the screen
+ * cannot fill up with true-but-unnecessary material even when the model
+ * ignores the instruction.
+ *
+ * Sentences and word family are not nodes. Sentences are the drill material
+ * behind the meaning node, and derived forms are reference the student can
+ * look at — neither earns a place on the map, so both are capped at what they
+ * are actually used for rather than at what could be produced.
+ */
 export const brainMapDraftSchema = z.object({
   meaningCoreKo: z
     .string()
@@ -74,11 +89,11 @@ export const brainMapDraftSchema = z.object({
     .describe('모든 용법을 관통하는 중심 개념. 사전 뜻 나열 금지.'),
   meaningCoreEn: z.string().trim().max(200).nullable(),
   primaryTranslations: z.array(shortText).min(1).max(4),
-  meanings: z.array(meaningSchema).max(5),
-  sentences: z.array(sentenceSchema).max(6),
-  collocations: z.array(collocationSchema).max(5),
-  wordFamily: z.array(wordFamilySchema).max(6),
-  similarWords: z.array(similarWordSchema).max(3),
+  meanings: z.array(meaningSchema).max(3).describe('대표 의미 1개, 정말 필요할 때만 1개 추가.'),
+  sentences: z.array(sentenceSchema).max(4).describe('의미 노드의 연습 재료. 노드가 아님.'),
+  collocations: z.array(collocationSchema).max(3).describe('실제로 자주 쓰는 표현 1~2개.'),
+  wordFamily: z.array(wordFamilySchema).max(3).describe('참고용 파생어. 노드가 되지 않음.'),
+  similarWords: z.array(similarWordSchema).max(2).describe('정말 혼동하는 단어 0~1개.'),
 })
 
 export type BrainMapDraft = z.infer<typeof brainMapDraftSchema>
@@ -123,7 +138,7 @@ export function validateDraftConsistency(draft: BrainMapDraft): string[] {
  * and demanding uniqueness rejected exactly that.
  */
 export function draftQualityNotes(draft: BrainMapDraft): string[] {
-  const notes: string[] = []
+  const notes = [...densityNotes(draft)]
   const total = draft.sentences.length
   if (total < 3) return notes
 
@@ -145,6 +160,43 @@ export function draftQualityNotes(draft: BrainMapDraft): string[] {
     if (count > limit) {
       notes.push(`예문 ${total}개 중 ${count}개가 "${usage}" 한 용법에 몰려 있습니다.`)
     }
+  }
+
+  return notes
+}
+
+/**
+ * How many cards this draft would put on the map, under the same priority the
+ * map itself applies: the core meaning, one confusable, up to two collocations,
+ * one further sense. Derived forms never make it.
+ */
+export function plannedNodeCount(draft: BrainMapDraft): number {
+  const chosen =
+    1 + Math.min(1, draft.similarWords.length) + Math.min(2, draft.collocations.length)
+  const spareSense = draft.meanings.length > 1 && chosen < MAP_NODE_TARGET ? 1 : 0
+  return chosen + spareSense
+}
+
+/**
+ * Density warnings for the curator.
+ *
+ * Deliberately narrow. "This draft has three collocations and the map shows
+ * two" is the rule working, not a defect — the review screen says so in the
+ * section itself, and the extras are still drill material and still reachable
+ * under the map. Warning about it on every polysemous word would train the
+ * curator to ignore the warnings that matter.
+ *
+ * A flat importance ranking is a defect: it is the model declining to say what
+ * matters, and it leaves the map unable to size or place anything.
+ */
+function densityNotes(draft: BrainMapDraft): string[] {
+  const notes: string[] = []
+  const { collocations } = draft
+
+  if (collocations.length > 2 && collocations.every((c) => c.importance === collocations[0]!.importance)) {
+    notes.push(
+      `표현 ${collocations.length}개의 중요도가 모두 같아요. 맵에는 2개만 올라가니, 반드시 알아야 할 표현에 1을 주세요.`,
+    )
   }
 
   return notes

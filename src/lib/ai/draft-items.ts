@@ -42,14 +42,27 @@ export const ITEM_LABEL: Record<ItemKind, string> = {
   pairQuestion: '구별 문제',
 }
 
-/** Mirrors the caps in `brainMapDraftSchema`: a Brain Map is a selection. */
+/**
+ * Mirrors the caps in `brainMapDraftSchema`: a Brain Map is a selection.
+ *
+ * Each is one slot above what the model is asked for, so a curator has room to
+ * add the thing they know matters — and still cannot turn the map back into a
+ * dictionary entry.
+ */
 export const ITEM_MAX: Record<ItemKind, number> = {
-  meaning: 5,
-  sentence: 6,
-  collocation: 5,
-  wordFamily: 6,
-  pair: 3,
+  meaning: 3,
+  sentence: 4,
+  collocation: 3,
+  wordFamily: 3,
+  pair: 2,
   pairQuestion: 5,
+}
+
+/** What actually reaches the map, per section. Shown next to the cap. */
+export const ITEM_ON_MAP: Partial<Record<ItemKind, number>> = {
+  meaning: 2,
+  collocation: 2,
+  pair: 1,
 }
 
 export const ITEM_FIELDS: Record<ItemKind, ItemField[]> = {

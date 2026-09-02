@@ -11,7 +11,7 @@ import {
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
 import { getMasterBrainMap, setBrainMapStatus, writeDraft } from '@/lib/data/brain-map'
 import { EditError, removeDraftItem, saveDraftItem, saveMeaningCore } from '@/lib/data/brain-map-edit'
-import { validateItem } from '@/lib/ai'
+import { ITEM_MAX, validateItem } from '@/lib/ai'
 import { createUser, hasDatabase, resetDatabase } from './helpers/db'
 
 const DRAFT = {
@@ -195,8 +195,9 @@ describe.skipIf(!hasDatabase)('editing one item at a time', () => {
 
   it('stops at the cap rather than growing the map without limit', async () => {
     const { curator, brainMapId } = await draftFor()
-    // The draft ships one collocation; the cap is five.
-    for (let i = 0; i < 4; i += 1) {
+    // The draft ships one collocation. The cap is one slot above what the map
+    // shows, so a curator can add the one they know matters and no more.
+    for (let i = 0; i < ITEM_MAX.collocation - 1; i += 1) {
       await saveDraftItem({
         brainMapId,
         kind: 'collocation',

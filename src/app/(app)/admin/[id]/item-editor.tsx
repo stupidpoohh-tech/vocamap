@@ -3,7 +3,14 @@
 import { useState, useTransition, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Input, Textarea } from '@/components/ui'
-import { ITEM_FIELDS, ITEM_LABEL, ITEM_MAX, type ItemField, type ItemKind } from '@/lib/ai'
+import {
+  ITEM_FIELDS,
+  ITEM_LABEL,
+  ITEM_MAX,
+  ITEM_ON_MAP,
+  type ItemField,
+  type ItemKind,
+} from '@/lib/ai'
 import { cn } from '@/lib/utils'
 import { deleteItem, saveItem } from './edit-actions'
 
@@ -55,6 +62,10 @@ export function ItemSection({
   const [failure, setFailure] = useState<string | null>(null)
 
   const full = items.length >= ITEM_MAX[kind]
+  // How many of these actually reach the map. A curator adding a fourth
+  // collocation should know it will sit in the list below the map, not on it.
+  const onMap = ITEM_ON_MAP[kind]
+  const overflowing = onMap !== undefined && items.length > onMap
 
   const remove = (itemId: string) =>
     startTransition(async () => {
@@ -93,6 +104,12 @@ export function ItemSection({
       </div>
 
       {note ? <p className="mb-3 text-xs text-muted break-keep">{note}</p> : null}
+
+      {overflowing ? (
+        <p className="mb-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn break-keep">
+          맵에는 중요도가 높은 {onMap}개까지만 올라가요. 나머지는 맵 아래 목록에서 볼 수 있어요.
+        </p>
+      ) : null}
 
       <ul className="flex flex-col gap-2">
         {items.map((item) => (

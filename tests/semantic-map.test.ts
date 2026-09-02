@@ -7,12 +7,12 @@ import { SEED_WORDS } from '@/lib/seed/words'
 import { brainMapDraftSchema } from '@/lib/ai/schema'
 import { createUser, hasDatabase, resetDatabase } from './helpers/db'
 
-async function seedIssue() {
+async function seedWord(lemma: string) {
   const admin = await createUser('admin')
   const student = await createUser('student')
-  const word = SEED_WORDS.find((w) => w.lemma === 'issue')!
+  const word = SEED_WORDS.find((w) => w.lemma === lemma)!
   const { id } = await findOrCreateVocabulary({
-    lemma: 'issue',
+    lemma,
     partOfSpeech: word.partOfSpeech,
     translations: word.translations,
   })
@@ -22,6 +22,8 @@ async function seedIssue() {
   await setBrainMapStatus(brainMapId, 'approved', admin.id)
   return { student, vocabularyId: id }
 }
+
+const seedIssue = () => seedWord('issue')
 
 describe.skipIf(!hasDatabase)('semantic brain map', () => {
   beforeEach(async () => {
@@ -78,6 +80,68 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
     expect(confusable.status).toBe('weak')
     expect(after.recommendedNodeId).toBe(pair.id)
     expect(Math.max(...after.nodes.map((n) => n.importance))).toBe(confusable.importance)
+  })
+
+  it('puts only the few connections that must survive on the map', async () => {
+    // The worked example of the rule: for "issue" the map is 문제·쟁점, the
+    // issue/problem confusion, and the two collocations a student will meet.
+    // "(잡지의) 호" and "issue a statement" are real English and belong nowhere
+    // near the default map, so they stay in the list under it.
+    const { student, vocabularyId } = await seedIssue()
+    const map = (await buildSemanticMap(student.id, vocabularyId))!
+
+    const onMap = map.nodes.filter((n) => n.onMap)
+    expect(onMap.length).toBeGreaterThanOrEqual(3)
+    expect(onMap.length).toBeLessThanOrEqual(5)
+
+    expect(onMap.filter((n) => n.kind === 'coreMeaning')).toHaveLength(1)
+    expect(onMap.filter((n) => n.kind === 'confusable')).toHaveLength(1)
+    expect(onMap.filter((n) => n.kind === 'collocation')).toHaveLength(2)
+    expect(onMap.filter((n) => n.kind === 'secondaryMeaning')).toHaveLength(0)
+
+    // Nothing a curator wrote becomes unreachable — it is just not on the map.
+    const offMap = map.nodes.filter((n) => !n.onMap)
+    expect(offMap.length).toBeGreaterThan(0)
+    expect(offMap.every((n) => n.exercises.length >= 0)).toBe(true)
+  })
+
+  it('never spends a map slot on a derived form', async () => {
+    // A list of derivatives is reference material. Putting it on the map spends
+    // the student's attention on the least useful thing there.
+    const { student, vocabularyId } = await seedWord('maintain')
+    const map = (await buildSemanticMap(student.id, vocabularyId))!
+
+    expect(map.nodes.some((n) => n.kind === 'wordFamily')).toBe(true)
+    expect(map.nodes.filter((n) => n.onMap).some((n) => n.kind === 'wordFamily')).toBe(false)
+  })
+
+  it('falls back to a further sense only when the map would be thin', async () => {
+    // A word with no confusable and no collocations still has to be a map.
+    const admin = await createUser('admin')
+    const student = await createUser('student')
+    const { id } = await findOrCreateVocabulary({ lemma: 'thin', partOfSpeech: 'noun' })
+    const brainMapId = await writeDraft(
+      id,
+      brainMapDraftSchema.parse({
+        meaningCoreKo: '얇거나 가늘어서 부피가 적은 상태를 가리킨다.',
+        meaningCoreEn: null,
+        primaryTranslations: ['얇은'],
+        meanings: [
+          { ko: '얇은', enDefinition: null, connectionNote: '', exampleChunk: null },
+          { ko: '드문드문한', enDefinition: null, connectionNote: '', exampleChunk: 'thin crowd' },
+        ],
+        sentences: [],
+        collocations: [],
+        wordFamily: [],
+        similarWords: [],
+      }),
+      { createdBy: admin.id },
+    )
+    await setBrainMapStatus(brainMapId, 'approved', admin.id)
+
+    const map = (await buildSemanticMap(student.id, id))!
+    const onMap = map.nodes.filter((n) => n.onMap)
+    expect(onMap.map((n) => n.kind)).toEqual(['coreMeaning', 'secondaryMeaning'])
   })
 
   it('keeps importance and mastery separate', async () => {

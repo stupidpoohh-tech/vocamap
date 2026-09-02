@@ -3,6 +3,7 @@ import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import { reviewEvents, userConfusions, vocabularyTranslations } from '@/lib/db/schema'
 import type { NodeType } from '@/lib/learning/nodes'
+import { MAP_NODE_BUDGET, MAP_NODE_TARGET } from '@/lib/ai'
 import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
 import { collectWordSignals } from './study'
 
@@ -58,6 +59,16 @@ export type SemanticNode = {
   recommended: boolean
   /** Which of the five progress buckets an answer here counts towards. */
   progressNode: NodeType
+  /**
+   * Whether this node earns a place on the map itself.
+   *
+   * A curriculum decision, not a layout one, so it is made here rather than in
+   * the component: a Brain Map is the few connections that must survive in the
+   * student's head, and everything true that does not earn a place costs the
+   * ones that did. What misses out is still reachable in the list below the
+   * map — nothing a curator wrote becomes unreachable.
+   */
+  onMap: boolean
   /** Carried into `review_events.payload` so per-item status can be derived. */
   itemId: string
   pairId?: string
@@ -215,6 +226,7 @@ export async function buildSemanticMap(
       relationStrength: 1,
       status: statusFor(tallies.get(`core:${master.id}`)),
       recommended: false,
+      onMap: false,
       progressNode: 'meaning_core',
       itemId: `core:${master.id}`,
       exercises: meaningExercises(master, master.meanings[0]?.ko ?? label),
@@ -233,6 +245,7 @@ export async function buildSemanticMap(
       relationStrength: Math.max(0.35, 0.7 - index * 0.12),
       status: statusFor(tallies.get(meaning.id)),
       recommended: false,
+      onMap: false,
       progressNode: 'sentences',
       itemId: meaning.id,
       exercises: meaningExercises(master, meaning.ko),
@@ -257,6 +270,7 @@ export async function buildSemanticMap(
       relationStrength: 0.95,
       status: wrong >= 2 ? 'weak' : statusFor(tally),
       recommended: false,
+      onMap: false,
       progressNode: 'similar_words',
       itemId: pair.pairId,
       pairId: pair.pairId,
@@ -284,6 +298,7 @@ export async function buildSemanticMap(
       relationStrength: collocation.importance === 1 ? 0.85 : 0.6,
       status: statusFor(tallies.get(collocation.id)),
       recommended: false,
+      onMap: false,
       progressNode: 'collocations',
       itemId: collocation.id,
       exercises: collocationExercises(collocation, allExpressions),
@@ -303,14 +318,21 @@ export async function buildSemanticMap(
       relationStrength: 0.5,
       status: statusFor(tallies.get(member.id)),
       recommended: false,
+      onMap: false,
       progressNode: 'word_family',
       itemId: member.id,
       exercises: wordFamilyExercises(member, forms),
     })
   }
 
+  selectMapNodes(nodes)
+
   // ── what to start with ─────────────────────────────────────────────────
-  const startable = nodes.filter((n) => n.exercises.length > 0)
+  // On-map nodes first, so the recommendation lands where the eye already is
+  // whenever an equally good candidate sits on the map.
+  const startable = nodes
+    .filter((n) => n.exercises.length > 0)
+    .sort((a, b) => Number(b.onMap) - Number(a.onMap))
   const recommended =
     // Weak beats merely important: being shaky on something that matters is
     // the reason this word was expanded at all.
@@ -333,6 +355,43 @@ export async function buildSemanticMap(
     reasons: buildReasons({ master, signals, confusions, nodes }),
     recommendedNodeId: recommended?.id ?? null,
   }
+}
+
+/**
+ * Chooses the handful of nodes that go on the map, in priority order:
+ * the one core meaning, the confusable the student actually mixes up, the one
+ * or two collocations they will really meet, and — only if there is room — one
+ * further sense.
+ *
+ * Derived forms are deliberately never picked. A list of derivatives is
+ * reference material; putting it on the map spends the student's attention on
+ * the least useful thing there.
+ *
+ * Applied to stored content as well as to fresh generations, because the rule
+ * is about what a student should see, not about what the model happened to
+ * produce — maps written before the rule existed obey it too.
+ */
+function selectMapNodes(nodes: SemanticNode[]): void {
+  const strongestFirst = (a: SemanticNode, b: SemanticNode) => b.importance - a.importance
+  const of = (kind: NodeKind) => nodes.filter((n) => n.kind === kind).sort(strongestFirst)
+
+  const picked: SemanticNode[] = []
+  const take = (node: SemanticNode | undefined) => {
+    if (!node || picked.length >= MAP_NODE_BUDGET || picked.includes(node)) return
+    picked.push(node)
+  }
+
+  take(of('coreMeaning')[0])
+  take(of('confusable')[0])
+  for (const collocation of of('collocation').slice(0, 2)) take(collocation)
+
+  // A further sense is the last thing in, and only when the map would otherwise
+  // be too thin to be a map. For "issue" that means 문제·쟁점, issue vs problem
+  // and two collocations fill the budget, so "이번 호" and "issue a statement"
+  // — both real English — stay off it, which is the point.
+  if (picked.length < MAP_NODE_TARGET) take(of('secondaryMeaning')[0])
+
+  for (const node of picked) node.onMap = true
 }
 
 /**

@@ -82,13 +82,6 @@ export const SEED_WORDS: SeedWord[] = [
           highlight: 'maintained that',
           difficulty: 4,
         },
-        {
-          text: 'The company struggled to maintain quality as it grew.',
-          ko: '그 회사는 성장하면서 품질을 유지하는 데 어려움을 겪었다.',
-          targetMeaning: '수준을 유지하다',
-          highlight: 'maintain quality',
-          difficulty: 3,
-        },
       ],
       collocations: [
         {
@@ -107,12 +100,6 @@ export const SEED_WORDS: SeedWord[] = [
           expression: 'maintain order',
           ko: '질서를 유지하다',
           exampleSentence: 'The teachers struggled to maintain order in the hall.',
-          importance: 2,
-        },
-        {
-          expression: 'maintain control',
-          ko: '통제력을 유지하다',
-          exampleSentence: 'She maintained control of the car on the icy road.',
           importance: 2,
         },
       ],

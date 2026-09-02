@@ -62,15 +62,16 @@ export function SemanticMap({
   selectedId: string | null
   onSelect: (id: string) => void
 }) {
-  // A constellation stops reading as one past roughly a dozen cards. The most
-  // important nodes stay on the map; the rest sit under it as a quiet row, so
-  // nothing becomes unreachable just because a word is rich.
+  // Which nodes belong on the map is decided upstream, where the curriculum
+  // rule lives — a Brain Map is the few connections that must survive in the
+  // student's head, not everything true about the word. Everything else sits
+  // under it as a quiet row, so nothing a curator wrote becomes unreachable.
+  // The slice is a rendering backstop, not the rule.
   const { onMap, overflow } = useMemo(() => {
     const byImportance = [...nodes].sort((a, b) => b.importance - a.importance)
-    return {
-      onMap: byImportance.slice(0, CONSTELLATION_LIMIT),
-      overflow: byImportance.slice(CONSTELLATION_LIMIT),
-    }
+    const chosen = byImportance.filter((n) => n.onMap).slice(0, CONSTELLATION_LIMIT)
+    const chosenIds = new Set(chosen.map((n) => n.id))
+    return { onMap: chosen, overflow: byImportance.filter((n) => !chosenIds.has(n.id)) }
   }, [nodes])
 
   const placed = useMemo(

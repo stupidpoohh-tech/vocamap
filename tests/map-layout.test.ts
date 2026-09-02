@@ -42,11 +42,28 @@ function overlaps(count: number): number {
 
 describe('semantic map layout', () => {
   it('keeps cards from stacking, at every size a word actually reaches', () => {
-    // Overlapping cards made the map look broken; a fixed outer radius could
-    // not hold this many, so the ring widens with the count.
-    for (const count of [3, 5, 6, 8]) {
+    // A map is three to five nodes now; six and eight cover the maps written
+    // before that rule, which still have to render.
+    for (const count of [1, 2, 3, 4, 5, 6, 8]) {
       expect(overlaps(count), `${count} nodes`).toBe(0)
     }
+  })
+
+  it('spreads a small map across the box instead of huddling it', () => {
+    // With four cards the old ring left the constellation in the middle third
+    // of the box, which threw away the space that makes distance readable.
+    // Real importance values bunch near the top — a core meaning is 0.95 and
+    // even a minor collocation is 0.52 — so the ring has to rank them against
+    // each other rather than read the raw number.
+    const placed = layoutNodes([
+      { id: 'core', importance: 0.95 },
+      { id: 'confusable', importance: 0.85 },
+      { id: 'colloc-1', importance: 0.82 },
+      { id: 'colloc-2', importance: 0.66 },
+    ])
+    const distances = placed.map((p) => Math.hypot(p.x - 50, p.y - 50))
+    expect(Math.max(...distances)).toBeGreaterThan(38)
+    expect(Math.min(...distances)).toBeLessThan(30)
   })
 
   it('places important nodes closer to the word than peripheral ones', () => {
@@ -79,6 +96,16 @@ describe('semantic map layout', () => {
         expect(distance(a.id), `${a.id} vs ${b.id}`).toBeLessThanOrEqual(distance(b.id) + 0.5)
       }
     }
+  })
+
+  it('puts equally important nodes on one ring rather than inventing an order', () => {
+    const placed = layoutNodes([
+      { id: 'a', importance: 0.8 },
+      { id: 'b', importance: 0.8 },
+      { id: 'c', importance: 0.8 },
+    ])
+    const distances = placed.map((p) => Math.hypot(p.x - 50, p.y - 50))
+    expect(Math.max(...distances) - Math.min(...distances)).toBeLessThan(2)
   })
 
   it('draws a heavier connector for a stronger relation', () => {

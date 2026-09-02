@@ -71,12 +71,36 @@ const GOLDEN_ANGLE = 137.508
 const PASSES = 400
 
 /**
- * A fixed outer radius only fits a handful of cards; past that the relaxation
- * pass has nowhere to put them and they end up stacked. The ring widens with
- * the number of nodes instead.
+ * The ring the least important node sits on.
+ *
+ * A map is three to five nodes, so the ring can afford to be wide: a handful of
+ * cards huddled around the word wastes the space that makes the difference
+ * between important and peripheral visible at a glance. It still widens with
+ * the count, because the relaxation pass needs somewhere to put the extras when
+ * a legacy map carries more.
  */
 function maxRadius(count: number): number {
-  return Math.min(48, 32 + count * 1.3)
+  if (count <= 2) return 34
+  return Math.min(46, 36 + count * 1.5)
+}
+
+/**
+ * Turns importance into a 0..1 position on the ring, relative to the other
+ * nodes on *this* map.
+ *
+ * Absolute importance bunches near the top — a core meaning is 0.95 and even a
+ * minor collocation is 0.52 — so reading it directly left every map huddled in
+ * the inner third of the box, with the gap between the most and least important
+ * node too small to see. What the reader needs is the ranking, and the ring is
+ * what the ranking is drawn with.
+ *
+ * When everything really is equally important, one ring is the honest answer.
+ */
+function importanceRanker(values: number[]): (importance: number) => number {
+  const top = Math.max(...values)
+  const span = top - Math.min(...values)
+  if (span < 0.05) return () => 0.35
+  return (importance) => clamp((top - importance) / span, 0, 1)
 }
 
 /** FNV-1a. Small, stable, and good enough to scatter angles reproducibly. */
@@ -109,6 +133,7 @@ export function layoutNodes(nodes: LayoutInput[]): PlacedNode[] {
   const ordered = [...nodes].sort((a, b) => b.importance - a.importance)
 
   const outer = maxRadius(ordered.length)
+  const rankOf = importanceRanker(ordered.map((n) => clamp(n.importance, 0, 1)))
 
   const polar: Polar[] = ordered.map((node, index) => {
     const seed = hash(node.id)
@@ -120,7 +145,7 @@ export function layoutNodes(nodes: LayoutInput[]): PlacedNode[] {
     // one channel that has to stay readable: a node 1.5 units closer than a
     // more important one is a lie about which one matters.
     const angle = ((index * GOLDEN_ANGLE + seed * 34 - 17) * Math.PI) / 180
-    const radius = CENTRE_CLEARANCE + (1 - importance) * (outer - CENTRE_CLEARANCE)
+    const radius = CENTRE_CLEARANCE + rankOf(importance) * (outer - CENTRE_CLEARANCE)
 
     return {
       id: node.id,
