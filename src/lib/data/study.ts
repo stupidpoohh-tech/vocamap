@@ -292,6 +292,8 @@ export async function buildScopedQueue(
   opts: {
     scope: QueueScope
     setId?: string
+    /** Test the words that belong to no set. Mirrors the shelf's last row. */
+    unassigned?: boolean
     directions?: Direction[]
     wordLimit?: number
     now?: Date
@@ -306,7 +308,7 @@ export async function buildScopedQueue(
 
   const now = opts.now ?? new Date()
   const directions = opts.directions ?? DIRECTIONS
-  const ids = await scopeIds(userId, opts.scope, opts.setId, db)
+  const ids = await scopeIds(userId, opts.scope, opts.setId, opts.unassigned ?? false, db)
   if (!ids.length) return []
 
   const rows = await db
@@ -365,6 +367,7 @@ async function scopeIds(
   userId: string,
   scope: Exclude<QueueScope, 'due'>,
   setId: string | undefined,
+  unassigned: boolean,
   db: Db,
 ): Promise<string[]> {
   if (scope === 'saved') {
@@ -391,19 +394,27 @@ async function scopeIds(
   const rows = await db
     .select({ id: vocabularies.id })
     .from(vocabularies)
-    .where(
-      setId
-        ? inArray(
-            vocabularies.id,
-            db
-              .select({ id: vocabularySetItems.vocabularyId })
-              .from(vocabularySetItems)
-              .where(eq(vocabularySetItems.setId, setId)),
-          )
-        : sql`true`,
-    )
+    .where(scopeWhere(setId, unassigned, db))
     .orderBy(asc(vocabularies.lemma))
   return rows.map((r) => r.id)
+}
+
+function scopeWhere(setId: string | undefined, unassigned: boolean, db: Db) {
+  if (setId) {
+    return inArray(
+      vocabularies.id,
+      db
+        .select({ id: vocabularySetItems.vocabularyId })
+        .from(vocabularySetItems)
+        .where(eq(vocabularySetItems.setId, setId)),
+    )
+  }
+  if (unassigned) {
+    return sql`not exists (
+      select 1 from ${vocabularySetItems} i where i.vocabulary_id = ${vocabularies.id}
+    )`
+  }
+  return sql`true`
 }
 
 export async function getTodaySummary(

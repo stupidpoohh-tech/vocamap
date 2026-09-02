@@ -7,6 +7,10 @@ import { setBookmark } from '@/app/(app)/actions'
 /**
  * One tap to put a word into the vault, or take it out.
  *
+ * This is how a student says "I don't know this one" while reading a set, so it
+ * has to be a single tap in the row itself — anything that opens a screen would
+ * not survive twenty words.
+ *
  * Optimistic because it sits in a long list — waiting on a round trip before
  * the star fills makes rapid picking feel broken.
  */
@@ -26,7 +30,7 @@ export function BookmarkButton({
     <button
       type="button"
       aria-pressed={optimistic}
-      aria-label={optimistic ? '보관함에서 빼기' : '보관함에 저장'}
+      aria-label={optimistic ? '보관함에서 빼기' : '모르는 단어로 보관함에 담기'}
       onClick={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -44,7 +48,7 @@ export function BookmarkButton({
       )}
     >
       <span aria-hidden>{optimistic ? '★' : '☆'}</span>
-      {size === 'lg' ? (optimistic ? '저장됨' : '저장하기') : null}
+      {size === 'lg' ? (optimistic ? '담았어요' : '모르는 단어') : null}
     </button>
   )
 }

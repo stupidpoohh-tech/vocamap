@@ -12,15 +12,16 @@ import { SessionRunner } from './session-runner'
 export default async function SessionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ scope?: string; dir?: string; set?: string }>
+  searchParams: Promise<{ scope?: string; dir?: string; set?: string; unassigned?: string }>
 }) {
-  const { scope: scopeParam, dir, set } = await searchParams
+  const { scope: scopeParam, dir, set, unassigned } = await searchParams
   const actor = await requireActor()
   const scope = parseQueueScope(scopeParam)
 
   const queue = await buildScopedQueue(actor.id, {
     scope,
     setId: set,
+    unassigned: unassigned === '1',
     directions: parseDirections(dir),
   })
 

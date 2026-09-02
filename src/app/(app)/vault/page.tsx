@@ -36,13 +36,13 @@ export default async function VaultPage({
       <PageHeader
         title="보관함"
         subtitle={
-          scope === 'wrong' ? '틀린 적 있는 단어예요' : '★ 로 저장해 둔 단어예요'
+          scope === 'wrong' ? '틀린 적 있는 단어예요' : '단어 탭에서 ☆ 로 담아 둔 단어예요'
         }
       />
 
       <TabBar>
         <TabLink href={href({ dir })} active={scope === 'saved'} count={saved.length}>
-          저장한 단어
+          담은 단어
         </TabLink>
         <TabLink href={href({ tab: 'wrong', dir })} active={scope === 'wrong'} count={wrong.length}>
           틀린 단어
@@ -58,10 +58,12 @@ export default async function VaultPage({
         </TabLink>
       </TabBar>
 
+      {/* The reason to keep a vault is to be tested on it, so this is the
+          page's primary action rather than a link under the list. */}
       {words.length > 0 ? (
         <Link href={`/study/session?scope=${scope}&dir=${direction}`} className="mb-4 block">
-          <Button variant="secondary" className="w-full">
-            {scope === 'wrong' ? '틀린 단어로 시험 보기' : '저장한 단어로 시험 보기'}
+          <Button size="lg" className="w-full">
+            {scope === 'wrong' ? '틀린 단어로 시험 보기' : '담은 단어로 시험 보기'} · {words.length}개
           </Button>
         </Link>
       ) : null}
@@ -72,7 +74,7 @@ export default async function VaultPage({
         emptyHint={
           scope === 'wrong'
             ? '아직 틀린 단어가 없어요. 시험을 보면 틀린 단어가 여기에 모여요.'
-            : '단어 탭에서 ☆ 을 누르면 여기에 저장돼요.'
+            : '단어 탭에서 세트를 열고, 모르는 단어의 ☆ 을 누르면 여기에 담겨요.'
         }
       />
     </div>

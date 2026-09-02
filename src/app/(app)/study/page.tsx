@@ -1,20 +1,25 @@
 import Link from 'next/link'
-import { eq } from 'drizzle-orm'
 import { requireActor } from '@/lib/auth/session'
-import { db } from '@/lib/db'
-import { vocabularySets } from '@/lib/db/schema'
 import { getTodaySummary } from '@/lib/data/study'
-import { listStudyWords, WORD_LIST_LIMIT } from '@/lib/data/library'
-import { Button, Input, PageHeader, TabBar, TabLink } from '@/components/ui'
+import {
+  listStudyWords,
+  listWordSets,
+  wordSetName,
+  WORD_LIST_LIMIT,
+} from '@/lib/data/library'
+import { Badge, Button, EmptyState, Input, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
 
 /**
- * SCREEN 1 — the study book.
+ * SCREEN 1 — the study book, browsed set by set.
  *
- * Every word a teacher has uploaded, as a plain 단어장 you can cover and
- * uncover in either direction, with one button that turns whatever you are
- * looking at into a test. Deliberately not gated on saving or being assigned:
- * a student should be able to open the app and study the words that exist.
+ * A flat list of every word a tutor has ever uploaded is a dictionary, not a
+ * study book: a student cannot tell which twenty words are this week's. So the
+ * shelf comes first and a set opens into its own word list, which is where the
+ * covering, the starring and the test all live.
+ *
+ * Search is the exception. Someone hunting one word does not know which set it
+ * is in, so a query skips the shelf and answers across everything.
  */
 export default async function StudyPage({
   searchParams,
@@ -26,27 +31,31 @@ export default async function StudyPage({
   const query = q?.trim() ?? ''
   const direction: ListDirection = dir === 'ko_en' ? 'ko_en' : 'en_ko'
 
-  const [summary, words, setName] = await Promise.all([
-    getTodaySummary(actor.id),
-    listStudyWords({ userId: actor.id, scope: 'all', setId: set, query }),
-    set ? lookupSetName(set) : Promise.resolve(null),
-  ])
+  // `set=none` is the bucket of words no set contains — without it they would
+  // be unreachable the moment the book is browsed set by set.
+  const unassigned = set === 'none'
+  const setId = unassigned ? undefined : set
+  const insideSet = Boolean(set)
 
+  const summary = await getTodaySummary(actor.id)
   const dueTotal = summary.dueCount + summary.newCount
-  const testHref = buildHref('/study/session', { scope: 'all', dir: direction, set })
+
+  const setParam = unassigned ? 'none' : setId
 
   return (
     <div className="animate-rise">
-      <PageHeader
-        title="단어"
-        subtitle={
-          query
-            ? `"${query}" 검색 결과`
-            : setName
-              ? `세트 · ${setName}`
-              : '가려진 쪽을 눌러서 확인하고, ☆ 을 눌러 보관함에 담아요'
-        }
-      />
+      {/* Back before anything else: the shelf is where every other screen here
+          came from, so the way out belongs at the top. */}
+      {insideSet || query ? (
+        <Link
+          href={query && setParam ? `/study?set=${setParam}` : '/study'}
+          className="mb-3 inline-block text-sm text-muted hover:text-ink"
+        >
+          ← {query && setParam ? '세트로 돌아가기' : '세트 목록'}
+        </Link>
+      ) : (
+        <PageHeader title="단어" subtitle="세트를 열어 단어를 보고, 모르는 단어를 담아요" />
+      )}
 
       {/* Spaced repetition still leads: what is due today is the one thing the
           student should do before browsing. */}
@@ -63,12 +72,12 @@ export default async function StudyPage({
           </Link>
         ) : (
           <span className="text-xs text-muted break-keep">
-            오늘 복습할 단어가 없어요. 아래에서 골라 시험 볼 수 있어요.
+            오늘 복습할 단어가 없어요. 세트를 열어 시험 볼 수 있어요.
           </span>
         )}
       </div>
 
-      <form action="/study" className="mb-4">
+      <form action="/study" className="mb-5">
         {set ? <input type="hidden" name="set" value={set} /> : null}
         <input type="hidden" name="dir" value={direction} />
         <Input
@@ -79,19 +88,128 @@ export default async function StudyPage({
         />
       </form>
 
+      {query || insideSet ? (
+        <WordsView
+          userId={actor.id}
+          role={actor.role}
+          query={query}
+          setId={setId}
+          unassigned={unassigned}
+          direction={direction}
+        />
+      ) : (
+        <Shelf userId={actor.id} role={actor.role} />
+      )}
+    </div>
+  )
+}
+
+/* ─────────────────────────────── the shelf ─────────────────────────────── */
+
+async function Shelf({ userId, role }: { userId: string; role: string }) {
+  const sets = await listWordSets(userId)
+
+  if (!sets.length) {
+    return (
+      <EmptyState
+        title="아직 단어 세트가 없어요"
+        hint={
+          role === 'student'
+            ? '선생님이 단어를 올리면 여기에 세트로 나타나요.'
+            : '교사 탭의 "단어 가져오기"로 세트를 만들면 여기에 나타나요.'
+        }
+      />
+    )
+  }
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {sets.map((set) => (
+        <li key={set.id ?? 'none'}>
+          <Link
+            href={`/study?set=${set.id ?? 'none'}`}
+            className="card flex items-center justify-between gap-4 px-5 py-4 transition hover:border-brand"
+          >
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 font-semibold">
+                <span className="truncate">{set.title}</span>
+                {set.assigned ? <Badge tone="brand">배정됨</Badge> : null}
+              </p>
+              {set.description ? (
+                <p className="mt-0.5 truncate text-sm text-muted">{set.description}</p>
+              ) : null}
+              <p className="mt-1 text-xs text-muted tabular-nums">
+                단어 {set.wordCount}개
+                {set.savedCount > 0 ? ` · 담은 단어 ${set.savedCount}개` : ''}
+                {set.mappedCount > 0 ? ` · 맵 ${set.mappedCount}개` : ''}
+              </p>
+            </div>
+            <span aria-hidden className="shrink-0 text-muted">
+              →
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/* ───────────────────────── one set, or a search ───────────────────────── */
+
+async function WordsView({
+  userId,
+  role,
+  query,
+  setId,
+  unassigned,
+  direction,
+}: {
+  userId: string
+  role: string
+  query: string
+  setId?: string
+  unassigned: boolean
+  direction: ListDirection
+}) {
+  const [words, title] = await Promise.all([
+    listStudyWords({ userId, scope: 'all', setId, unassigned, query }),
+    setId ? wordSetName(setId) : Promise.resolve(unassigned ? '세트에 없는 단어' : null),
+  ])
+
+  const setParam = setId ?? (unassigned ? 'none' : undefined)
+  const testHref = buildHref('/study/session', {
+    scope: 'all',
+    dir: direction,
+    set: setId,
+    unassigned: unassigned ? '1' : undefined,
+  })
+
+  return (
+    <>
+      <PageHeader
+        title={query ? `"${query}" 검색 결과` : (title ?? '단어')}
+        subtitle="모르는 단어는 ☆ 을 눌러 보관함에 담아요"
+      />
+
       <TabBar>
-        <TabLink href={buildHref('/study', { q: query, set, dir: 'en_ko' })} active={direction === 'en_ko'}>
+        <TabLink
+          href={buildHref('/study', { q: query, set: setParam, dir: 'en_ko' })}
+          active={direction === 'en_ko'}
+        >
           영어 → 한국어
         </TabLink>
-        <TabLink href={buildHref('/study', { q: query, set, dir: 'ko_en' })} active={direction === 'ko_en'}>
+        <TabLink
+          href={buildHref('/study', { q: query, set: setParam, dir: 'ko_en' })}
+          active={direction === 'ko_en'}
+        >
           한국어 → 영어
         </TabLink>
       </TabBar>
 
-      {words.length > 0 ? (
+      {words.length > 0 && !query ? (
         <Link href={testHref} className="mb-4 block">
           <Button variant="secondary" className="w-full">
-            이 목록으로 시험 보기
+            이 세트로 시험 보기 · 단어 {words.length}개
           </Button>
         </Link>
       ) : null}
@@ -102,9 +220,9 @@ export default async function StudyPage({
         emptyHint={
           query
             ? '다른 표현으로 찾아보세요.'
-            : actor.role === 'student'
-              ? '선생님이 단어를 올리면 여기에 나타나요.'
-              : '교사 탭의 "단어 가져오기"로 단어를 등록하면 여기에 나타나요.'
+            : role === 'student'
+              ? '이 세트에는 아직 단어가 없어요.'
+              : '교사 탭에서 이 세트에 단어를 담아 주세요.'
         }
       />
 
@@ -113,13 +231,7 @@ export default async function StudyPage({
           가나다순 상위 {WORD_LIST_LIMIT}개예요. 검색으로 좁혀보세요.
         </p>
       ) : null}
-
-      {set ? (
-        <Link href="/study" className="mt-5 inline-block text-sm text-muted hover:text-ink">
-          ← 전체 단어 보기
-        </Link>
-      ) : null}
-    </div>
+    </>
   )
 }
 
@@ -128,13 +240,4 @@ function buildHref(path: string, params: Record<string, string | undefined>): st
   for (const [key, value] of Object.entries(params)) if (value) search.set(key, value)
   const rest = search.toString()
   return rest ? `${path}?${rest}` : path
-}
-
-async function lookupSetName(setId: string): Promise<string | null> {
-  const [row] = await db
-    .select({ title: vocabularySets.title })
-    .from(vocabularySets)
-    .where(eq(vocabularySets.id, setId))
-    .limit(1)
-  return row?.title ?? null
 }

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '@/lib/db'
 import { brainMaps } from '@/lib/db/schema'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
-import { listStudyWords } from '@/lib/data/library'
+import { listStudyWords, listWordSets, wordSetName } from '@/lib/data/library'
 import {
   buildScopedQueue,
   buildTodayQueue,
@@ -11,6 +11,7 @@ import {
   recordRecallAnswer,
   toggleBookmark,
 } from '@/lib/data/study'
+import { addToSet, assignSet, createSet } from '@/lib/data/teacher'
 import { createUser, hasDatabase, resetDatabase } from './helpers/db'
 
 async function library(lemmas: string[]) {
@@ -235,5 +236,83 @@ describe.skipIf(!hasDatabase)('tests aimed at a list', () => {
     expect(parseQueueScope(undefined)).toBe('due')
     expect(parseDirections('en_ko')).toEqual(['en_ko'])
     expect(parseDirections(undefined)).toEqual(['en_ko', 'ko_en'])
+  })
+})
+
+describe.skipIf(!hasDatabase)('the set shelf', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  async function shelfScenario() {
+    const teacher = await createUser('teacher')
+    const { student, ids } = await library(['maintain', 'affect', 'issue', 'loose'])
+    const week1 = await createSet({ ownerId: teacher.id, title: '1주차' })
+    const week2 = await createSet({ ownerId: teacher.id, title: '2주차', description: '동사 모음' })
+    await addToSet(week1, [ids[0]!, ids[1]!])
+    await addToSet(week2, [ids[2]!])
+    return { teacher, student, ids, week1, week2 }
+  }
+
+  it('lists every set with its size, not just the ones assigned', async () => {
+    const { student, week1, week2 } = await shelfScenario()
+    const shelf = await listWordSets(student.id)
+    const byId = new Map(shelf.map((s) => [s.id, s]))
+    expect(byId.get(week1)!.wordCount).toBe(2)
+    expect(byId.get(week2)!.wordCount).toBe(1)
+    expect(byId.get(week2)!.description).toBe('동사 모음')
+  })
+
+  it('keeps words that belong to no set reachable', async () => {
+    // Browsing set by set would otherwise hide them completely.
+    const { student, ids } = await shelfScenario()
+    const loose = (await listWordSets(student.id)).find((s) => s.id === null)
+    expect(loose?.wordCount).toBe(1)
+
+    const words = await listStudyWords({ userId: student.id, scope: 'all', unassigned: true })
+    expect(words.map((w) => w.id)).toEqual([ids[3]])
+  })
+
+  it('counts what the student has already put in the vault', async () => {
+    const { student, ids, week1 } = await shelfScenario()
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[0]!, bookmarked: true })
+    const shelf = await listWordSets(student.id)
+    expect(shelf.find((s) => s.id === week1)!.savedCount).toBe(1)
+  })
+
+  it('puts an assigned set first', async () => {
+    const { teacher, student, week2 } = await shelfScenario()
+    await assignSet({ setId: week2, studentId: student.id, assignedBy: teacher.id })
+    const shelf = await listWordSets(student.id)
+    expect(shelf[0]!.id).toBe(week2)
+    expect(shelf[0]!.assigned).toBe(true)
+  })
+
+  it('opens a set into exactly its own words', async () => {
+    const { student, ids, week1 } = await shelfScenario()
+    const words = await listStudyWords({ userId: student.id, scope: 'all', setId: week1 })
+    expect(new Set(words.map((w) => w.id))).toEqual(new Set([ids[0], ids[1]]))
+    expect(await wordSetName(week1)).toBe('1주차')
+  })
+
+  it('tests one set, and tests the loose words, without touching the rest', async () => {
+    const { student, ids, week1 } = await shelfScenario()
+
+    const set = await buildScopedQueue(student.id, { scope: 'all', setId: week1 })
+    expect(new Set(set.map((q) => q.vocabularyId))).toEqual(new Set([ids[0], ids[1]]))
+
+    const loose = await buildScopedQueue(student.id, { scope: 'all', unassigned: true })
+    expect(new Set(loose.map((q) => q.vocabularyId))).toEqual(new Set([ids[3]]))
+  })
+
+  it('tests exactly what the student put in the vault', async () => {
+    // The vault is only worth keeping if it can be drilled.
+    const { student, ids } = await shelfScenario()
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[1]!, bookmarked: true })
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[3]!, bookmarked: true })
+
+    const queue = await buildScopedQueue(student.id, { scope: 'saved' })
+    expect(new Set(queue.map((q) => q.vocabularyId))).toEqual(new Set([ids[1], ids[3]]))
+    expect(queue).toHaveLength(4) // two words, both directions
   })
 })

@@ -123,18 +123,16 @@ export function WordList({
                 </span>
               ) : null}
 
-              {item.mapStatus !== 'none' ? (
+              {/* Published maps only. A draft is a curator's business and the
+                  맵 tab is where they see it — a student meeting "검수 대기"
+                  here would just be shown a door they cannot open. */}
+              {item.mapStatus === 'approved' ? (
                 <Link
                   href={`/words/${item.id}`}
                   onClick={(event) => event.stopPropagation()}
-                  className={cn(
-                    'shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition',
-                    item.mapStatus === 'approved'
-                      ? 'border-brand/40 text-brand hover:bg-brand-soft'
-                      : 'border-line text-muted hover:text-ink',
-                  )}
+                  className="shrink-0 rounded-full border border-brand/40 px-2.5 py-1 text-[11px] font-semibold text-brand transition hover:bg-brand-soft"
                 >
-                  {item.mapStatus === 'approved' ? 'MAP' : '검수 대기'}
+                  MAP
                 </Link>
               ) : null}
 
