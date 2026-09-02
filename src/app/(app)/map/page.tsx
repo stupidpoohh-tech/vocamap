@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { requireActor } from '@/lib/auth/session'
 import { listStudyWords, mapCounts } from '@/lib/data/library'
 import { listRecommendedWords } from '@/lib/data/personal'
@@ -30,7 +31,7 @@ export default async function MapPage({
 
   // Only the list on screen is fetched. Loading all four to take their lengths
   // meant four full scans to render one of them; the tab counts are one query.
-  const [words, counts, recommended] = await Promise.all([
+  const [words, counts] = await Promise.all([
     listStudyWords({
       userId: actor.id,
       scope: SCOPE_OF[view],
@@ -39,32 +40,18 @@ export default async function MapPage({
       page: pageIndex,
     }),
     mapCounts(actor.id),
-    view === 'published' ? listRecommendedWords(actor.id, 5) : Promise.resolve([]),
   ])
 
   return (
     <div className="animate-rise">
       <PageHeader title="맵" subtitle="Brain Map이 있는 단어만 모여 있어요" />
 
-      {recommended.length > 0 && view === 'published' ? (
-        <section className="mb-5 rounded-xl border border-warn/30 bg-warn-soft/50 px-4 py-3">
-          <p className="text-xs font-semibold text-warn">깊이 볼 만한 단어</p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {recommended.map((word) => (
-              <li key={word.vocabularyId}>
-                <Link
-                  href={`/words/${word.vocabularyId}`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-warn/40 bg-surface px-3 py-1.5 text-sm font-semibold hover:border-warn"
-                >
-                  {word.lemma}
-                  <span aria-hidden className="text-warn">
-                    →
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {/* Streamed: the list is what the tab is for, and it should not wait on
+          a strip that is empty most of the time. */}
+      {view === 'published' ? (
+        <Suspense fallback={null}>
+          <Recommended userId={actor.id} />
+        </Suspense>
       ) : null}
 
       <form action="/map" className="mb-4">
@@ -148,6 +135,32 @@ export default async function MapPage({
         href={(next) => href({ tab, q: query, page: next ? String(next) : undefined })}
       />
     </div>
+  )
+}
+
+async function Recommended({ userId }: { userId: string }) {
+  const words = await listRecommendedWords(userId, 5)
+  if (!words.length) return null
+
+  return (
+    <section className="mb-5 rounded-xl border border-warn/30 bg-warn-soft/50 px-4 py-3">
+      <p className="text-xs font-semibold text-warn">깊이 볼 만한 단어</p>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {words.map((word) => (
+          <li key={word.vocabularyId}>
+            <Link
+              href={`/words/${word.vocabularyId}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-warn/40 bg-surface px-3 py-1.5 text-sm font-semibold hover:border-warn"
+            >
+              {word.lemma}
+              <span aria-hidden className="text-warn">
+                →
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

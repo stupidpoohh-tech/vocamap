@@ -243,17 +243,32 @@ export type WordSet = {
  * longer decides what you may see; it decides what leads the shelf.
  */
 export async function listWordSets(userId: string, db: Db = defaultDb): Promise<WordSet[]> {
+  // Sets and their counts come back together. Fetching the sets and then their
+  // statistics was two round trips in series, and the second could not start
+  // until the first named the ids.
   const [sets, assigned, loose] = await Promise.all([
     db
       .select({
         id: vocabularySets.id,
         title: vocabularySets.title,
         description: vocabularySets.description,
-        // Created order is lesson order. Sorting by title would put "Day 10"
-        // ahead of "Day 2", which is worse than useless in a study book.
-        createdAt: vocabularySets.createdAt,
+        words: sql<number>`count(${vocabularySetItems.vocabularyId})::int`,
+        saved: sql<number>`count(${userVocabularyState.bookmarkedAt})::int`,
+        mapped: sql<number>`count(*) filter (where ${brainMaps.status} = 'approved')::int`,
       })
       .from(vocabularySets)
+      .leftJoin(vocabularySetItems, eq(vocabularySetItems.setId, vocabularySets.id))
+      .leftJoin(
+        userVocabularyState,
+        and(
+          eq(userVocabularyState.vocabularyId, vocabularySetItems.vocabularyId),
+          eq(userVocabularyState.userId, userId),
+        ),
+      )
+      .leftJoin(brainMaps, eq(brainMaps.vocabularyId, vocabularySetItems.vocabularyId))
+      .groupBy(vocabularySets.id, vocabularySets.createdAt)
+      // Created order is lesson order. Sorting by title would put "Day 10"
+      // ahead of "Day 2", which is worse than useless in a study book.
       .orderBy(asc(vocabularySets.createdAt)),
     db
       .selectDistinct({ setId: assignments.setId })
@@ -263,15 +278,14 @@ export async function listWordSets(userId: string, db: Db = defaultDb): Promise<
   ])
 
   const assignedIds = new Set(assigned.map((a) => a.setId))
-  const stats = sets.length ? await setStats(userId, sets.map((s) => s.id), db) : new Map()
 
   const shelf: WordSet[] = sets.map((set) => ({
     id: set.id,
     title: set.title,
     description: set.description,
-    wordCount: stats.get(set.id)?.words ?? 0,
-    savedCount: stats.get(set.id)?.saved ?? 0,
-    mappedCount: stats.get(set.id)?.mapped ?? 0,
+    wordCount: set.words,
+    savedCount: set.saved,
+    mappedCount: set.mapped,
     assigned: assignedIds.has(set.id),
   }))
 
@@ -292,33 +306,6 @@ export async function listWordSets(userId: string, db: Db = defaultDb): Promise<
   }
 
   return shelf
-}
-
-async function setStats(
-  userId: string,
-  setIds: string[],
-  db: Db,
-): Promise<Map<string, { words: number; saved: number; mapped: number }>> {
-  const rows = await db
-    .select({
-      setId: vocabularySetItems.setId,
-      words: sql<number>`count(*)::int`,
-      saved: sql<number>`count(${userVocabularyState.bookmarkedAt})::int`,
-      mapped: sql<number>`count(*) filter (where ${brainMaps.status} = 'approved')::int`,
-    })
-    .from(vocabularySetItems)
-    .leftJoin(
-      userVocabularyState,
-      and(
-        eq(userVocabularyState.vocabularyId, vocabularySetItems.vocabularyId),
-        eq(userVocabularyState.userId, userId),
-      ),
-    )
-    .leftJoin(brainMaps, eq(brainMaps.vocabularyId, vocabularySetItems.vocabularyId))
-    .where(inArray(vocabularySetItems.setId, setIds))
-    .groupBy(vocabularySetItems.setId)
-
-  return new Map(rows.map((r) => [r.setId, { words: r.words, saved: r.saved, mapped: r.mapped }]))
 }
 
 /** Size and state of the "in no set" bucket, in one query rather than two. */

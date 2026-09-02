@@ -399,23 +399,67 @@ function scopeWhere(setId: string | undefined, unassigned: boolean, db: Db) {
   return sql`true`
 }
 
+/**
+ * The three numbers at the top of the study book.
+ *
+ * Counted in SQL rather than by building the day's queue and measuring it. The
+ * queue is five reads and a join over every word in the pool — an expensive way
+ * to learn two numbers, and it ran before the shelf could even start loading.
+ *
+ * The caps mirror `buildTodayQueue` so the headline matches the button: the
+ * queue takes at most `dueLimit` due cards and introduces at most `newLimit`
+ * unseen words, both directions each.
+ */
 export async function getTodaySummary(
   userId: string,
-  opts: { now?: Date } = {},
+  opts: { now?: Date; newLimit?: number; dueLimit?: number } = {},
   db: Db = defaultDb,
 ): Promise<TodaySummary> {
   const now = opts.now ?? new Date()
-  const queue = await buildTodayQueue(userId, opts, db)
+  const newLimit = opts.newLimit ?? DEFAULT_NEW_PER_DAY
+  const dueLimit = opts.dueLimit ?? DEFAULT_DUE_LIMIT
 
-  const [recommended] = await db
-    .select({ value: count() })
-    .from(userVocabularyState)
-    .where(and(eq(userVocabularyState.userId, userId), isOutstandingRecommendation()))
+  const rows = await db.execute<{ due: number; fresh: number; recommended: number }>(sql`
+    with intake as (
+      select vocabulary_id from user_vocabulary_state
+        where user_id = ${userId} and bookmarked_at is not null
+      union
+      select i.vocabulary_id from assignments a
+        join vocabulary_set_items i on i.set_id = a.set_id
+        where a.student_id = ${userId}
+    ),
+    -- A word only enters a session once it has something to be asked about.
+    teachable as (
+      select k.vocabulary_id from intake k
+        where exists (
+          select 1 from vocabulary_translations t where t.vocabulary_id = k.vocabulary_id
+        )
+    ),
+    fresh as (
+      select 2 - count(c.*) as missing
+        from teachable k
+        left join user_vocabulary_cards c
+          on c.vocabulary_id = k.vocabulary_id and c.user_id = ${userId}
+        group by k.vocabulary_id
+        having 2 - count(c.*) > 0
+        limit ${newLimit}
+    )
+    select
+      least(
+        (select count(*) from user_vocabulary_cards
+          where user_id = ${userId} and due_at <= ${now.toISOString()}::timestamptz),
+        ${dueLimit}
+      )::int as due,
+      (select coalesce(sum(missing), 0) from fresh)::int as fresh,
+      (select count(*) from user_vocabulary_state
+        where user_id = ${userId} and ${isOutstandingRecommendation()})::int as recommended
+  `)
 
+  const row = (rows as unknown as Array<{ due: number; fresh: number; recommended: number }>)[0]
   return {
-    dueCount: queue.filter((q) => !q.isNew && q.dueAt.getTime() <= now.getTime()).length,
-    newCount: queue.filter((q) => q.isNew).length,
-    recommendedCount: recommended?.value ?? 0,
+    dueCount: Number(row?.due ?? 0),
+    newCount: Number(row?.fresh ?? 0),
+    recommendedCount: Number(row?.recommended ?? 0),
   }
 }
 

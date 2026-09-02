@@ -5,8 +5,9 @@ import { SignJWT, jwtVerify } from 'jose'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { sessions, users } from '@/lib/db/schema'
+import { SESSION_COOKIE } from './cookie'
 
-export const SESSION_COOKIE = 'vocamap_session'
+export { SESSION_COOKIE } from './cookie'
 const SESSION_DAYS = 30
 
 export type Role = 'student' | 'teacher' | 'admin'

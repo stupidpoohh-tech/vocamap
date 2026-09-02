@@ -417,3 +417,56 @@ describe.skipIf(!hasDatabase)('bookmarks as the study list', () => {
     expect((await getTodaySummary(student.id)).recommendedCount).toBe(1)
   })
 })
+
+describe.skipIf(!hasDatabase)('today’s numbers', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  it('matches what pressing the button actually gives you', async () => {
+    // Counted in SQL rather than by building the queue and measuring it, so the
+    // two have to be checked against each other or they will drift apart.
+    const { student, ids } = await scenario(['maintain', 'affect', 'issue'])
+    const summary = await getTodaySummary(student.id)
+    const queue = await buildTodayQueue(student.id)
+
+    expect(summary.newCount).toBe(queue.filter((q) => q.isNew).length)
+    expect(summary.dueCount).toBe(queue.filter((q) => !q.isNew).length)
+    expect(summary.newCount).toBe(ids.length * 2)
+  })
+
+  it('agrees with the queue once some cards are due again', async () => {
+    const { student, ids } = await scenario(['maintain', 'affect'])
+    for (const direction of ['en_ko', 'ko_en'] as const) {
+      await recordRecallAnswer({
+        userId: student.id,
+        vocabularyId: ids[0]!,
+        direction,
+        correct: false,
+      })
+    }
+
+    const later = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const summary = await getTodaySummary(student.id, { now: later })
+    const queue = await buildTodayQueue(student.id, { now: later })
+    expect(summary.dueCount).toBe(queue.filter((q) => !q.isNew).length)
+    expect(summary.newCount).toBe(queue.filter((q) => q.isNew).length)
+  })
+
+  it('counts nothing for a student with nothing to study', async () => {
+    const student = await createUser('student')
+    expect(await getTodaySummary(student.id)).toEqual({
+      dueCount: 0,
+      newCount: 0,
+      recommendedCount: 0,
+    })
+  })
+
+  it('respects the daily new-word throttle', async () => {
+    const many = Array.from({ length: 14 }, (_, i) => `word${i}`)
+    const { student } = await scenario(many)
+    const summary = await getTodaySummary(student.id)
+    // Ten words, both directions each.
+    expect(summary.newCount).toBe(20)
+  })
+})

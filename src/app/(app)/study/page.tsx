@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { requireActor } from '@/lib/auth/session'
 import { getTodaySummary } from '@/lib/data/study'
 import {
@@ -17,6 +18,7 @@ import {
   TabLink,
 } from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
+import { SkeletonLine } from '@/components/ui/skeleton'
 
 /**
  * SCREEN 1 — the study book, browsed set by set.
@@ -45,9 +47,6 @@ export default async function StudyPage({
   const setId = unassigned ? undefined : set
   const insideSet = Boolean(set)
 
-  const summary = await getTodaySummary(actor.id)
-  const dueTotal = summary.dueCount + summary.newCount
-
   const setParam = unassigned ? 'none' : setId
 
   return (
@@ -65,25 +64,12 @@ export default async function StudyPage({
         <PageHeader title="단어" subtitle="세트를 열어 단어를 보고, 모르는 단어를 담아요" />
       )}
 
-      {/* Spaced repetition still leads: what is due today is the one thing the
-          student should do before browsing. */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
-        <p className="text-sm">
-          <span className="text-muted">오늘 복습 </span>
-          <span className="font-bold tabular-nums text-brand">{summary.dueCount}</span>
-          <span className="text-muted"> · 새 단어 </span>
-          <span className="font-bold tabular-nums">{summary.newCount}</span>
-        </p>
-        {dueTotal > 0 ? (
-          <Link href={`/study/session?scope=due&dir=${direction}`}>
-            <Button>복습 시험 · {dueTotal}문제</Button>
-          </Link>
-        ) : (
-          <span className="text-xs text-muted break-keep">
-            오늘 복습할 단어가 없어요. 세트를 열어 시험 볼 수 있어요.
-          </span>
-        )}
-      </div>
+      {/* Streamed on its own so the list below does not wait on it. The counts
+          and the words are independent questions, and making the shelf wait for
+          the scheduler put a round trip in front of every visit. */}
+      <Suspense fallback={<DueStripSkeleton />}>
+        <DueStrip userId={actor.id} direction={direction} />
+      </Suspense>
 
       <form action="/study" className="mb-5">
         {set ? <input type="hidden" name="set" value={set} /> : null}
@@ -109,6 +95,46 @@ export default async function StudyPage({
       ) : (
         <Shelf userId={actor.id} role={actor.role} />
       )}
+    </div>
+  )
+}
+
+/* ───────────────────────────── today's numbers ──────────────────────────── */
+
+/**
+ * Spaced repetition still leads: what is due today is the one thing the student
+ * should do before browsing.
+ */
+async function DueStrip({ userId, direction }: { userId: string; direction: ListDirection }) {
+  const summary = await getTodaySummary(userId)
+  const total = summary.dueCount + summary.newCount
+
+  return (
+    <div className="mb-5 flex min-h-[3.5rem] flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+      <p className="text-sm">
+        <span className="text-muted">오늘 복습 </span>
+        <span className="font-bold tabular-nums text-brand">{summary.dueCount}</span>
+        <span className="text-muted"> · 새 단어 </span>
+        <span className="font-bold tabular-nums">{summary.newCount}</span>
+      </p>
+      {total > 0 ? (
+        <Link href={`/study/session?scope=due&dir=${direction}`}>
+          <Button>복습 시험 · {total}문제</Button>
+        </Link>
+      ) : (
+        <span className="text-xs text-muted break-keep">
+          오늘 복습할 단어가 없어요. 세트를 열어 시험 볼 수 있어요.
+        </span>
+      )}
+    </div>
+  )
+}
+
+/** The same height as the real strip, so nothing below it moves when it lands. */
+function DueStripSkeleton() {
+  return (
+    <div className="mb-5 flex min-h-[3.5rem] items-center rounded-xl border border-line bg-surface px-4 py-3">
+      <SkeletonLine className="w-40" />
     </div>
   )
 }

@@ -73,7 +73,7 @@ function create(): Db {
     ...(process.env.DB_TRACE === '1'
       ? {
           debug: (_connection: unknown, query: string) => {
-            console.log(`[db] ${query.replace(/\s+/g, ' ').slice(0, 90)}`)
+            console.log(`[db] ${Date.now()} ${query.replace(/\s+/g, ' ').slice(0, 70)}`)
           },
         }
       : {}),
