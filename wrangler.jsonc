@@ -18,7 +18,18 @@
   // edge. `src/lib/db/index.ts` prefers this binding and falls back to
   // DATABASE_URL when it is absent, so Node and non-Cloudflare hosts still work.
   //
-  // For `wrangler dev`, point it at a local database with:
-  //   WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgresql://...
-  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "debca67d626d462188b5ea383976316a" }]
+  // `localConnectionString` is only ever used to emulate Hyperdrive on a
+  // developer machine — production always goes through the `id` above. It is
+  // required rather than optional because `opennextjs-cloudflare deploy` boots
+  // a local platform proxy to read bindings, so without it the *deploy* step
+  // fails in CI, not just `wrangler dev`. Override it with
+  // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE if your local
+  // Postgres differs.
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "debca67d626d462188b5ea383976316a",
+      "localConnectionString": "postgresql://postgres:postgres@localhost:5432/vocamap"
+    }
+  ]
 }

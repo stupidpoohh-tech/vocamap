@@ -9,4 +9,4 @@ LLM_MODEL="mock"
 # is. Wrangler needs a local database to stand in for Hyperdrive during
 # `pnpm cf:preview`; set it in your shell rather than here, since .dev.vars is
 # read by the Worker and this is read by wrangler itself:
-#   WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgresql://user:pw@localhost:5432/vocamap
+#   CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgresql://user:pw@localhost:5432/vocamap

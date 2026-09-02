@@ -250,13 +250,24 @@ Hyperdrive는 Cloudflare 엣지 안에서 연결을 종단하고 풀링해 줍�
 
 적용되면 `/api/health` 의 `via` 가 `direct` 에서 `hyperdrive` 로 바뀝니다.
 
-### 로컬에서 `pnpm cf:preview` 를 쓸 때
+### `localConnectionString` 이 왜 필요한가
 
-바인딩이 있으면 wrangler 가 로컬에서도 연결 대상을 알아야 합니다. 환경변수로
-로컬 DB를 지정하세요 — 저장소에 로컬 접속 정보를 넣지 않기 위해서입니다.
+`wrangler.jsonc` 의 Hyperdrive 항목에는 `localConnectionString` 이 함께 들어 있습니다.
+로컬 에뮬레이션 전용 값이고 프로덕션은 항상 `id` 를 씁니다. 그런데 이건 선택이
+아니라 **필수**입니다 — `opennextjs-cloudflare deploy` 가 바인딩을 읽으려고 로컬
+플랫폼 프록시를 띄우기 때문에, 없으면 `wrangler dev` 뿐 아니라 **CI 배포 자체가**
+실패합니다.
 
 ```
-WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgresql://user:pw@localhost:5432/vocamap
+UserError: When developing locally, you should use a local Postgres connection
+string to emulate Hyperdrive functionality.
+    at getPlatformProxy → getEnvFromPlatformProxy → deployCommand
+```
+
+본인 로컬 Postgres 가 다르면 환경변수로 덮어쓰면 됩니다.
+
+```
+CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgresql://user:pw@localhost:5432/vocamap
 ```
 
 DB를 다른 Neon 프로젝트로 옮기면, 새 연결 문자열을 **Hyperdrive 설정 쪽에서**
