@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { requireRole } from '@/lib/auth/session'
 import {
+  deleteBrainMap,
+  deleteVocabulary,
   EditError,
   removeDraftItem,
   saveDraftItem,
@@ -63,6 +65,47 @@ export async function saveCore(input: {
   try {
     await saveMeaningCore({ ...input, actorId: actor.id })
     revalidateAll(input.brainMapId, input.vocabularyId)
+    return { ok: true }
+  } catch (error) {
+    return failure(error)
+  }
+}
+
+/**
+ * Throws away a map so the word can start over.
+ *
+ * Only a curator, and only after they confirm on screen. The word and every
+ * student's history for it stay — a map is content, not progress.
+ */
+export async function removeBrainMap(input: {
+  brainMapId: string
+  vocabularyId: string
+}): Promise<EditResult> {
+  const actor = await requireRole('teacher', 'admin')
+  try {
+    await deleteBrainMap({ brainMapId: input.brainMapId, actorId: actor.id })
+    revalidateAll(input.brainMapId, input.vocabularyId)
+    revalidatePath('/study')
+    return { ok: true }
+  } catch (error) {
+    return failure(error)
+  }
+}
+
+/**
+ * Removes a word from the shared library.
+ *
+ * Destructive and unrecoverable: every student's cards and answers for the word
+ * go with it. Curator-only, and the screen asks twice.
+ */
+export async function removeWord(input: { vocabularyId: string }): Promise<EditResult> {
+  const actor = await requireRole('teacher', 'admin')
+  try {
+    await deleteVocabulary({ vocabularyId: input.vocabularyId, actorId: actor.id })
+    revalidatePath('/study')
+    revalidatePath('/map')
+    revalidatePath('/vault')
+    revalidatePath('/admin')
     return { ok: true }
   } catch (error) {
     return failure(error)

@@ -66,6 +66,17 @@ function connectionString(): string {
 
 function create(): Db {
   const client = postgres(connectionString(), {
+    // `DB_TRACE=1` logs one line per statement. The app's cost is dominated by
+    // the number of round trips it makes, not by how long any one of them
+    // takes, and counting them is the only way to see that — a page can look
+    // fine locally and be slow in production purely on query count.
+    ...(process.env.DB_TRACE === '1'
+      ? {
+          debug: (_connection: unknown, query: string) => {
+            console.log(`[db] ${query.replace(/\s+/g, ' ').slice(0, 90)}`)
+          },
+        }
+      : {}),
     // On a Worker this caps concurrency *within a single request*, which is
     // what our `Promise.all` reads need — not a long-lived pool.
     max: isWorkerd ? 3 : process.env.NODE_ENV === 'production' ? 10 : 3,

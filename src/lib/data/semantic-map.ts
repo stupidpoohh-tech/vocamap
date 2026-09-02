@@ -5,7 +5,7 @@ import { reviewEvents, userConfusions, vocabularyTranslations } from '@/lib/db/s
 import type { NodeType } from '@/lib/learning/nodes'
 import { MAP_NODE_BUDGET, MAP_NODE_TARGET } from '@/lib/ai'
 import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
-import { collectWordSignals } from './study'
+import { collectWordState, type WordStateRead } from './study'
 
 /**
  * Turns the shared Brain Map content into a semantic network of the word.
@@ -165,7 +165,13 @@ function statusFor(tally: ItemTally | undefined): NodeStatus {
 export async function buildSemanticMap(
   userId: string,
   vocabularyId: string,
-  opts: { approvedOnly?: boolean } = {},
+  /**
+   * `state` lets a caller that has already read this student's state for the
+   * word hand it over. The word page renders the personal map and the semantic
+   * map side by side, and each used to collect the same four reads for itself —
+   * eight round trips for one set of numbers.
+   */
+  opts: { approvedOnly?: boolean; state?: WordStateRead } = {},
   db: Db = defaultDb,
 ): Promise<SemanticMap | null> {
   const master = await getMasterBrainMap(
@@ -175,7 +181,7 @@ export async function buildSemanticMap(
   )
   if (!master) return null
 
-  const [tallies, translations, confusions, signals] = await Promise.all([
+  const [tallies, translations, confusions, wordState] = await Promise.all([
     itemTallies(userId, vocabularyId, db),
     db
       .select({ text: vocabularyTranslations.text, isPrimary: vocabularyTranslations.isPrimary })
@@ -197,7 +203,7 @@ export async function buildSemanticMap(
             ),
           )
       : Promise.resolve([]),
-    collectWordSignals(userId, vocabularyId, db),
+    opts.state ?? collectWordState(userId, vocabularyId, db),
   ])
 
   const nodes: SemanticNode[] = []
@@ -352,7 +358,7 @@ export async function buildSemanticMap(
     status: master.status,
     brainMapId: master.id,
     nodes,
-    reasons: buildReasons({ master, signals, confusions, nodes }),
+    reasons: buildReasons({ master, signals: wordState.signals, confusions, nodes }),
     recommendedNodeId: recommended?.id ?? null,
   }
 }
@@ -403,7 +409,7 @@ function selectMapNodes(nodes: SemanticNode[]): void {
  */
 function buildReasons(input: {
   master: MasterBrainMap
-  signals: Awaited<ReturnType<typeof collectWordSignals>>
+  signals: WordStateRead['signals']
   confusions: Array<{ pairId: string; wrongCount: number; rightCount: number }>
   nodes: SemanticNode[]
 }): MapReason[] {

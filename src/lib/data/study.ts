@@ -57,7 +57,10 @@ const DEFAULT_DUE_LIMIT = 60
  * Only the first two introduce *new* cards, so the daily queue never dumps the
  * entire library on someone as "new words".
  */
-async function studyPoolIds(userId: string, db: Db): Promise<string[]> {
+async function studyPools(
+  userId: string,
+  db: Db,
+): Promise<{ all: string[]; intake: Set<string> }> {
   const [bookmarked, assigned, studied] = await Promise.all([
     db
       .select({ id: userVocabularyState.vocabularyId })
@@ -79,28 +82,10 @@ async function studyPoolIds(userId: string, db: Db): Promise<string[]> {
       .where(eq(userVocabularyCards.userId, userId)),
   ])
 
-  return [...new Set([...bookmarked, ...assigned, ...studied].map((row) => row.id))]
-}
-
-/** The subset that may contribute unseen words to a daily queue. */
-async function intakePoolIds(userId: string, db: Db): Promise<Set<string>> {
-  const [bookmarked, assigned] = await Promise.all([
-    db
-      .select({ id: userVocabularyState.vocabularyId })
-      .from(userVocabularyState)
-      .where(
-        and(
-          eq(userVocabularyState.userId, userId),
-          sql`${userVocabularyState.bookmarkedAt} is not null`,
-        ),
-      ),
-    db
-      .selectDistinct({ id: vocabularySetItems.vocabularyId })
-      .from(assignments)
-      .innerJoin(vocabularySetItems, eq(vocabularySetItems.setId, assignments.setId))
-      .where(eq(assignments.studentId, userId)),
-  ])
-  return new Set([...bookmarked, ...assigned].map((row) => row.id))
+  // Both pools come out of the same three reads. Working them out separately
+  // ran the bookmark and assignment queries twice for every daily queue.
+  const intake = new Set([...bookmarked, ...assigned].map((row) => row.id))
+  return { all: [...new Set([...intake, ...studied.map((row) => row.id)])], intake }
 }
 
 /**
@@ -165,10 +150,7 @@ export async function buildTodayQueue(
   const newLimit = opts.newLimit ?? DEFAULT_NEW_PER_DAY
   const dueLimit = opts.dueLimit ?? DEFAULT_DUE_LIMIT
 
-  const [poolIds, intakeIds] = await Promise.all([
-    studyPoolIds(userId, db),
-    intakePoolIds(userId, db),
-  ])
+  const { all: poolIds, intake: intakeIds } = await studyPools(userId, db)
   if (!poolIds.length) return []
 
   const primaryTranslation = db
@@ -710,11 +692,35 @@ export async function logLearningEvent(
 
 const RECENT_WINDOW = 8
 
+/**
+ * One read of everything this student's state for one word.
+ *
+ * The word page renders the personal map and the semantic map together, and
+ * both need the same rows. Reading them once and handing the result around
+ * turned twelve round trips into four.
+ */
+export type WordStateRead = {
+  signals: WordSignals
+  cards: Array<typeof userVocabularyCards.$inferSelect>
+  state: (typeof userVocabularyState.$inferSelect) | null
+}
+
+/** Alias kept for callers that only care about the derived signals. */
+export type WordSignalsRead = WordStateRead
+
 export async function collectWordSignals(
   userId: string,
   vocabularyId: string,
   db: Db = defaultDb,
 ): Promise<WordSignals> {
+  return (await collectWordState(userId, vocabularyId, db)).signals
+}
+
+export async function collectWordState(
+  userId: string,
+  vocabularyId: string,
+  db: Db = defaultDb,
+): Promise<WordStateRead> {
   const [cards, recent, nodeErrors, state] = await Promise.all([
     db
       .select()
@@ -784,16 +790,20 @@ export async function collectWordSignals(
   )
 
   return {
-    lapses: cards.reduce((sum, c) => sum + c.lapses, 0),
-    reps: cards.reduce((sum, c) => sum + c.reps, 0),
-    recentCorrect: recent.filter((r) => r.correct).length,
-    recentAttempts: recent.length,
-    minRetention: retentions.length ? Math.min(...retentions) : 0,
-    confusionErrors: errorsOf('similar_battle'),
-    sentenceErrors: errorsOf('sentence_translation'),
-    collocationErrors: errorsOf('collocation_cloze'),
-    markedImportant: state[0]?.isImportant ?? false,
-    importantReason: state[0]?.importantReason ?? null,
+    signals: {
+      lapses: cards.reduce((sum, c) => sum + c.lapses, 0),
+      reps: cards.reduce((sum, c) => sum + c.reps, 0),
+      recentCorrect: recent.filter((r) => r.correct).length,
+      recentAttempts: recent.length,
+      minRetention: retentions.length ? Math.min(...retentions) : 0,
+      confusionErrors: errorsOf('similar_battle'),
+      sentenceErrors: errorsOf('sentence_translation'),
+      collocationErrors: errorsOf('collocation_cloze'),
+      markedImportant: state[0]?.isImportant ?? false,
+      importantReason: state[0]?.importantReason ?? null,
+    },
+    cards,
+    state: state[0] ?? null,
   }
 }
 

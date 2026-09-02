@@ -16,6 +16,9 @@ export type WordListItem = {
 
 export type ListDirection = 'en_ko' | 'ko_en'
 
+/** Rows past which the list gets its own scrollbar instead of growing the page. */
+const SCROLL_AFTER = 8
+
 /**
  * A paper vocabulary notebook, on a screen.
  *
@@ -75,7 +78,17 @@ export function WordList({
         </button>
       </div>
 
-      <ul className="flex flex-col gap-2">
+      {/* The list scrolls inside its own box past a screenful. Paging alone
+          still left a page you had to scroll for a minute to reach the pager;
+          this keeps the header, the test button and the pager all reachable
+          without leaving the top of the screen. */}
+      <ul
+        className={cn(
+          'flex flex-col gap-2',
+          items.length > SCROLL_AFTER &&
+            'max-h-[62vh] overflow-y-auto overscroll-contain rounded-xl border border-line/70 bg-line/10 p-2',
+        )}
+      >
         {items.map((item) => {
           const front = direction === 'en_ko' ? item.lemma : (item.translation ?? '—')
           const back = direction === 'en_ko' ? (item.translation ?? '—') : item.lemma

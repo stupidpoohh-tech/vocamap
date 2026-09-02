@@ -41,14 +41,14 @@ describe.skipIf(!hasDatabase)('the study book', () => {
     // The whole point of the change: a student opens the app and can study the
     // words that exist, without waiting to be assigned anything.
     const { student, ids } = await library(['maintain', 'affect', 'issue'])
-    const words = await listStudyWords({ userId: student.id, scope: 'all' })
+    const words = (await listStudyWords({ userId: student.id, scope: 'all' })).words
     expect(words.map((w) => w.id).sort()).toEqual([...ids].sort())
     expect(words.every((w) => !w.bookmarked)).toBe(true)
   })
 
   it('carries both sides of every word so the list can be covered either way', async () => {
     const { student } = await library(['maintain'])
-    const [word] = await listStudyWords({ userId: student.id, scope: 'all' })
+    const [word] = (await listStudyWords({ userId: student.id, scope: 'all' })).words
     expect(word!.lemma).toBe('maintain')
     expect(word!.translation).toBe('maintain-뜻')
   })
@@ -56,10 +56,10 @@ describe.skipIf(!hasDatabase)('the study book', () => {
   it('finds a word by its English or its Korean', async () => {
     const { student } = await library(['maintain', 'affect'])
     expect(
-      (await listStudyWords({ userId: student.id, scope: 'all', query: 'main' })).map((w) => w.lemma),
+      ((await listStudyWords({ userId: student.id, scope: 'all', query: 'main' })).words).map((w) => w.lemma),
     ).toEqual(['maintain'])
     expect(
-      (await listStudyWords({ userId: student.id, scope: 'all', query: 'affect-뜻' })).map(
+      ((await listStudyWords({ userId: student.id, scope: 'all', query: 'affect-뜻' })).words).map(
         (w) => w.lemma,
       ),
     ).toEqual(['affect'])
@@ -75,7 +75,7 @@ describe.skipIf(!hasDatabase)('the vault', () => {
     const { student, ids } = await library(['maintain', 'affect'])
     await toggleBookmark({ userId: student.id, vocabularyId: ids[0]!, bookmarked: true })
 
-    const saved = await listStudyWords({ userId: student.id, scope: 'saved' })
+    const saved = (await listStudyWords({ userId: student.id, scope: 'saved' })).words
     expect(saved.map((w) => w.id)).toEqual([ids[0]])
     expect(saved[0]!.bookmarked).toBe(true)
   })
@@ -97,7 +97,7 @@ describe.skipIf(!hasDatabase)('the vault', () => {
       correct: true,
     })
 
-    const wrong = await listStudyWords({ userId: student.id, scope: 'wrong' })
+    const wrong = (await listStudyWords({ userId: student.id, scope: 'wrong' })).words
     expect(wrong.map((w) => w.id)).toEqual([ids[0]])
     expect(wrong[0]!.wrongCount).toBe(2)
   })
@@ -112,8 +112,8 @@ describe.skipIf(!hasDatabase)('the vault', () => {
       correct: false,
     })
 
-    expect(await listStudyWords({ userId: other.id, scope: 'wrong' })).toEqual([])
-    expect(await listStudyWords({ userId: other.id, scope: 'saved' })).toEqual([])
+    expect((await listStudyWords({ userId: other.id, scope: 'wrong' })).words).toEqual([])
+    expect((await listStudyWords({ userId: other.id, scope: 'saved' })).words).toEqual([])
   })
 })
 
@@ -127,7 +127,7 @@ describe.skipIf(!hasDatabase)('the map list', () => {
     await giveMap(ids[0]!, 'approved')
     await giveMap(ids[1]!, 'draft_ai')
 
-    const mapped = await listStudyWords({ userId: student.id, scope: 'mapped' })
+    const mapped = (await listStudyWords({ userId: student.id, scope: 'mapped' })).words
     expect(mapped.map((w) => w.id)).toEqual([ids[0]])
     expect(mapped[0]!.mapStatus).toBe('approved')
   })
@@ -138,7 +138,7 @@ describe.skipIf(!hasDatabase)('the map list', () => {
     await giveMap(ids[1]!, 'approved')
     await toggleBookmark({ userId: student.id, vocabularyId: ids[1]!, bookmarked: true })
 
-    const saved = await listStudyWords({ userId: student.id, scope: 'mapped', savedOnly: true })
+    const saved = (await listStudyWords({ userId: student.id, scope: 'mapped', savedOnly: true })).words
     expect(saved.map((w) => w.id)).toEqual([ids[1]])
   })
 
@@ -147,13 +147,13 @@ describe.skipIf(!hasDatabase)('the map list', () => {
     const { student, ids } = await library(['maintain', 'affect'])
     await giveMap(ids[0]!, 'approved')
 
-    const missing = await listStudyWords({ userId: student.id, scope: 'mapMissing' })
+    const missing = (await listStudyWords({ userId: student.id, scope: 'mapMissing' })).words
     expect(missing.map((w) => w.id)).toEqual([ids[1]])
 
     await giveMap(ids[1]!, 'draft_ai')
-    expect(await listStudyWords({ userId: student.id, scope: 'mapMissing' })).toEqual([])
+    expect((await listStudyWords({ userId: student.id, scope: 'mapMissing' })).words).toEqual([])
     expect(
-      (await listStudyWords({ userId: student.id, scope: 'mapPending' })).map((w) => w.id),
+      ((await listStudyWords({ userId: student.id, scope: 'mapPending' })).words).map((w) => w.id),
     ).toEqual([ids[1]])
   })
 })
@@ -269,7 +269,7 @@ describe.skipIf(!hasDatabase)('the set shelf', () => {
     const loose = (await listWordSets(student.id)).find((s) => s.id === null)
     expect(loose?.wordCount).toBe(1)
 
-    const words = await listStudyWords({ userId: student.id, scope: 'all', unassigned: true })
+    const words = (await listStudyWords({ userId: student.id, scope: 'all', unassigned: true })).words
     expect(words.map((w) => w.id)).toEqual([ids[3]])
   })
 
@@ -290,7 +290,7 @@ describe.skipIf(!hasDatabase)('the set shelf', () => {
 
   it('opens a set into exactly its own words', async () => {
     const { student, ids, week1 } = await shelfScenario()
-    const words = await listStudyWords({ userId: student.id, scope: 'all', setId: week1 })
+    const words = (await listStudyWords({ userId: student.id, scope: 'all', setId: week1 })).words
     expect(new Set(words.map((w) => w.id))).toEqual(new Set([ids[0], ids[1]]))
     expect(await wordSetName(week1)).toBe('1주차')
   })

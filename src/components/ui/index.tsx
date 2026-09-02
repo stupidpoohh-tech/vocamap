@@ -147,3 +147,70 @@ export function TabLink({
     </Link>
   )
 }
+
+/**
+ * Page links for a list.
+ *
+ * Server-rendered links rather than a client control: which page you are on is
+ * a property of the URL, so it survives a reload, and the list stays a plain
+ * server render with nothing to hydrate.
+ */
+export function Pager({
+  page,
+  pageCount,
+  total,
+  href,
+}: {
+  /** 0-based. */
+  page: number
+  pageCount: number
+  total: number
+  /** Builds the URL for a page index. */
+  href: (page: number) => string
+}) {
+  if (pageCount <= 1) return null
+
+  return (
+    <nav className="mt-4 flex items-center justify-between gap-3" aria-label="페이지">
+      <PagerLink href={href(page - 1)} disabled={page === 0}>
+        ← 이전
+      </PagerLink>
+      <span className="text-xs text-muted tabular-nums">
+        {page + 1} / {pageCount}
+        <span className="ml-1.5">· 전체 {total}개</span>
+      </span>
+      <PagerLink href={href(page + 1)} disabled={page >= pageCount - 1}>
+        다음 →
+      </PagerLink>
+    </nav>
+  )
+}
+
+function PagerLink({
+  href,
+  disabled,
+  children,
+}: {
+  href: string
+  disabled: boolean
+  children: ReactNode
+}) {
+  const className = cn(
+    'rounded-lg border px-3 py-1.5 text-xs font-semibold transition',
+    disabled
+      ? 'cursor-not-allowed border-line text-muted opacity-50'
+      : 'border-line text-ink hover:border-brand hover:text-brand',
+  )
+  if (disabled) {
+    return (
+      <span aria-disabled className={className}>
+        {children}
+      </span>
+    )
+  }
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  )
+}

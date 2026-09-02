@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { requireActor } from '@/lib/auth/session'
-import { listStudyWords } from '@/lib/data/library'
+import { listStudyWords, mapCounts } from '@/lib/data/library'
 import { listRecommendedWords } from '@/lib/data/personal'
-import { Badge, EmptyState, Input, PageHeader, TabBar, TabLink } from '@/components/ui'
+import { Badge, EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { BookmarkButton } from '@/components/words/bookmark-button'
 
 /**
@@ -19,28 +19,28 @@ import { BookmarkButton } from '@/components/words/bookmark-button'
 export default async function MapPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string }>
+  searchParams: Promise<{ tab?: string; q?: string; page?: string }>
 }) {
-  const { tab, q } = await searchParams
+  const { tab, q, page } = await searchParams
   const actor = await requireActor()
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'
   const query = q?.trim() ?? ''
   const view = resolveView(tab, isCurator)
+  const pageIndex = Math.max(0, Number(page ?? 0) || 0)
 
-  const [published, saved, recommended, pending, missing] = await Promise.all([
-    listStudyWords({ userId: actor.id, scope: 'mapped', query }),
-    listStudyWords({ userId: actor.id, scope: 'mapped', savedOnly: true, query }),
-    listRecommendedWords(actor.id, 5),
-    isCurator
-      ? listStudyWords({ userId: actor.id, scope: 'mapPending', query })
-      : Promise.resolve([]),
-    isCurator
-      ? listStudyWords({ userId: actor.id, scope: 'mapMissing', query })
-      : Promise.resolve([]),
+  // Only the list on screen is fetched. Loading all four to take their lengths
+  // meant four full scans to render one of them; the tab counts are one query.
+  const [words, counts, recommended] = await Promise.all([
+    listStudyWords({
+      userId: actor.id,
+      scope: SCOPE_OF[view],
+      savedOnly: view === 'saved',
+      query,
+      page: pageIndex,
+    }),
+    mapCounts(actor.id),
+    view === 'published' ? listRecommendedWords(actor.id, 5) : Promise.resolve([]),
   ])
-
-  const lists = { published, saved, pending, missing }
-  const words = lists[view]
 
   return (
     <div className="animate-rise">
@@ -78,10 +78,10 @@ export default async function MapPage({
       </form>
 
       <TabBar>
-        <TabLink href={href({ q: query })} active={view === 'published'} count={published.length}>
+        <TabLink href={href({ q: query })} active={view === 'published'} count={counts.published}>
           전체 맵
         </TabLink>
-        <TabLink href={href({ tab: 'saved', q: query })} active={view === 'saved'} count={saved.length}>
+        <TabLink href={href({ tab: 'saved', q: query })} active={view === 'saved'} count={counts.saved}>
           저장한 맵
         </TabLink>
         {isCurator ? (
@@ -89,14 +89,14 @@ export default async function MapPage({
             <TabLink
               href={href({ tab: 'pending', q: query })}
               active={view === 'pending'}
-              count={pending.length}
+              count={counts.pending}
             >
               검수 대기
             </TabLink>
             <TabLink
               href={href({ tab: 'missing', q: query })}
               active={view === 'missing'}
-              count={missing.length}
+              count={counts.missing}
             >
               맵 없음
             </TabLink>
@@ -104,11 +104,17 @@ export default async function MapPage({
         ) : null}
       </TabBar>
 
-      {words.length === 0 ? (
+      {words.words.length === 0 ? (
         <EmptyState title={EMPTY[view].title} hint={EMPTY[view].hint} />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {words.map((word) => (
+        <ul
+          className={
+            words.words.length > 8
+              ? 'flex max-h-[62vh] flex-col gap-2 overflow-y-auto overscroll-contain rounded-xl border border-line/70 bg-line/10 p-2'
+              : 'flex flex-col gap-2'
+          }
+        >
+          {words.words.map((word) => (
             <li key={word.id} className="card flex items-center gap-3 px-4 py-3.5">
               <Link href={`/words/${word.id}`} className="min-w-0 flex-1">
                 <p className="font-semibold">{word.lemma}</p>
@@ -134,9 +140,23 @@ export default async function MapPage({
           ))}
         </ul>
       )}
+
+      <Pager
+        page={words.page}
+        pageCount={words.pageCount}
+        total={words.total}
+        href={(next) => href({ tab, q: query, page: next ? String(next) : undefined })}
+      />
     </div>
   )
 }
+
+const SCOPE_OF = {
+  published: 'mapped',
+  saved: 'mapped',
+  pending: 'mapPending',
+  missing: 'mapMissing',
+} as const
 
 type MapView = 'published' | 'saved' | 'pending' | 'missing'
 
@@ -167,10 +187,11 @@ const EMPTY: Record<MapView, { title: string; hint: string }> = {
   },
 }
 
-function href(params: { tab?: string; q?: string }): string {
+function href(params: { tab?: string; q?: string; page?: string }): string {
   const search = new URLSearchParams()
   if (params.tab) search.set('tab', params.tab)
   if (params.q) search.set('q', params.q)
+  if (params.page) search.set('page', params.page)
   const rest = search.toString()
   return rest ? `/map?${rest}` : '/map'
 }

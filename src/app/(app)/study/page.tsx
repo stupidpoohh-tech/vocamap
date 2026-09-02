@@ -5,9 +5,17 @@ import {
   listStudyWords,
   listWordSets,
   wordSetName,
-  WORD_LIST_LIMIT,
 } from '@/lib/data/library'
-import { Badge, Button, EmptyState, Input, PageHeader, TabBar, TabLink } from '@/components/ui'
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Input,
+  Pager,
+  PageHeader,
+  TabBar,
+  TabLink,
+} from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
 
 /**
@@ -24,9 +32,9 @@ import { WordList, type ListDirection } from '@/components/words/word-list'
 export default async function StudyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; set?: string; dir?: string }>
+  searchParams: Promise<{ q?: string; set?: string; dir?: string; page?: string }>
 }) {
-  const { q, set, dir } = await searchParams
+  const { q, set, dir, page } = await searchParams
   const actor = await requireActor()
   const query = q?.trim() ?? ''
   const direction: ListDirection = dir === 'ko_en' ? 'ko_en' : 'en_ko'
@@ -96,6 +104,7 @@ export default async function StudyPage({
           setId={setId}
           unassigned={unassigned}
           direction={direction}
+          page={Math.max(0, Number(page ?? 0) || 0)}
         />
       ) : (
         <Shelf userId={actor.id} role={actor.role} />
@@ -163,6 +172,7 @@ async function WordsView({
   setId,
   unassigned,
   direction,
+  page,
 }: {
   userId: string
   role: string
@@ -170,9 +180,10 @@ async function WordsView({
   setId?: string
   unassigned: boolean
   direction: ListDirection
+  page: number
 }) {
   const [words, title] = await Promise.all([
-    listStudyWords({ userId, scope: 'all', setId, unassigned, query }),
+    listStudyWords({ userId, scope: 'all', setId, unassigned, query, page }),
     setId ? wordSetName(setId) : Promise.resolve(unassigned ? '세트에 없는 단어' : null),
   ])
 
@@ -206,16 +217,16 @@ async function WordsView({
         </TabLink>
       </TabBar>
 
-      {words.length > 0 && !query ? (
+      {words.total > 0 && !query ? (
         <Link href={testHref} className="mb-4 block">
           <Button variant="secondary" className="w-full">
-            이 세트로 시험 보기 · 단어 {words.length}개
+            이 세트로 시험 보기 · 단어 {words.total}개
           </Button>
         </Link>
       ) : null}
 
       <WordList
-        items={words}
+        items={words.words}
         direction={direction}
         emptyHint={
           query
@@ -226,11 +237,19 @@ async function WordsView({
         }
       />
 
-      {words.length >= WORD_LIST_LIMIT ? (
-        <p className="mt-4 text-center text-xs text-muted">
-          가나다순 상위 {WORD_LIST_LIMIT}개예요. 검색으로 좁혀보세요.
-        </p>
-      ) : null}
+      <Pager
+        page={words.page}
+        pageCount={words.pageCount}
+        total={words.total}
+        href={(next) =>
+          buildHref('/study', {
+            q: query,
+            set: setParam,
+            dir: direction,
+            page: next ? String(next) : undefined,
+          })
+        }
+      />
     </>
   )
 }

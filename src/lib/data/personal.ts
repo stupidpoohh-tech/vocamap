@@ -9,7 +9,12 @@ import {
   vocabularyTranslations,
 } from '@/lib/db/schema'
 import { NODE_TYPES, type NodeStatus, type NodeType } from '@/lib/learning/nodes'
-import { classifyWord, deriveNodeStatus, type Recommendation } from '@/lib/learning/brain-map-policy'
+import {
+  classifyWord,
+  deriveNodeStatus,
+  type Recommendation,
+  type WordSignals,
+} from '@/lib/learning/brain-map-policy'
 import {
   type Direction,
   estimatedRetention,
@@ -17,7 +22,7 @@ import {
   type RetentionBand,
 } from '@/lib/learning/scheduler'
 import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
-import { collectWordSignals, isOutstandingRecommendation } from './study'
+import { collectWordState, isOutstandingRecommendation, type WordStateRead } from './study'
 
 export type DirectionState = {
   direction: Direction
@@ -50,6 +55,7 @@ export type PersonalBrainMap = {
 export async function getPersonalBrainMap(
   userId: string,
   vocabularyId: string,
+  opts: { state?: WordStateRead } = {},
   db: Db = defaultDb,
 ): Promise<PersonalBrainMap | null> {
   const [vocab] = await db
@@ -59,21 +65,15 @@ export async function getPersonalBrainMap(
     .limit(1)
   if (!vocab) return null
 
-  const [translations, cards, progress, state, signals] = await Promise.all([
+  // Cards and per-word state come from the shared read rather than being
+  // fetched again here: they are the same rows `collectWordState` already
+  // loaded, and reading them twice is what made this page's round trips double.
+  const [translations, progress, wordState] = await Promise.all([
     db
       .select({ text: vocabularyTranslations.text, isPrimary: vocabularyTranslations.isPrimary })
       .from(vocabularyTranslations)
       .where(eq(vocabularyTranslations.vocabularyId, vocabularyId))
       .orderBy(desc(vocabularyTranslations.isPrimary), vocabularyTranslations.sortOrder),
-    db
-      .select()
-      .from(userVocabularyCards)
-      .where(
-        and(
-          eq(userVocabularyCards.userId, userId),
-          eq(userVocabularyCards.vocabularyId, vocabularyId),
-        ),
-      ),
     db
       .select()
       .from(brainMapNodeProgress)
@@ -83,18 +83,12 @@ export async function getPersonalBrainMap(
           eq(brainMapNodeProgress.vocabularyId, vocabularyId),
         ),
       ),
-    db
-      .select()
-      .from(userVocabularyState)
-      .where(
-        and(
-          eq(userVocabularyState.userId, userId),
-          eq(userVocabularyState.vocabularyId, vocabularyId),
-        ),
-      )
-      .limit(1),
-    collectWordSignals(userId, vocabularyId, db),
+    opts.state ?? collectWordState(userId, vocabularyId, db),
   ])
+
+  const cards = wordState.cards
+  const state = wordState.state ? [wordState.state] : []
+  const signals = wordState.signals
 
   const now = new Date()
   const directions: DirectionState[] = (['en_ko', 'ko_en'] as Direction[]).map((direction) => {
@@ -168,7 +162,7 @@ export async function getBrainMapView(
 ): Promise<BrainMapView | null> {
   const [master, personal] = await Promise.all([
     getMasterBrainMap(vocabularyId, { approvedOnly: opts.approvedOnly ?? true }, db),
-    getPersonalBrainMap(userId, vocabularyId, db),
+    getPersonalBrainMap(userId, vocabularyId, {}, db),
   ])
   if (!personal) return null
 
@@ -223,7 +217,6 @@ export type RecommendedWord = {
   vocabularyId: string
   lemma: string
   translation: string | null
-  message: string | null
 }
 
 /** Words the system (or a human) has flagged, that the student has not opened yet. */
@@ -258,15 +251,13 @@ export async function listRecommendedWords(
       ),
     )
 
-  const results: RecommendedWord[] = []
-  for (const row of rows) {
-    const signals = await collectWordSignals(userId, row.vocabularyId, db)
-    results.push({
-      vocabularyId: row.vocabularyId,
-      lemma: row.lemma,
-      translation: translations.find((t) => t.vocabularyId === row.vocabularyId)?.text ?? null,
-      message: classifyWord(signals).message,
-    })
-  }
-  return results
+  // No per-word signal read here on purpose. This used to call
+  // `collectWordSignals` in a loop — four queries per recommended word, in
+  // series — to produce a one-line message that nothing rendered. The word page
+  // itself states the reasons, from the same signals, once.
+  return rows.map((row) => ({
+    vocabularyId: row.vocabularyId,
+    lemma: row.lemma,
+    translation: translations.find((t) => t.vocabularyId === row.vocabularyId)?.text ?? null,
+  }))
 }

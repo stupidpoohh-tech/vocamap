@@ -410,3 +410,78 @@ async function recordRevision(
     snapshot: snapshot ?? {},
   })
 }
+
+/* ─────────────────────────── removing content ─────────────────────────── */
+
+/**
+ * Deletes a word's Brain Map, leaving the word itself.
+ *
+ * For a draft that came back wrong in a way editing cannot fix: the word stays
+ * in the library and can be drilled, it simply has no map until someone makes a
+ * better one. The student's recall cards and answer history reference the
+ * vocabulary, not the map, so none of it is touched.
+ *
+ * Confusable pairs are shared, so the same rule as detaching applies — a pair
+ * another word still teaches survives.
+ */
+export async function deleteBrainMap(
+  input: { brainMapId: string; actorId: string },
+  db: Db = defaultDb,
+): Promise<{ vocabularyId: string }> {
+  return db.transaction(async (tx) => {
+    const links = await tx
+      .select({ pairId: brainMapSimilarWords.pairId })
+      .from(brainMapSimilarWords)
+      .where(eq(brainMapSimilarWords.brainMapId, input.brainMapId))
+
+    const removed = await tx
+      .delete(brainMaps)
+      .where(eq(brainMaps.id, input.brainMapId))
+      .returning({ vocabularyId: brainMaps.vocabularyId })
+    if (!removed[0]) throw new NotFoundError('맵을 찾을 수 없어요.')
+
+    for (const link of links) {
+      const [others] = await tx
+        .select({ value: count() })
+        .from(brainMapSimilarWords)
+        .where(eq(brainMapSimilarWords.pairId, link.pairId))
+      if ((others?.value ?? 0) === 0) {
+        await tx.delete(wordPairs).where(eq(wordPairs.id, link.pairId))
+      }
+    }
+
+    return { vocabularyId: removed[0].vocabularyId }
+  })
+}
+
+/**
+ * Deletes a word from the shared library, and with it everything downstream.
+ *
+ * This is the destructive one. Every foreign key into `vocabularies` cascades,
+ * so the word's map, every student's recall cards for it, and their whole
+ * answer history go too — and none of that can be reconstructed. It exists
+ * because a mistyped import otherwise sits in the library forever, but the
+ * caller is expected to have asked first.
+ */
+export async function deleteVocabulary(
+  input: { vocabularyId: string; actorId: string },
+  db: Db = defaultDb,
+): Promise<{ lemma: string }> {
+  return db.transaction(async (tx) => {
+    const [map] = await tx
+      .select({ id: brainMaps.id })
+      .from(brainMaps)
+      .where(eq(brainMaps.vocabularyId, input.vocabularyId))
+      .limit(1)
+    // Through the map first, so shared pairs it was the last owner of go with
+    // it instead of being orphaned by the cascade.
+    if (map) await deleteBrainMap({ brainMapId: map.id, actorId: input.actorId }, tx as unknown as Db)
+
+    const removed = await tx
+      .delete(vocabularies)
+      .where(eq(vocabularies.id, input.vocabularyId))
+      .returning({ lemma: vocabularies.lemma })
+    if (!removed[0]) throw new NotFoundError('단어를 찾을 수 없어요.')
+    return { lemma: removed[0].lemma }
+  })
+}

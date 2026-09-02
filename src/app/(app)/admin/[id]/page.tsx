@@ -9,6 +9,7 @@ import { Badge, PageHeader } from '@/components/ui'
 import { ReviewActions } from './review-actions'
 import { CoreEditor } from './core-editor'
 import { ItemSection, type EditableItem } from './item-editor'
+import { DangerZone } from './danger-zone'
 
 /**
  * The review screen, which is also the edit screen.
@@ -103,6 +104,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
           items={pairItems(map, common)}
         />
       </div>
+
+      <DangerZone brainMapId={map.id} vocabularyId={map.vocabularyId} lemma={map.lemma} />
     </div>
   )
 }

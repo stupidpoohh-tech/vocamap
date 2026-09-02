@@ -6,10 +6,11 @@ import { buildSemanticMap } from '@/lib/data/semantic-map'
 import { Badge, Card } from '@/components/ui'
 import { RETENTION_BAND_LABEL } from '@/lib/learning/scheduler'
 import { relativeKo } from '@/lib/utils'
-import { bookmarkedIds } from '@/lib/data/study'
+import { bookmarkedIds, collectWordState } from '@/lib/data/study'
 import { BookmarkButton } from '@/components/words/bookmark-button'
 import { BrainMapExplorer } from './brain-map-explorer'
 import { GenerateButton } from './generate-button'
+import { DeleteWord } from './delete-word'
 
 export default async function WordPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -17,9 +18,13 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
 
   // Curators see drafts so they can review them in situ; students never do.
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'
+  // One read of this student's state for the word, shared by both views below.
+  // They used to collect it separately, which doubled the page's round trips
+  // for one set of numbers.
+  const state = await collectWordState(actor.id, id)
   const [personal, map, bookmarks] = await Promise.all([
-    getPersonalBrainMap(actor.id, id),
-    buildSemanticMap(actor.id, id, { approvedOnly: !isCurator }),
+    getPersonalBrainMap(actor.id, id, { state }),
+    buildSemanticMap(actor.id, id, { approvedOnly: !isCurator, state }),
     bookmarkedIds(actor.id, [id]),
   ])
   if (!personal) notFound()
@@ -73,7 +78,12 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
               ? 'AI 초안을 생성한 뒤 검수하면 학생에게 공개됩니다.'
               : '지금은 반복 학습으로 충분한 단어예요.'}
           </p>
-          {isCurator ? <GenerateButton vocabularyId={id} /> : null}
+          {isCurator ? (
+            <>
+              <GenerateButton vocabularyId={id} />
+              <DeleteWord vocabularyId={id} lemma={personal.lemma} />
+            </>
+          ) : null}
         </Card>
       )}
     </div>

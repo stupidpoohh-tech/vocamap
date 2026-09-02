@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { requireActor } from '@/lib/auth/session'
-import { listStudyWords } from '@/lib/data/library'
-import { Button, PageHeader, TabBar, TabLink } from '@/components/ui'
+import { listStudyWords, vaultCounts } from '@/lib/data/library'
+import { Button, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
 
 /**
@@ -18,18 +18,19 @@ import { WordList, type ListDirection } from '@/components/words/word-list'
 export default async function VaultPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; dir?: string }>
+  searchParams: Promise<{ tab?: string; dir?: string; page?: string }>
 }) {
-  const { tab, dir } = await searchParams
+  const { tab, dir, page } = await searchParams
   const actor = await requireActor()
   const scope = tab === 'wrong' ? 'wrong' : 'saved'
   const direction: ListDirection = dir === 'ko_en' ? 'ko_en' : 'en_ko'
+  const pageIndex = Math.max(0, Number(page ?? 0) || 0)
 
-  const [saved, wrong] = await Promise.all([
-    listStudyWords({ userId: actor.id, scope: 'saved' }),
-    listStudyWords({ userId: actor.id, scope: 'wrong' }),
+  // Only the tab on screen is fetched; the other tab needs a number, not a list.
+  const [words, counts] = await Promise.all([
+    listStudyWords({ userId: actor.id, scope, page: pageIndex }),
+    vaultCounts(actor.id),
   ])
-  const words = scope === 'wrong' ? wrong : saved
 
   return (
     <div className="animate-rise">
@@ -41,10 +42,10 @@ export default async function VaultPage({
       />
 
       <TabBar>
-        <TabLink href={href({ dir })} active={scope === 'saved'} count={saved.length}>
+        <TabLink href={href({ dir })} active={scope === 'saved'} count={counts.saved}>
           담은 단어
         </TabLink>
-        <TabLink href={href({ tab: 'wrong', dir })} active={scope === 'wrong'} count={wrong.length}>
+        <TabLink href={href({ tab: 'wrong', dir })} active={scope === 'wrong'} count={counts.wrong}>
           틀린 단어
         </TabLink>
       </TabBar>
@@ -60,16 +61,16 @@ export default async function VaultPage({
 
       {/* The reason to keep a vault is to be tested on it, so this is the
           page's primary action rather than a link under the list. */}
-      {words.length > 0 ? (
+      {words.total > 0 ? (
         <Link href={`/study/session?scope=${scope}&dir=${direction}`} className="mb-4 block">
           <Button size="lg" className="w-full">
-            {scope === 'wrong' ? '틀린 단어로 시험 보기' : '담은 단어로 시험 보기'} · {words.length}개
+            {scope === 'wrong' ? '틀린 단어로 시험 보기' : '담은 단어로 시험 보기'} · {words.total}개
           </Button>
         </Link>
       ) : null}
 
       <WordList
-        items={words}
+        items={words.words}
         direction={direction}
         emptyHint={
           scope === 'wrong'
@@ -77,14 +78,22 @@ export default async function VaultPage({
             : '단어 탭에서 세트를 열고, 모르는 단어의 ☆ 을 누르면 여기에 담겨요.'
         }
       />
+
+      <Pager
+        page={words.page}
+        pageCount={words.pageCount}
+        total={words.total}
+        href={(next) => href({ tab, dir, page: next ? String(next) : undefined })}
+      />
     </div>
   )
 }
 
-function href(params: { tab?: string; dir?: string }): string {
+function href(params: { tab?: string; dir?: string; page?: string }): string {
   const search = new URLSearchParams()
   if (params.tab) search.set('tab', params.tab)
   if (params.dir) search.set('dir', params.dir)
+  if (params.page) search.set('page', params.page)
   const rest = search.toString()
   return rest ? `/vault?${rest}` : '/vault'
 }

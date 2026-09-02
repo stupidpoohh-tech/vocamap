@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { SignJWT, jwtVerify } from 'jose'
 import { eq } from 'drizzle-orm'
@@ -65,8 +66,15 @@ export async function destroySession(): Promise<void> {
   }
 }
 
-/** Returns the signed-in user, or null. Never throws on a bad cookie. */
-export async function getActor(): Promise<Actor | null> {
+/**
+ * Returns the signed-in user, or null. Never throws on a bad cookie.
+ *
+ * Memoised per request. The layout asks who you are and so does every page
+ * inside it, which meant two identical session lookups on every single
+ * navigation — one round trip to the database, in series, before anything else
+ * could start.
+ */
+export const getActor = cache(async function getActor(): Promise<Actor | null> {
   const store = await cookies()
   const token = store.get(SESSION_COOKIE)?.value
   if (!token) return null
@@ -95,7 +103,7 @@ export async function getActor(): Promise<Actor | null> {
 
   if (!row || row.expiresAt.getTime() < Date.now()) return null
   return { id: row.id, email: row.email, displayName: row.displayName, role: row.role }
-}
+})
 
 export async function requireActor(): Promise<Actor> {
   const actor = await getActor()
