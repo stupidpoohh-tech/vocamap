@@ -30,13 +30,26 @@ const STATUS_LABEL: Record<NodeStatus, string> = {
   unseen: '아직 안 봄',
 }
 
-/** Card scale per tier. Deliberately uneven — equal cards read as a menu. */
-const TIER: Record<SizeTier, { box: string; label: string }> = {
-  hero: { box: 'w-[13.5rem] px-4 py-3', label: 'text-[15px] leading-snug' },
-  primary: { box: 'w-[11.5rem] px-3.5 py-2.5', label: 'text-[14px] leading-snug' },
-  secondary: { box: 'w-[10rem] px-3 py-2', label: 'text-[13px] leading-snug' },
-  peripheral: { box: 'w-[8.5rem] px-2.5 py-1.5', label: 'text-[12px] leading-snug' },
+/**
+ * Card scale per tier. Deliberately uneven — equal cards read as a menu.
+ *
+ * Widths are a share of the map box rather than a fixed rem, so a card always
+ * occupies the same fraction of the layout's coordinate space no matter how
+ * wide the viewport is. Sizing them in rem meant the collision footprints the
+ * layout works with were only correct at one screen width.
+ */
+const TIER: Record<SizeTier, { widthPct: number; pad: string; label: string }> = {
+  hero: { widthPct: 27, pad: 'px-4 py-3', label: 'text-[15px] leading-snug' },
+  primary: { widthPct: 23, pad: 'px-3.5 py-2.5', label: 'text-[14px] leading-snug' },
+  secondary: { widthPct: 20, pad: 'px-3 py-2', label: 'text-[13px] leading-snug' },
+  peripheral: { widthPct: 17, pad: 'px-2.5 py-1.5', label: 'text-[12px] leading-snug' },
 }
+
+/**
+ * Past roughly this many cards a constellation stops reading as one shape and
+ * starts reading as clutter, whatever the layout does.
+ */
+const CONSTELLATION_LIMIT = 8
 
 export function SemanticMap({
   lemma,
@@ -49,18 +62,29 @@ export function SemanticMap({
   selectedId: string | null
   onSelect: (id: string) => void
 }) {
+  // A constellation stops reading as one past roughly a dozen cards. The most
+  // important nodes stay on the map; the rest sit under it as a quiet row, so
+  // nothing becomes unreachable just because a word is rich.
+  const { onMap, overflow } = useMemo(() => {
+    const byImportance = [...nodes].sort((a, b) => b.importance - a.importance)
+    return {
+      onMap: byImportance.slice(0, CONSTELLATION_LIMIT),
+      overflow: byImportance.slice(CONSTELLATION_LIMIT),
+    }
+  }, [nodes])
+
   const placed = useMemo(
     () =>
       new Map(
         layoutNodes(
-          nodes.map((n) => ({
+          onMap.map((n) => ({
             id: n.id,
             importance: n.importance,
             relationStrength: n.relationStrength,
           })),
         ).map((p) => [p.id, p]),
       ),
-    [nodes],
+    [onMap],
   )
 
   return (
@@ -68,7 +92,7 @@ export function SemanticMap({
       {/* Constellation — desktop and tablet. */}
       <div className="relative hidden aspect-[16/10] w-full sm:block">
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden>
-          {nodes.map((node) => {
+          {onMap.map((node) => {
             const p = placed.get(node.id)
             if (!p) return null
             const active = selectedId === node.id
@@ -91,14 +115,14 @@ export function SemanticMap({
 
         <CentreWord lemma={lemma} />
 
-        {nodes.map((node) => {
+        {onMap.map((node) => {
           const p = placed.get(node.id)
           if (!p) return null
           return (
             <div
               key={node.id}
-              className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${p.x}%`, top: `${p.y}%` }}
+              className="absolute flex -translate-x-1/2 -translate-y-1/2 justify-center"
+              style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${TIER[p.tier].widthPct}%` }}
             >
               <NodeCard
                 node={node}
@@ -111,6 +135,24 @@ export function SemanticMap({
           )
         })}
       </div>
+
+      {overflow.length ? (
+        <div className="mt-2 hidden sm:block">
+          <p className="mb-2 text-xs text-muted">그 밖의 연결</p>
+          <div className="flex flex-wrap gap-2">
+            {overflow.map((node) => (
+              <NodeCard
+                key={node.id}
+                node={node}
+                tier="peripheral"
+                selected={selectedId === node.id}
+                dimmed={false}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Phones get the same hierarchy without shrinking the type: the centre
           word, then nodes in importance order down a connecting rail. */}
@@ -196,9 +238,10 @@ function NodeCard({
       type="button"
       onClick={() => onSelect(node.id)}
       aria-pressed={selected}
+      style={fullWidth ? undefined : { width: '100%' }}
       className={cn(
         'group rounded-xl border bg-surface text-left transition',
-        fullWidth ? 'w-full px-4 py-3' : spec.box,
+        fullWidth ? 'w-full px-4 py-3' : spec.pad,
         selected
           ? 'border-brand ring-1 ring-brand'
           : urgent
@@ -216,7 +259,18 @@ function NodeCard({
         ) : null}
       </span>
 
-      <span className={cn('mt-1 block font-semibold break-keep', spec.label)}>{node.label}</span>
+      {/* Clamped on the map: the layout reserves a fixed footprint per tier, so a
+          label that wrapped to a third line would overrun its neighbour. The
+          list below the map renders the same node unclamped. */}
+      <span
+        className={cn(
+          'mt-1 block font-semibold break-keep',
+          fullWidth ? '' : 'line-clamp-2',
+          spec.label,
+        )}
+      >
+        {node.label}
+      </span>
 
       <span className="mt-1.5 flex items-center gap-1.5">
         <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[node.status])} />
