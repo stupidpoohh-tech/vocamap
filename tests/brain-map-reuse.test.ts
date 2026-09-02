@@ -3,7 +3,13 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { aiGenerationJobs, brainMapRevisions, brainMaps, wordPairs } from '@/lib/db/schema'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
-import { ensureBrainMap, getMasterBrainMap, setBrainMapStatus, writeDraft } from '@/lib/data/brain-map'
+import {
+  STALE_JOB_MS,
+  ensureBrainMap,
+  getMasterBrainMap,
+  setBrainMapStatus,
+  writeDraft,
+} from '@/lib/data/brain-map'
 import { MockProvider, setLLMProvider } from '@/lib/ai/provider'
 import type { BrainMapDraft } from '@/lib/ai/schema'
 import { createUser, hasDatabase, resetDatabase } from './helpers/db'
@@ -166,5 +172,48 @@ describe.skipIf(!hasDatabase)('master brain map reuse', () => {
       .from(brainMapRevisions)
       .where(eq(brainMapRevisions.brainMapId, v1.id))
     expect(revisions.map((r) => r.version).sort()).toEqual([1, 2])
+  })
+})
+
+describe.skipIf(!hasDatabase)('abandoned generation jobs', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+    setLLMProvider(null)
+  })
+
+  it('reclaims a job whose worker died, instead of blocking the word forever', async () => {
+    const mock = new MockProvider()
+    mock.register('attribute', draft('attribute', 'ascribe'))
+    setLLMProvider(mock)
+
+    const { id } = await findOrCreateVocabulary({ lemma: 'attribute', partOfSpeech: 'verb' })
+
+    // Exactly what a Worker killed mid-generation leaves behind.
+    await db.insert(aiGenerationJobs).values({
+      vocabularyId: id,
+      kind: 'brain_map',
+      status: 'running',
+      createdAt: new Date(Date.now() - STALE_JOB_MS - 1000),
+    })
+
+    const result = await ensureBrainMap(id)
+    expect(result.outcome).toBe('generated')
+
+    const jobs = await db.select().from(aiGenerationJobs).where(eq(aiGenerationJobs.vocabularyId, id))
+    expect(jobs.filter((j) => j.status === 'failed')).toHaveLength(1)
+    expect(jobs.filter((j) => j.status === 'succeeded')).toHaveLength(1)
+  })
+
+  it('still refuses to barge in on a generation that is actually running', async () => {
+    const { id } = await findOrCreateVocabulary({ lemma: 'supply', partOfSpeech: 'noun' })
+    await db.insert(aiGenerationJobs).values({
+      vocabularyId: id,
+      kind: 'brain_map',
+      status: 'running',
+      createdAt: new Date(),
+    })
+
+    const result = await ensureBrainMap(id)
+    expect(result.outcome).toBe('in_progress')
   })
 })

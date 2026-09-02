@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import {
@@ -158,6 +158,12 @@ export async function getMasterBrainMap(
 
 /* ───────────────────────────── generation ───────────────────────────── */
 
+/**
+ * How long a generation may run before another request may take the word back.
+ * A real call finishes in well under a minute; anything past this is wreckage.
+ */
+export const STALE_JOB_MS = 3 * 60 * 1000
+
 export type EnsureResult =
   | { outcome: 'reused'; brainMapId: string }
   | { outcome: 'generated'; brainMapId: string; jobId: string }
@@ -188,6 +194,27 @@ export async function ensureBrainMap(
     .where(eq(vocabularies.id, vocabularyId))
     .limit(1)
   if (!vocab) throw new NotFoundError(`Vocabulary ${vocabularyId} not found`)
+
+  // A Worker that dies mid-generation — CPU limit, eviction, a deploy — leaves
+  // its job row at `running` forever. The partial unique index then refuses
+  // every later attempt on this word, and the caller just sees `in_progress`
+  // with nothing happening. Nothing else ever clears these, so reclaim them
+  // here: a generation that has not finished in STALE_JOB_MS is not going to.
+  await db
+    .update(aiGenerationJobs)
+    .set({
+      status: 'failed',
+      error: 'Abandoned: no result before the reclaim window elapsed.',
+      finishedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(aiGenerationJobs.vocabularyId, vocabularyId),
+        eq(aiGenerationJobs.kind, 'brain_map'),
+        inArray(aiGenerationJobs.status, ['pending', 'running']),
+        lt(aiGenerationJobs.createdAt, new Date(Date.now() - STALE_JOB_MS)),
+      ),
+    )
 
   const claimed = await db
     .insert(aiGenerationJobs)

@@ -66,6 +66,15 @@ export async function generateBrainMap(
   try {
     const result = await ensureBrainMap(vocabularyId, { requestedBy: actor.id })
     revalidatePath(`/words/${vocabularyId}`)
+
+    // `in_progress` means another request holds the word — refreshing shows
+    // nothing, so saying "done" would be a lie. Report it as its own outcome.
+    if (result.outcome === 'in_progress') {
+      return {
+        ok: false,
+        error: '다른 생성 작업이 진행 중입니다. 잠시 후 다시 눌러 주세요.',
+      }
+    }
     return { ok: true, outcome: result.outcome }
   } catch (error) {
     // Next.js redacts thrown Server Action errors in production, which would
