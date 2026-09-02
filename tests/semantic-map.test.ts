@@ -193,35 +193,6 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
     }
   })
 
-  it('explains why the word was expanded, from real events only', async () => {
-    const { student, vocabularyId } = await seedIssue()
-    expect((await buildSemanticMap(student.id, vocabularyId))!.reasons.map((r) => r.text)).toEqual([
-      '교사 검수 완료',
-    ])
-
-    const pair = (await buildSemanticMap(student.id, vocabularyId))!.nodes.find(
-      (n) => n.kind === 'confusable',
-    )!
-    for (let i = 0; i < 2; i += 1) {
-      await recordNodeAnswer({
-        userId: student.id,
-        vocabularyId,
-        node: 'similar_words',
-        questionType: 'similar_battle',
-        correct: false,
-        pairId: pair.pairId,
-        payload: { itemId: pair.itemId },
-      })
-    }
-
-    const reasons = (await buildSemanticMap(student.id, vocabularyId))!.reasons
-    // Assert the substance, not the wording: both words and the real counts.
-    const confusion = reasons.find((r) => r.text.includes('problem'))
-    expect(confusion, reasons.map((r) => r.text).join(' | ')).toBeDefined()
-    expect(confusion!.text).toContain('issue')
-    expect(confusion!.text).toContain('2회')
-    expect(confusion!.tone).toBe('warn')
-  })
 
   it('gives each node an exercise rather than a passage to read', async () => {
     const { student, vocabularyId } = await seedIssue()

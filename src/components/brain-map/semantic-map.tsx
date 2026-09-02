@@ -1,12 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { layoutNodes, type PlacedNode, type SizeTier } from '@/lib/learning/map-layout'
 import {
   layoutMobileNodes,
   MOBILE_CENTRE,
   mobileFrameHeight,
-  MOBILE_DEFAULT_NODES,
   MOBILE_MAX_NODES,
 } from '@/lib/learning/mobile-map-layout'
 import type { NodeStatus, SemanticNode } from '@/lib/data/semantic-map'
@@ -230,18 +229,15 @@ function MobileSemanticMap({
   selectedId: string | null
   onSelect: (id: string) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
-
   const byImportance = useMemo(
     () => [...nodes].sort((a, b) => b.importance - a.importance),
     [nodes],
   )
-  const visible = expanded
-    ? byImportance.slice(0, MOBILE_MAX_NODES)
-    : byImportance.slice(0, MOBILE_DEFAULT_NODES)
-  // What expanding would actually add, not how many nodes exist: the frame
-  // holds six, and promising "+6 more" to reveal two is a lie.
-  const hidden = Math.min(MOBILE_MAX_NODES, byImportance.length) - visible.length
+  // Everything the frame can hold, always. There was an expand control here,
+  // which meant the map arrived saying it was incomplete — the opposite of
+  // "these are the connections of this word".
+  const visible = byImportance.slice(0, MOBILE_MAX_NODES)
+  const rest = byImportance.slice(MOBILE_MAX_NODES)
 
   const placed = useMemo(
     () =>
@@ -311,25 +307,49 @@ function MobileSemanticMap({
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.width }}
             >
-              <MobileNode
-                node={node}
-                selected={selectedId === node.id}
-                onSelect={onSelect}
-              />
+              <MobileNode node={node} selected={selectedId === node.id} onSelect={onSelect} />
             </div>
           )
         })}
       </div>
 
-      {hidden > 0 || expanded ? (
-        <div className="-mt-1 text-center">
-          <button
-            type="button"
-            onClick={() => setExpanded((on) => !on)}
-            className="rounded-chip px-2 py-1 text-xs text-ink-3 transition hover:text-ink-2"
-          >
-            {expanded ? '연결 접기' : `+ ${hidden}개 연결 더보기`}
-          </button>
+      {/* A word with more connections than the frame can place keeps them in
+          view as rows rather than behind a control — the same treatment the
+          wide map gives them. */}
+      {rest.length ? (
+        <div className="mt-3">
+          <p className="text-xs text-ink-3">그 밖의 연결</p>
+          <ul className="mt-1 divide-y divide-line-soft border-t border-line">
+            {rest.map((node) => (
+              <li key={node.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(node.id)}
+                  aria-pressed={selectedId === node.id}
+                  className="flex w-full items-baseline gap-2.5 py-2 text-left"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                      STATUS_DOT[node.status],
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 truncate text-[0.8125rem] break-keep',
+                      selectedId === node.id ? 'text-brand' : 'text-ink',
+                    )}
+                  >
+                    {node.label}
+                  </span>
+                  <span className="shrink-0 truncate text-[0.6875rem] text-ink-3">
+                    {node.eyebrow}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
     </div>

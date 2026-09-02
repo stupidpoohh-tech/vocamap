@@ -104,15 +104,16 @@ describe('mobile map layout', () => {
     expect(strong!.strokeOpacity).toBeGreaterThan(weak!.strokeOpacity)
   })
 
-  it('leaves anything past the last slot for the expand control', () => {
+  it('places what it can and leaves the rest to the list beneath the map', () => {
     expect(layoutMobileNodes(nodes(9))).toHaveLength(MOBILE_MAX_NODES)
   })
 
   it('stays inside the height a phone screen can show at a glance', () => {
-    // The default view has to be readable in one frame. The expanded one is a
-    // deliberate act, so it is allowed to be taller.
-    expect(mobileFrameHeight(3)).toBeLessThanOrEqual(400)
-    expect(mobileFrameHeight(4)).toBeLessThanOrEqual(400)
-    expect(mobileFrameHeight(5)).toBeLessThanOrEqual(400)
+    // A map that needs scrolling to be taken in is not a map. Six is the one
+    // size allowed past this, and only because the alternative is hiding
+    // connections the word actually has.
+    for (const count of [1, 2, 3, 4, 5]) {
+      expect(mobileFrameHeight(count), `${count} nodes`).toBeLessThanOrEqual(400)
+    }
   })
 })

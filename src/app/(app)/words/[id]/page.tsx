@@ -4,8 +4,6 @@ import { requireActor } from '@/lib/auth/session'
 import { getPersonalBrainMap } from '@/lib/data/personal'
 import { buildSemanticMap } from '@/lib/data/semantic-map'
 import { Tag } from '@/components/ui'
-import { RETENTION_BAND_LABEL } from '@/lib/learning/scheduler'
-import { relativeKo } from '@/lib/utils'
 import { bookmarkedIds, collectWordState } from '@/lib/data/study'
 import { BookmarkButton } from '@/components/words/bookmark-button'
 import { BrainMapExplorer } from './brain-map-explorer'
@@ -31,9 +29,22 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="animate-rise">
-      <Link href="/map" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
-        ← 맵
-      </Link>
+      <div className="flex items-baseline justify-between gap-3">
+        <Link href="/map" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
+          ← 맵
+        </Link>
+        {/* The only route from a published word to its review screen, so it
+            survives here rather than in the band of state that used to run
+            under the heading. */}
+        {isCurator && map ? (
+          <Link
+            href={`/admin/${map.brainMapId}`}
+            className="shrink-0 text-[0.8125rem] text-ink-3 transition hover:text-ink-2"
+          >
+            {map.status === 'approved' ? '검수 화면' : '검수 대기 · 열기'}
+          </Link>
+        ) : null}
+      </div>
 
       {/* The word is the largest thing on the page and the map is the second.
           Everything else here is a caption. */}
@@ -50,33 +61,11 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
         </div>
       </header>
 
-      <RecallStrip
-        directions={personal.directions}
-        // Folded onto the same line rather than given a strip of its own: three
-        // stacked bands of metadata ran ahead of the map they were describing.
-        curatorNote={
-          isCurator && map ? (
-            <>
-              <span className={map.status === 'approved' ? 'text-good' : 'text-warn'}>
-                {map.status === 'approved' ? '공개됨' : '검수 대기'}
-              </span>
-              <Link
-                href={`/admin/${map.brainMapId}`}
-                className="text-ink-2 underline decoration-line underline-offset-4 transition hover:decoration-ink-3"
-              >
-                검수 화면
-              </Link>
-            </>
-          ) : null
-        }
-      />
-
       {map ? (
         <BrainMapExplorer
           vocabularyId={id}
           lemma={map.lemma}
           nodes={map.nodes}
-          reasons={map.reasons}
           recommendedNodeId={map.recommendedNodeId}
         />
       ) : (
@@ -95,55 +84,6 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
           ) : null}
         </div>
       )}
-    </div>
-  )
-}
-
-/**
- * SRS state on one line. It still matters, but it is not what this page is for
- * — two large cards for it made the memorisation loop look like the point.
- */
-function RecallStrip({
-  directions,
-  curatorNote,
-}: {
-  directions: Awaited<ReturnType<typeof getPersonalBrainMap>> extends infer T
-    ? T extends { directions: infer D }
-      ? D
-      : never
-    : never
-  curatorNote?: React.ReactNode
-}) {
-  const next = directions
-    .map((d) => d.dueAt)
-    .filter((d): d is Date => d !== null)
-    .sort((a, b) => a.getTime() - b.getTime())[0]
-
-  return (
-    <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-line pt-2.5 text-[0.8125rem]">
-      <span className="text-ink-3">기본 암기</span>
-      {directions.map((d) => (
-        <span key={d.direction} className="flex items-baseline gap-1.5">
-          <span className="text-ink-3">{d.direction === 'en_ko' ? '영→한' : '한→영'}</span>
-          {/* State is data, not brand, and it earns colour only once there is
-              something to say — an unstarted direction stays neutral. */}
-          <span
-            className={
-              d.reps === 0
-                ? 'text-ink-3'
-                : d.band === 'strong'
-                  ? 'text-data-known'
-                  : d.band === 'fair'
-                    ? 'text-data-review'
-                    : 'text-data-weak'
-            }
-          >
-            {d.reps === 0 ? '학습 전' : RETENTION_BAND_LABEL[d.band]}
-          </span>
-        </span>
-      ))}
-      {next ? <span className="text-ink-3">다음 복습 {relativeKo(next)}</span> : null}
-      {curatorNote ? <span className="ml-auto flex items-baseline gap-2.5">{curatorNote}</span> : null}
     </div>
   )
 }

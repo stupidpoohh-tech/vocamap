@@ -75,8 +75,6 @@ export type SemanticNode = {
   exercises: Exercise[]
 }
 
-export type MapReason = { text: string; tone: 'warn' | 'neutral' }
-
 export type SemanticMap = {
   lemma: string
   partOfSpeech: string | null
@@ -84,7 +82,6 @@ export type SemanticMap = {
   status: MasterBrainMap['status']
   brainMapId: string
   nodes: SemanticNode[]
-  reasons: MapReason[]
   /** Node the student should start with, if any stands out. */
   recommendedNodeId: string | null
 }
@@ -358,7 +355,6 @@ export async function buildSemanticMap(
     status: master.status,
     brainMapId: master.id,
     nodes,
-    reasons: buildReasons({ master, signals: wordState.signals, confusions, nodes }),
     recommendedNodeId: recommended?.id ?? null,
   }
 }
@@ -398,64 +394,6 @@ function selectMapNodes(nodes: SemanticNode[]): void {
   if (picked.length < MAP_NODE_TARGET) take(of('secondaryMeaning')[0])
 
   for (const node of picked) node.onMap = true
-}
-
-/**
- * Why this word got expanded, in the student's own numbers.
- *
- * Answers "why am I studying this one so deeply?" — without it the map is a
- * screen that simply appeared. Every line has to come from something that
- * actually happened, so an empty list is a valid answer.
- */
-function buildReasons(input: {
-  master: MasterBrainMap
-  signals: WordStateRead['signals']
-  confusions: Array<{ pairId: string; wrongCount: number; rightCount: number }>
-  nodes: SemanticNode[]
-}): MapReason[] {
-  const reasons: MapReason[] = []
-  const { master, signals, confusions } = input
-
-  for (const confusion of confusions) {
-    if (confusion.wrongCount < 1) continue
-    const pair = master.similarWords.find((p) => p.pairId === confusion.pairId)
-    if (!pair) continue
-    const total = confusion.wrongCount + confusion.rightCount
-    // Phrased to avoid a Korean object particle after an English word: 을/를
-    // depends on how the word is pronounced, which no rule here can get right
-    // ("problem을" but "issue를").
-    reasons.push({
-      tone: 'warn',
-      text: `${master.lemma} / ${pair.otherLemma} 구별을 최근 ${total}회 중 ${confusion.wrongCount}회 틀렸어요`,
-    })
-  }
-
-  if (signals.recentAttempts >= 3) {
-    const accuracy = Math.round((signals.recentCorrect / signals.recentAttempts) * 100)
-    if (accuracy < 80) {
-      reasons.push({ tone: 'warn', text: `최근 암기 정답률 ${accuracy}%` })
-    }
-  }
-
-  if (signals.lapses >= 3) {
-    reasons.push({ tone: 'warn', text: `외웠다가 다시 잊은 횟수 ${signals.lapses}회` })
-  }
-
-  if (signals.markedImportant) {
-    reasons.push({
-      tone: 'neutral',
-      text:
-        signals.importantReason === 'teacher_selected'
-          ? '선생님이 중요 단어로 지정했어요'
-          : '중요 단어로 저장한 단어예요',
-    })
-  }
-
-  if (master.status === 'approved') {
-    reasons.push({ tone: 'neutral', text: '교사 검수 완료' })
-  }
-
-  return reasons
 }
 
 /* ───────────────────────────── exercises ───────────────────────────── */

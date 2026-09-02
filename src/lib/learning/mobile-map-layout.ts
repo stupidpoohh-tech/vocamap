@@ -30,9 +30,13 @@ export type MobilePlacement = MobileSlot & {
   strokeOpacity: number
 }
 
-/** How many nodes the map opens with. The rest wait behind "+N개 연결". */
-export const MOBILE_DEFAULT_NODES = 4
-/** The most the frame can hold without crowding, once expanded. */
+/**
+ * The most the frame can place without crowding at 320px.
+ *
+ * There is no smaller "opening" count: the map shows every connection it can
+ * hold from the start. Hiding some behind an expand control made the map
+ * announce that it was incomplete, which is the opposite of what it is for.
+ */
 export const MOBILE_MAX_NODES = 6
 
 /** Frame height in px, per node count. Wide enough that nothing scrolls. */
@@ -95,7 +99,7 @@ const SLOTS: Record<number, MobileSlot[]> = {
 export const MOBILE_CENTRE = { width: 92, height: 60 }
 
 export function mobileFrameHeight(count: number): number {
-  return FRAME_HEIGHT[clampCount(count)] ?? FRAME_HEIGHT[MOBILE_DEFAULT_NODES]!
+  return FRAME_HEIGHT[clampCount(count)] ?? FRAME_HEIGHT[MOBILE_MAX_NODES]!
 }
 
 export type MobileInput = { id: string; importance: number; relationStrength?: number }

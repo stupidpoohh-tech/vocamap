@@ -253,8 +253,7 @@ export async function listRecommendedWords(
 
   // No per-word signal read here on purpose. This used to call
   // `collectWordSignals` in a loop — four queries per recommended word, in
-  // series — to produce a one-line message that nothing rendered. The word page
-  // itself states the reasons, from the same signals, once.
+  // series — to produce a one-line message that nothing rendered.
   return rows.map((row) => ({
     vocabularyId: row.vocabularyId,
     lemma: row.lemma,

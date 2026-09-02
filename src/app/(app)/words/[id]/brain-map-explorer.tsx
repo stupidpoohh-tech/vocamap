@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { MapLegend, SemanticMap } from '@/components/brain-map/semantic-map'
 import { Workspace, type WorkspaceAnswer } from '@/components/brain-map/workspace'
-import type { MapReason, SemanticNode } from '@/lib/data/semantic-map'
+import type { SemanticNode } from '@/lib/data/semantic-map'
 import { answerNode, openBrainMap } from './actions'
 
 /**
@@ -16,13 +16,11 @@ export function BrainMapExplorer({
   vocabularyId,
   lemma,
   nodes: initialNodes,
-  reasons,
   recommendedNodeId,
 }: {
   vocabularyId: string
   lemma: string
   nodes: SemanticNode[]
-  reasons: MapReason[]
   recommendedNodeId: string | null
 }) {
   const [nodes, setNodes] = useState(initialNodes)
@@ -42,7 +40,6 @@ export function BrainMapExplorer({
   }, [vocabularyId])
 
   const selected = nodes.find((n) => n.id === selectedId) ?? null
-  const recommended = nodes.find((n) => n.id === recommendedNodeId) ?? null
 
   const handleAnswer: WorkspaceAnswer = (input) => {
     // Reflect the node's new state straight away, then persist.
@@ -65,12 +62,12 @@ export function BrainMapExplorer({
     })
   }
 
+  // Straight to the map. The two strips that used to sit here — the memory
+  // state of each direction, and a paragraph explaining why the word was
+  // expanded — pushed the thing this page exists for below the fold.
   return (
-    <div className="mt-5">
-      {reasons.length ? <ReasonStrip reasons={reasons} recommended={recommended} /> : null}
-
-      {/* Tighter on a phone: the map should arrive without a scroll. */}
-      <section className="mt-4 sm:mt-6">
+    <div className="mt-6">
+      <section>
         <SemanticMap
           lemma={lemma}
           nodes={nodes}
@@ -91,35 +88,6 @@ export function BrainMapExplorer({
         <Workspace node={selected} onAnswer={handleAnswer} />
       </div>
     </div>
-  )
-}
-
-function ReasonStrip({
-  reasons,
-  recommended,
-}: {
-  reasons: MapReason[]
-  recommended: SemanticNode | null
-}) {
-  // One strip, two lines. This was a heading, a wrapped list and a separate
-  // recommendation sentence — three bands of small grey text ahead of the map
-  // they were describing.
-  const why = reasons.map((r) => r.text)
-  const urgent = reasons.some((r) => r.tone === 'warn')
-
-  return (
-    <section className="border-t border-line pt-3 text-[0.8125rem] leading-relaxed">
-      <p className="break-keep">
-        <span className="text-ink-3">이 단어가 펼쳐진 이유 </span>
-        <span className={urgent ? 'text-ink' : 'text-ink-2'}>{why.join(' · ')}</span>
-      </p>
-      {recommended ? (
-        <p className="mt-0.5 break-keep">
-          <span className="text-ink-3">추천 시작 </span>
-          <span className="text-ink">{recommended.label}</span>
-        </p>
-      ) : null}
-    </section>
   )
 }
 
