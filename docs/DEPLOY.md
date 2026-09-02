@@ -214,7 +214,8 @@ Hyperdrive는 Cloudflare 엣지 안에서 연결을 종단하고 풀링해 줍�
 
 ### 만들기
 
-1. 왼쪽 **Storage & Databases** → **Hyperdrive**
+1. 왼쪽 **Storage & databases** → **Postgres & MySQL (Hyperdrive)**
+   (예전 이름은 그냥 "Hyperdrive" 였습니다. 메뉴에서 이름이 잘려 보일 수 있습니다.)
 2. **Create configuration**
 3. Name `vocamap-db`
 4. Connection string 에 Neon **Pooled** 주소 붙여넣기
