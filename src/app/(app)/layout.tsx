@@ -4,16 +4,20 @@ import { getActor } from '@/lib/auth/session'
 import { signOut } from '@/app/login/actions'
 
 /**
- * Bottom navigation on mobile, a slim top bar on desktop. Four destinations
- * only — the student's job here is to study, not to navigate.
+ * Bottom navigation on mobile, a slim top bar on desktop.
+ *
+ * Three destinations for a student, and they are the three things this app is:
+ * the word list you test yourself on, the words you kept or got wrong, and the
+ * handful of words that have a Brain Map. Anything else is a teacher's screen.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const actor = await getActor()
   if (!actor) redirect('/login')
 
   const links = [
-    { href: '/study', label: '학습', icon: '◎' },
-    { href: '/words', label: '단어', icon: '⌕' },
+    { href: '/study', label: '단어', icon: '⌕' },
+    { href: '/vault', label: '보관함', icon: '★' },
+    { href: '/map', label: '맵', icon: '◎' },
     // Curation is a teacher's job as much as an admin's — the review page and
     // every action behind it accept both — so the link must follow suit.
     // Hiding it from teachers left an account that could approve drafts with no

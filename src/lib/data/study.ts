@@ -45,13 +45,45 @@ const DEFAULT_NEW_PER_DAY = 10
 const DEFAULT_DUE_LIMIT = 60
 
 /**
- * What this person is studying.
+ * What this person is being scheduled on.
  *
- * Bookmarks are the primary route: the whole library is browsable and you pick
- * what you want to learn. Assignments still count, so a teacher who hands a
- * student a set has not had that taken away — the two simply union.
+ * Three ways in, and they union. Saving a word is the deliberate one. An
+ * assignment still counts, so a teacher handing a student a set has not had
+ * that taken away. And any word the student has already answered is in, which
+ * is what makes the open study book work: you can test yourself on the whole
+ * library without saving anything, and the words you met still come back on
+ * schedule instead of being answered once and forgotten.
+ *
+ * Only the first two introduce *new* cards, so the daily queue never dumps the
+ * entire library on someone as "new words".
  */
 async function studyPoolIds(userId: string, db: Db): Promise<string[]> {
+  const [bookmarked, assigned, studied] = await Promise.all([
+    db
+      .select({ id: userVocabularyState.vocabularyId })
+      .from(userVocabularyState)
+      .where(
+        and(
+          eq(userVocabularyState.userId, userId),
+          sql`${userVocabularyState.bookmarkedAt} is not null`,
+        ),
+      ),
+    db
+      .selectDistinct({ id: vocabularySetItems.vocabularyId })
+      .from(assignments)
+      .innerJoin(vocabularySetItems, eq(vocabularySetItems.setId, assignments.setId))
+      .where(eq(assignments.studentId, userId)),
+    db
+      .selectDistinct({ id: userVocabularyCards.vocabularyId })
+      .from(userVocabularyCards)
+      .where(eq(userVocabularyCards.userId, userId)),
+  ])
+
+  return [...new Set([...bookmarked, ...assigned, ...studied].map((row) => row.id))]
+}
+
+/** The subset that may contribute unseen words to a daily queue. */
+async function intakePoolIds(userId: string, db: Db): Promise<Set<string>> {
   const [bookmarked, assigned] = await Promise.all([
     db
       .select({ id: userVocabularyState.vocabularyId })
@@ -68,8 +100,7 @@ async function studyPoolIds(userId: string, db: Db): Promise<string[]> {
       .innerJoin(vocabularySetItems, eq(vocabularySetItems.setId, assignments.setId))
       .where(eq(assignments.studentId, userId)),
   ])
-
-  return [...new Set([...bookmarked, ...assigned].map((row) => row.id))]
+  return new Set([...bookmarked, ...assigned].map((row) => row.id))
 }
 
 /**
@@ -134,7 +165,10 @@ export async function buildTodayQueue(
   const newLimit = opts.newLimit ?? DEFAULT_NEW_PER_DAY
   const dueLimit = opts.dueLimit ?? DEFAULT_DUE_LIMIT
 
-  const poolIds = await studyPoolIds(userId, db)
+  const [poolIds, intakeIds] = await Promise.all([
+    studyPoolIds(userId, db),
+    intakePoolIds(userId, db),
+  ])
   if (!poolIds.length) return []
 
   const primaryTranslation = db
@@ -210,11 +244,166 @@ export async function buildTodayQueue(
   due.sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime())
 
   // A word's two directions are introduced together so the student meets the
-  // form and the meaning in the same sitting.
-  const freshWords = [...new Set(fresh.map((f) => f.vocabularyId))].slice(0, newLimit)
+  // form and the meaning in the same sitting. Only saved and assigned words are
+  // eligible: a word that is only in the pool because it was answered once in
+  // an open test is already known to the student and is not new material.
+  const freshWords = [...new Set(fresh.map((f) => f.vocabularyId))]
+    .filter((id) => intakeIds.has(id))
+    .slice(0, newLimit)
   const freshSelected = fresh.filter((f) => freshWords.includes(f.vocabularyId))
 
   return [...due.slice(0, dueLimit), ...freshSelected]
+}
+
+/* ─────────────────────────── tests over a list ─────────────────────────── */
+
+/**
+ * Which words a test covers.
+ *
+ * `due` is the spaced-repetition queue and is what the student gets when they
+ * just press start. The other three exist because the study book, the vault and
+ * the map are lists a student looks at and then wants to be tested on — a test
+ * you cannot aim at the list in front of you is a different product.
+ */
+export type QueueScope = 'due' | 'all' | 'saved' | 'wrong'
+
+export function parseQueueScope(value: string | undefined): QueueScope {
+  return value === 'all' || value === 'saved' || value === 'wrong' ? value : 'due'
+}
+
+export function parseDirections(value: string | undefined): Direction[] {
+  if (value === 'en_ko' || value === 'ko_en') return [value]
+  return DIRECTIONS
+}
+
+/** Words per test when the student aims one at a list. Two directions each. */
+const SCOPED_WORD_LIMIT = 25
+
+/**
+ * Builds a test over an arbitrary list.
+ *
+ * Unlike the daily queue this ignores due dates: the student asked for these
+ * words, and telling them "nothing is due" when they are staring at the list
+ * they want to drill would be answering a question they did not ask. Answers
+ * still feed FSRS, so an early review is not wasted — it just is not scheduled.
+ */
+export async function buildScopedQueue(
+  userId: string,
+  opts: {
+    scope: QueueScope
+    setId?: string
+    directions?: Direction[]
+    wordLimit?: number
+    now?: Date
+  },
+  db: Db = defaultDb,
+): Promise<QueueItem[]> {
+  if (opts.scope === 'due') {
+    const queue = await buildTodayQueue(userId, { now: opts.now }, db)
+    const directions = opts.directions ?? DIRECTIONS
+    return queue.filter((item) => directions.includes(item.direction))
+  }
+
+  const now = opts.now ?? new Date()
+  const directions = opts.directions ?? DIRECTIONS
+  const ids = await scopeIds(userId, opts.scope, opts.setId, db)
+  if (!ids.length) return []
+
+  const rows = await db
+    .select({
+      vocabularyId: vocabularies.id,
+      lemma: vocabularies.lemma,
+      translation: vocabularyTranslations.text,
+      direction: userVocabularyCards.direction,
+    })
+    .from(vocabularies)
+    .innerJoin(
+      vocabularyTranslations,
+      and(
+        eq(vocabularyTranslations.vocabularyId, vocabularies.id),
+        eq(vocabularyTranslations.isPrimary, true),
+      ),
+    )
+    .leftJoin(
+      userVocabularyCards,
+      and(
+        eq(userVocabularyCards.vocabularyId, vocabularies.id),
+        eq(userVocabularyCards.userId, userId),
+      ),
+    )
+    .where(inArray(vocabularies.id, ids))
+    .orderBy(asc(vocabularies.lemma))
+
+  const words = new Map<string, { lemma: string; translation: string; started: Set<Direction> }>()
+  for (const row of rows) {
+    const entry = words.get(row.vocabularyId) ?? {
+      lemma: row.lemma,
+      translation: row.translation,
+      started: new Set<Direction>(),
+    }
+    if (row.direction) entry.started.add(row.direction)
+    words.set(row.vocabularyId, entry)
+  }
+
+  const items: QueueItem[] = []
+  for (const [vocabularyId, info] of [...words].slice(0, opts.wordLimit ?? SCOPED_WORD_LIMIT)) {
+    for (const direction of directions) {
+      items.push({
+        vocabularyId,
+        lemma: info.lemma,
+        translation: info.translation,
+        direction,
+        isNew: !info.started.has(direction),
+        dueAt: now,
+      })
+    }
+  }
+  return items
+}
+
+async function scopeIds(
+  userId: string,
+  scope: Exclude<QueueScope, 'due'>,
+  setId: string | undefined,
+  db: Db,
+): Promise<string[]> {
+  if (scope === 'saved') {
+    const rows = await db
+      .select({ id: userVocabularyState.vocabularyId })
+      .from(userVocabularyState)
+      .where(
+        and(
+          eq(userVocabularyState.userId, userId),
+          sql`${userVocabularyState.bookmarkedAt} is not null`,
+        ),
+      )
+    return rows.map((r) => r.id)
+  }
+
+  if (scope === 'wrong') {
+    const rows = await db
+      .selectDistinct({ id: reviewEvents.vocabularyId })
+      .from(reviewEvents)
+      .where(and(eq(reviewEvents.userId, userId), eq(reviewEvents.correct, false)))
+    return rows.map((r) => r.id)
+  }
+
+  const rows = await db
+    .select({ id: vocabularies.id })
+    .from(vocabularies)
+    .where(
+      setId
+        ? inArray(
+            vocabularies.id,
+            db
+              .select({ id: vocabularySetItems.vocabularyId })
+              .from(vocabularySetItems)
+              .where(eq(vocabularySetItems.setId, setId)),
+          )
+        : sql`true`,
+    )
+    .orderBy(asc(vocabularies.lemma))
+  return rows.map((r) => r.id)
 }
 
 export async function getTodaySummary(

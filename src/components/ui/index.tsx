@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { ComponentProps, ReactNode } from 'react'
 
@@ -105,5 +106,44 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
       <p className="font-semibold">{title}</p>
       {hint ? <p className="max-w-sm text-sm text-muted">{hint}</p> : null}
     </div>
+  )
+}
+
+/**
+ * Link-based tabs. Server-rendered on purpose: which list you are looking at is
+ * a property of the URL, so it survives a reload and can be linked to.
+ */
+export function TabBar({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('mb-5 flex gap-1 overflow-x-auto rounded-xl bg-line/40 p-1', className)}>
+      {children}
+    </div>
+  )
+}
+
+export function TabLink({
+  href,
+  active,
+  count,
+  children,
+}: {
+  href: string
+  active: boolean
+  count?: number
+  children: ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-center text-sm font-semibold transition',
+        active ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink',
+      )}
+    >
+      {children}
+      {typeof count === 'number' ? (
+        <span className="ml-1.5 text-xs font-medium tabular-nums opacity-70">{count}</span>
+      ) : null}
+    </Link>
   )
 }

@@ -7,7 +7,7 @@ import { Badge, Card } from '@/components/ui'
 import { RETENTION_BAND_LABEL } from '@/lib/learning/scheduler'
 import { relativeKo } from '@/lib/utils'
 import { bookmarkedIds } from '@/lib/data/study'
-import { BookmarkButton } from '../bookmark-button'
+import { BookmarkButton } from '@/components/words/bookmark-button'
 import { BrainMapExplorer } from './brain-map-explorer'
 import { GenerateButton } from './generate-button'
 
@@ -26,8 +26,8 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="animate-rise">
-      <Link href="/words" className="text-sm text-muted hover:text-ink">
-        ← 단어
+      <Link href="/map" className="text-sm text-muted hover:text-ink">
+        ← 맵
       </Link>
 
       {/* Compact by design: the protagonist of this page is the map below. */}

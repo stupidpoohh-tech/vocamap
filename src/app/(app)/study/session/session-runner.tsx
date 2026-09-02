@@ -15,7 +15,14 @@ type Phase = { kind: 'asking' } | { kind: 'answered'; result: AnswerResult; chos
  * confirmation step, because a "continue" tap between every card is the fastest
  * way to make 30 words feel like 300.
  */
-export function SessionRunner({ questions }: { questions: RecallQuestion[] }) {
+export function SessionRunner({
+  questions,
+  backHref = '/study',
+}: {
+  questions: RecallQuestion[]
+  /** Where "마치기" returns to — the list the test was started from. */
+  backHref?: string
+}) {
   const router = useRouter()
   const [index, setIndex] = useState(0)
   const [phase, setPhase] = useState<Phase>({ kind: 'asking' })
@@ -107,7 +114,7 @@ export function SessionRunner({ questions }: { questions: RecallQuestion[] }) {
           setIndex(0)
           setPhase({ kind: 'asking' })
         }}
-        onDone={() => router.push('/study')}
+        onDone={() => router.push(backHref)}
       />
     )
   }

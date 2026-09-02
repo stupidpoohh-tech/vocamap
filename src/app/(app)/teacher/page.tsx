@@ -54,7 +54,7 @@ export default async function TeacherPage() {
                 {/* Opens the word list filtered to this set — the way into a
                     word, and from there into its Brain Map. */}
                 <Link
-                  href={`/words?set=${set.id}`}
+                  href={`/study?set=${set.id}`}
                   className="card flex items-center justify-between gap-4 px-5 py-4 transition hover:border-brand"
                 >
                   <div className="min-w-0">
