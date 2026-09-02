@@ -218,8 +218,21 @@ Hyperdrive는 Cloudflare 엣지 안에서 연결을 종단하고 풀링해 줍�
 2. **Connect database**
    - 옆의 **Create PlanetScale database** 가 아닙니다. 그건 새 DB를 만드는 버튼이고,
      우리는 이미 있는 Neon DB를 연결하는 것입니다.
-3. Name `vocamap-db`, connection string 에 Neon **Pooled** 주소
-4. 만들어진 설정의 **ID** 를 복사
+3. **Connect to public database** 선택
+   - Neon은 인터넷에서 접근 가능하므로 public 입니다. **private** 은 Cloudflare
+     Tunnel 로만 닿는 내부망 DB용이라 해당 없습니다.
+4. Name `vocamap-db`, 접속 정보에 Neon **Pooled** 주소
+   - 연결 문자열을 통째로 받는 칸이 없고 항목별로 물어보면, Pooled 주소를 이렇게
+     나눠 넣으면 됩니다.
+
+     | 칸 | 값 |
+     | --- | --- |
+     | Host | `ep-...-pooler.<region>.aws.neon.tech` |
+     | Port | `5432` |
+     | Database | 주소 맨 뒤 `/` 다음 이름 |
+     | User / Password | 주소의 `://` 와 `@` 사이 값 |
+
+5. 만들어진 설정의 **ID** 를 복사
 
 > Cloudflare가 이 화면의 메뉴명과 버튼명을 자주 바꿉니다. 이름이 다르면 "기존
 > 데이터베이스를 연결" 쪽을 고르면 됩니다.
