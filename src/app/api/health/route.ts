@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { inspectConnectionString } from '@/lib/db/connection-string'
 import { hyperdriveConnectionString } from '@/lib/db'
+import { schemaStatus } from '@/lib/db/schema-version'
 import { databaseErrorCode } from '@/lib/db/errors'
 
 export const dynamic = 'force-dynamic'
@@ -39,18 +40,31 @@ export async function GET() {
   }
 
   try {
-    const [row] = await db.execute<{ words: number }>(
-      sql`select count(*)::int as words from vocabularies`,
+    const [[row], schema] = await Promise.all([
+      db.execute<{ words: number }>(sql`select count(*)::int as words from vocabularies`),
+      schemaStatus(),
+    ])
+
+    // A reachable database running an old schema is not healthy — it will fail
+    // on whichever page reads the new column, and nowhere else.
+    return Response.json(
+      {
+        ok: schema.upToDate,
+        version,
+        database: 'ok',
+        schema,
+        ...(schema.upToDate
+          ? {}
+          : {
+              hint: `데이터베이스에 적용되지 않은 migration 이 있습니다: ${schema.missing.join(', ')}. drizzle/ 폴더의 해당 .sql 을 Neon SQL Editor 에서 실행하세요.`,
+            }),
+        via: viaHyperdrive ? 'hyperdrive' : 'direct',
+        elapsedMs: Date.now() - startedAt,
+        seededWords: row?.words ?? 0,
+        connectionString: url,
+      },
+      { status: schema.upToDate ? 200 : 503 },
     )
-    return Response.json({
-      ok: true,
-      version,
-      database: 'ok',
-      via: viaHyperdrive ? 'hyperdrive' : 'direct',
-      elapsedMs: Date.now() - startedAt,
-      seededWords: row?.words ?? 0,
-      connectionString: url,
-    })
   } catch (error) {
     console.error('[health]', error)
     const code = databaseErrorCode(error) ?? 'unknown'

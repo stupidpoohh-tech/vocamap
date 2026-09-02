@@ -170,6 +170,16 @@ npx wrangler secret put ANTHROPIC_API_KEY
 
 migration 은 모두 `IF NOT EXISTS` 로 작성하므로 두 번 실행해도 안전합니다.
 
+적용했는지는 `/api/health` 의 `schema` 가 알려줍니다.
+
+```json
+"schema": { "upToDate": false, "missing": ["0001_bookmarks"] }
+```
+
+이 검사는 Drizzle 의 migration 기록이 아니라 **실제 컬럼 존재 여부**를 봅니다. SQL을
+콘솔에 직접 붙여넣으면 기록 테이블은 갱신되지 않기 때문입니다. 코드가 새 컬럼에
+의존하게 되면 `src/lib/db/schema-version.ts` 의 `REQUIREMENTS` 에 한 줄 추가하세요.
+
 ## 3-C. 문제가 생겼을 때
 
 배포된 주소에 **`/api/health`** 를 붙여 접속하면 DB 상태를 볼 수 있습니다.
