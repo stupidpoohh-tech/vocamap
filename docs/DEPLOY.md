@@ -215,12 +215,14 @@ Hyperdrive는 Cloudflare 엣지 안에서 연결을 종단하고 풀링해 줍�
 ### 만들기
 
 1. 왼쪽 **Storage & databases** → **Postgres & MySQL (Hyperdrive)**
-   (예전 이름은 그냥 "Hyperdrive" 였습니다. 메뉴에서 이름이 잘려 보일 수 있습니다.)
-2. **Create configuration**
-3. Name `vocamap-db`
-4. Connection string 에 Neon **Pooled** 주소 붙여넣기
-5. **Create**
-6. 만들어진 설정의 **ID** 를 복사
+2. **Connect database**
+   - 옆의 **Create PlanetScale database** 가 아닙니다. 그건 새 DB를 만드는 버튼이고,
+     우리는 이미 있는 Neon DB를 연결하는 것입니다.
+3. Name `vocamap-db`, connection string 에 Neon **Pooled** 주소
+4. 만들어진 설정의 **ID** 를 복사
+
+> Cloudflare가 이 화면의 메뉴명과 버튼명을 자주 바꿉니다. 이름이 다르면 "기존
+> 데이터베이스를 연결" 쪽을 고르면 됩니다.
 
 ### 연결하기
 
