@@ -213,7 +213,10 @@ export async function listVocabularySummaries(
 
 export type BrainMapState = 'approved' | 'draft' | 'none'
 
-export type LibraryWord = VocabularySummary & { brainMapStatus: BrainMapState }
+export type LibraryWord = VocabularySummary & {
+  brainMapStatus: BrainMapState
+  bookmarked: boolean
+}
 
 /**
  * The shared word library, as a teacher needs to see it: every word with the
@@ -224,7 +227,7 @@ export type LibraryWord = VocabularySummary & { brainMapStatus: BrainMapState }
  * a word — which is where Brain Maps are made.
  */
 export async function listLibraryWords(
-  opts: { setId?: string; limit?: number } = {},
+  opts: { setId?: string; limit?: number; order?: 'needsWork' | 'alphabetical' } = {},
   db: Db = defaultDb,
 ): Promise<LibraryWord[]> {
   // Words with nothing yet are the ones needing attention, so they lead.
@@ -264,7 +267,10 @@ export async function listLibraryWords(
           )
         : sql`true`,
     )
-    .orderBy(rank, asc(vocabularies.lemma))
+    // Curators are working a queue, so the words needing a Brain Map lead.
+    // A learner is browsing, and "which of these lacks content" is not their
+    // question — they get plain alphabetical.
+    .orderBy(...(opts.order === 'alphabetical' ? [asc(vocabularies.lemma)] : [rank, asc(vocabularies.lemma)]))
     .limit(opts.limit ?? 200)
 
   return rows.map((row) => ({
@@ -275,6 +281,7 @@ export async function listLibraryWords(
     translation: row.translation,
     brainMapStatus:
       row.status === 'approved' ? 'approved' : row.status ? 'draft' : 'none',
+    bookmarked: false,
   }))
 }
 

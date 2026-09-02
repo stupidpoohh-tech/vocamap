@@ -2,36 +2,39 @@ import Link from 'next/link'
 import { eq } from 'drizzle-orm'
 import { requireActor } from '@/lib/auth/session'
 import { db } from '@/lib/db'
-import { assignments, vocabularySetItems, vocabularySets } from '@/lib/db/schema'
+import { vocabularySets } from '@/lib/db/schema'
 import {
   brainMapStates,
   listLibraryWords,
-  listVocabularySummaries,
   searchVocabulary,
   type BrainMapState,
   type LibraryWord,
 } from '@/lib/data/vocabulary'
+import { bookmarkedIds } from '@/lib/data/study'
 import { Badge, EmptyState, Input, PageHeader } from '@/components/ui'
+import { BookmarkButton } from './bookmark-button'
 
 /**
- * Two audiences, two lists.
+ * The whole shared library, for everyone.
  *
- * A student sees the words assigned to them. A teacher is assigned nothing, so
- * they see the shared library with the state of each word's Brain Map — this is
- * their route into a word, and the only place Brain Maps get made.
+ * Words used to be visible only once a teacher assigned them, which meant a
+ * student could not go and find something to learn. Now the library is open and
+ * the star is how you choose: bookmarking a word puts it into your own study
+ * queue. Assignments still work, they are just no longer the only way in.
  */
 export default async function WordsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; set?: string }>
+  searchParams: Promise<{ q?: string; set?: string; only?: string }>
 }) {
-  const { q, set } = await searchParams
+  const { q, set, only } = await searchParams
   const actor = await requireActor()
   const query = q?.trim() ?? ''
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'
+  const bookmarksOnly = only === 'bookmarked'
 
   const setName = set ? await lookupSetName(set) : null
-  const words = await loadWords({ actor, query, setId: set, isCurator })
+  const words = await loadWords({ actor, query, setId: set, isCurator, bookmarksOnly })
 
   return (
     <div className="animate-rise">
@@ -42,14 +45,15 @@ export default async function WordsPage({
             ? `"${query}" 검색 결과`
             : setName
               ? `세트 · ${setName}`
-              : isCurator
-                ? '단어를 눌러 Brain Map을 만들거나 확인하세요'
-                : '나에게 배정된 단어'
+              : bookmarksOnly
+                ? '내 학습 목록'
+                : '★ 을 누르면 오늘의 학습에 들어가요'
         }
       />
 
-      <form action="/words" className="mb-5">
+      <form action="/words" className="mb-4">
         {set ? <input type="hidden" name="set" value={set} /> : null}
+        {bookmarksOnly ? <input type="hidden" name="only" value="bookmarked" /> : null}
         <Input
           name="q"
           defaultValue={query}
@@ -58,39 +62,43 @@ export default async function WordsPage({
         />
       </form>
 
-      {isCurator && !query ? <Legend /> : null}
+      <div className="mb-5 flex gap-1 rounded-xl bg-line/40 p-1">
+        <FilterTab href={filterHref({ set, query })} active={!bookmarksOnly}>
+          전체 단어
+        </FilterTab>
+        <FilterTab
+          href={filterHref({ set, query, only: 'bookmarked' })}
+          active={bookmarksOnly}
+        >
+          내 학습 목록
+        </FilterTab>
+      </div>
 
       {words.length === 0 ? (
         <EmptyState
-          title={query ? '검색 결과가 없어요' : isCurator ? '아직 단어가 없어요' : '배정된 단어가 없어요'}
+          title={
+            query ? '검색 결과가 없어요' : bookmarksOnly ? '학습 목록이 비어 있어요' : '아직 단어가 없어요'
+          }
           hint={
             query
               ? '다른 표현으로 찾아보세요.'
-              : isCurator
-                ? '교사 탭의 "단어 가져오기"로 단어를 등록하면 여기에 나타나요.'
-                : '선생님이 단어 세트를 배정하면 여기에 나타나요.'
+              : bookmarksOnly
+                ? '전체 단어에서 ★ 을 누르면 여기에 담기고, 오늘의 학습에 나와요.'
+                : isCurator
+                  ? '교사 탭의 "단어 가져오기"로 단어를 등록하면 여기에 나타나요.'
+                  : '선생님이 단어를 등록하면 여기에 나타나요.'
           }
         />
       ) : (
         <ul className="flex flex-col gap-2">
           {words.map((word) => (
-            <li key={word.id}>
-              <Link
-                href={`/words/${word.id}`}
-                className="card flex items-center justify-between gap-3 px-5 py-4 transition hover:border-brand"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold">{word.lemma}</p>
-                  <p className="truncate text-sm text-muted">{word.translation ?? '—'}</p>
-                </div>
-                {isCurator ? (
-                  <MapBadge state={word.brainMapStatus} />
-                ) : (
-                  <span className="shrink-0 text-xs text-muted">
-                    {word.partOfSpeech ?? ''} {word.level ?? ''}
-                  </span>
-                )}
+            <li key={word.id} className="card flex items-center gap-3 px-4 py-3.5">
+              <Link href={`/words/${word.id}`} className="min-w-0 flex-1">
+                <p className="font-semibold">{word.lemma}</p>
+                <p className="truncate text-sm text-muted">{word.translation ?? '—'}</p>
               </Link>
+              {isCurator ? <MapBadge state={word.brainMapStatus} /> : null}
+              <BookmarkButton vocabularyId={word.id} bookmarked={word.bookmarked} />
             </li>
           ))}
         </ul>
@@ -105,8 +113,38 @@ export default async function WordsPage({
   )
 }
 
+function filterHref(input: { set?: string; query?: string; only?: string }): string {
+  const params = new URLSearchParams()
+  if (input.query) params.set('q', input.query)
+  if (input.set) params.set('set', input.set)
+  if (input.only) params.set('only', input.only)
+  const rest = params.toString()
+  return rest ? `/words?${rest}` : '/words'
+}
+
+function FilterTab({
+  href,
+  active,
+  children,
+}: {
+  href: string
+  active: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex-1 rounded-lg py-2 text-center text-sm font-semibold transition ${
+        active ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'
+      }`}
+    >
+      {children}
+    </Link>
+  )
+}
+
 const BADGE: Record<BrainMapState, { label: string; tone: 'neutral' | 'warn' | 'good' }> = {
-  none: { label: 'Brain Map 없음', tone: 'neutral' },
+  none: { label: 'Map 없음', tone: 'neutral' },
   draft: { label: '검수 대기', tone: 'warn' },
   approved: { label: '공개됨', tone: 'good' },
 }
@@ -114,19 +152,9 @@ const BADGE: Record<BrainMapState, { label: string; tone: 'neutral' | 'warn' | '
 function MapBadge({ state }: { state: BrainMapState }) {
   const { label, tone } = BADGE[state]
   return (
-    <Badge tone={tone} className="shrink-0">
+    <Badge tone={tone} className="hidden shrink-0 sm:inline-flex">
       {label}
     </Badge>
-  )
-}
-
-function Legend() {
-  return (
-    <p className="mb-4 text-xs text-muted break-keep">
-      <span className="font-medium text-ink">Brain Map 없음</span> 인 단어를 누르면 AI 초안을
-      만들 수 있어요. 만든 뒤 <span className="font-medium text-ink">검수</span> 탭에서 승인해야
-      학생에게 보입니다.
-    </p>
   )
 }
 
@@ -135,24 +163,34 @@ async function loadWords(input: {
   query: string
   setId?: string
   isCurator: boolean
+  bookmarksOnly: boolean
 }): Promise<LibraryWord[]> {
+  let words: LibraryWord[]
+
   if (input.query) {
     const found = await searchVocabulary(input.query, 40)
-    if (!input.isCurator) return found.map((w) => ({ ...w, brainMapStatus: 'none' as const }))
-    const states = await brainMapStates(found.map((w) => w.id))
-    return found.map((w) => ({ ...w, brainMapStatus: states.get(w.id) ?? 'none' }))
+    const states = input.isCurator
+      ? await brainMapStates(found.map((w) => w.id))
+      : new Map<string, BrainMapState>()
+    words = found.map((w) => ({
+      ...w,
+      brainMapStatus: states.get(w.id) ?? 'none',
+      bookmarked: false,
+    }))
+  } else {
+    words = await listLibraryWords({
+      setId: input.setId,
+      order: input.isCurator ? 'needsWork' : 'alphabetical',
+    })
   }
 
-  if (input.isCurator) return listLibraryWords({ setId: input.setId })
+  const marked = await bookmarkedIds(
+    input.actor.id,
+    words.map((w) => w.id),
+  )
+  const withBookmarks = words.map((w) => ({ ...w, bookmarked: marked.has(w.id) }))
 
-  const assigned = await db
-    .selectDistinct({ id: vocabularySetItems.vocabularyId })
-    .from(assignments)
-    .innerJoin(vocabularySetItems, eq(vocabularySetItems.setId, assignments.setId))
-    .where(eq(assignments.studentId, input.actor.id))
-
-  const summaries = await listVocabularySummaries(assigned.map((row) => row.id))
-  return summaries.map((w) => ({ ...w, brainMapStatus: 'none' as const }))
+  return input.bookmarksOnly ? withBookmarks.filter((w) => w.bookmarked) : withBookmarks
 }
 
 async function lookupSetName(setId: string): Promise<string | null> {

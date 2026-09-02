@@ -45,16 +45,76 @@ const DEFAULT_NEW_PER_DAY = 10
 const DEFAULT_DUE_LIMIT = 60
 
 /**
- * Words assigned to this student, in a stable order. Everything else in this
- * module is scoped through it, so a student can only ever study — and only ever
- * write state for — words that were actually assigned to them.
+ * What this person is studying.
+ *
+ * Bookmarks are the primary route: the whole library is browsable and you pick
+ * what you want to learn. Assignments still count, so a teacher who hands a
+ * student a set has not had that taken away — the two simply union.
  */
-function assignedVocabularyIds(userId: string, db: Db) {
-  return db
-    .selectDistinct({ id: vocabularySetItems.vocabularyId })
-    .from(assignments)
-    .innerJoin(vocabularySetItems, eq(vocabularySetItems.setId, assignments.setId))
-    .where(eq(assignments.studentId, userId))
+async function studyPoolIds(userId: string, db: Db): Promise<string[]> {
+  const [bookmarked, assigned] = await Promise.all([
+    db
+      .select({ id: userVocabularyState.vocabularyId })
+      .from(userVocabularyState)
+      .where(
+        and(
+          eq(userVocabularyState.userId, userId),
+          sql`${userVocabularyState.bookmarkedAt} is not null`,
+        ),
+      ),
+    db
+      .selectDistinct({ id: vocabularySetItems.vocabularyId })
+      .from(assignments)
+      .innerJoin(vocabularySetItems, eq(vocabularySetItems.setId, assignments.setId))
+      .where(eq(assignments.studentId, userId)),
+  ])
+
+  return [...new Set([...bookmarked, ...assigned].map((row) => row.id))]
+}
+
+/**
+ * Adds or removes a word from the study list.
+ *
+ * Deliberately not the same act as marking a word important: important asks
+ * for the Brain Map right away, while most bookmarked words only ever need
+ * drilling. Conflating them would put a recommendation on every bookmark and
+ * make the map meaningless.
+ */
+export async function toggleBookmark(
+  input: { userId: string; vocabularyId: string; bookmarked: boolean },
+  db: Db = defaultDb,
+): Promise<void> {
+  const now = new Date()
+  await db
+    .insert(userVocabularyState)
+    .values({
+      userId: input.userId,
+      vocabularyId: input.vocabularyId,
+      bookmarkedAt: input.bookmarked ? now : null,
+    })
+    .onConflictDoUpdate({
+      target: [userVocabularyState.userId, userVocabularyState.vocabularyId],
+      set: { bookmarkedAt: input.bookmarked ? now : null, updatedAt: now },
+    })
+}
+
+export async function bookmarkedIds(
+  userId: string,
+  vocabularyIds: string[],
+  db: Db = defaultDb,
+): Promise<Set<string>> {
+  if (!vocabularyIds.length) return new Set()
+  const rows = await db
+    .select({ id: userVocabularyState.vocabularyId })
+    .from(userVocabularyState)
+    .where(
+      and(
+        eq(userVocabularyState.userId, userId),
+        inArray(userVocabularyState.vocabularyId, vocabularyIds),
+        sql`${userVocabularyState.bookmarkedAt} is not null`,
+      ),
+    )
+  return new Set(rows.map((r) => r.id))
 }
 
 /**
@@ -74,9 +134,8 @@ export async function buildTodayQueue(
   const newLimit = opts.newLimit ?? DEFAULT_NEW_PER_DAY
   const dueLimit = opts.dueLimit ?? DEFAULT_DUE_LIMIT
 
-  const assigned = await assignedVocabularyIds(userId, db)
-  const assignedIds = assigned.map((a) => a.id)
-  if (!assignedIds.length) return []
+  const poolIds = await studyPoolIds(userId, db)
+  if (!poolIds.length) return []
 
   const primaryTranslation = db
     .$with('primary_translation')
@@ -113,7 +172,7 @@ export async function buildTodayQueue(
         eq(userVocabularyCards.userId, userId),
       ),
     )
-    .where(inArray(vocabularies.id, assignedIds))
+    .where(inArray(vocabularies.id, poolIds))
     .orderBy(asc(userVocabularyCards.dueAt), asc(vocabularies.lemma))
 
   // Fold the per-direction rows into an explicit grid: every assigned word owes

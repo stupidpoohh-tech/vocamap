@@ -37,12 +37,15 @@ export default async function StudyHome() {
         </Link>
       ) : (
         <Card className="mt-5 text-center">
-          <p className="font-semibold">오늘 할 학습을 모두 마쳤어요.</p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="font-semibold">지금 학습할 단어가 없어요.</p>
+          <p className="mt-1 text-sm text-muted break-keep">
             {summary.recommendedCount > 0
               ? '아래 추천 단어를 살펴봐도 좋아요.'
-              : '내일 다시 만나요.'}
+              : '단어 탭에서 ★ 을 눌러 학습할 단어를 골라보세요.'}
           </p>
+          <Link href="/words" className="mt-4 inline-block">
+            <Button variant="secondary">단어 고르러 가기</Button>
+          </Link>
         </Card>
       )}
 

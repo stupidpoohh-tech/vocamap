@@ -162,6 +162,14 @@ npx wrangler secret put ANTHROPIC_API_KEY
 비밀번호가 저장소에 적힌 계정 3개(admin 포함)를 만듭니다. localhost가 아니면
 거부하도록 막아 두었지만, 애초에 쓸 일이 없습니다.
 
+## 3-B-1. 스키마가 바뀌었을 때
+
+`drizzle/` 에 새 migration 파일이 생기면, 그 SQL을 Neon **SQL Editor** 에 붙여넣고
+**Run** 하면 됩니다. 배포보다 **먼저** 적용하세요 — 새 코드가 아직 없는 컬럼을 읽으면
+그때까지 500이 납니다.
+
+migration 은 모두 `IF NOT EXISTS` 로 작성하므로 두 번 실행해도 안전합니다.
+
 ## 3-C. 문제가 생겼을 때
 
 배포된 주소에 **`/api/health`** 를 붙여 접속하면 DB 상태를 볼 수 있습니다.

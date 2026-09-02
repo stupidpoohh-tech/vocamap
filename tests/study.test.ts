@@ -7,9 +7,11 @@ import { addToSet, assignSet, createSet } from '@/lib/data/teacher'
 import {
   buildTodayQueue,
   getTodaySummary,
+  bookmarkedIds,
   markImportant,
   recordNodeAnswer,
   recordRecallAnswer,
+  toggleBookmark,
 } from '@/lib/data/study'
 import {
   getPersonalBrainMap,
@@ -327,5 +329,91 @@ describe.skipIf(!hasDatabase)('recommendation lifecycle', () => {
     await markBrainMapOpened(student.id, ids[0]!)
     expect((await getTodaySummary(student.id)).recommendedCount).toBe(0)
     expect(await listRecommendedWords(student.id)).toEqual([])
+  })
+})
+
+describe.skipIf(!hasDatabase)('bookmarks as the study list', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  async function library(lemmas: string[]) {
+    const student = await createUser('student')
+    const ids: string[] = []
+    for (const lemma of lemmas) {
+      const { id } = await findOrCreateVocabulary({
+        lemma,
+        partOfSpeech: 'verb',
+        translations: [`${lemma}-뜻`],
+      })
+      ids.push(id)
+    }
+    return { student, ids }
+  }
+
+  it('studies nothing until something is bookmarked', async () => {
+    // The library is fully browsable, but browsing is not studying.
+    const { student } = await library(['maintain', 'affect'])
+    expect(await buildTodayQueue(student.id)).toEqual([])
+  })
+
+  it('puts a bookmarked word into the queue without any assignment', async () => {
+    const { student, ids } = await library(['maintain', 'affect'])
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[0]!, bookmarked: true })
+
+    const queue = await buildTodayQueue(student.id)
+    expect(new Set(queue.map((q) => q.vocabularyId))).toEqual(new Set([ids[0]]))
+    expect(queue).toHaveLength(2) // both recall directions
+  })
+
+  it('takes a word back out when the bookmark is removed', async () => {
+    const { student, ids } = await library(['maintain'])
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[0]!, bookmarked: true })
+    expect(await buildTodayQueue(student.id)).toHaveLength(2)
+
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[0]!, bookmarked: false })
+    expect(await buildTodayQueue(student.id)).toEqual([])
+  })
+
+  it('still honours a teacher assignment alongside bookmarks', async () => {
+    const teacher = await createUser('teacher')
+    const { student, ids } = await library(['maintain', 'affect', 'issue'])
+
+    const setId = await createSet({ ownerId: teacher.id, title: '과외 단어' })
+    await addToSet(setId, [ids[0]!])
+    await assignSet({ setId, studentId: student.id, assignedBy: teacher.id })
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[1]!, bookmarked: true })
+
+    const queue = await buildTodayQueue(student.id)
+    expect(new Set(queue.map((q) => q.vocabularyId))).toEqual(new Set([ids[0], ids[1]]))
+  })
+
+  it('keeps one person’s bookmarks out of another’s queue', async () => {
+    const { student, ids } = await library(['maintain'])
+    const other = await createUser('student')
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[0]!, bookmarked: true })
+
+    expect(await buildTodayQueue(student.id)).toHaveLength(2)
+    expect(await buildTodayQueue(other.id)).toEqual([])
+    expect(await bookmarkedIds(other.id, ids)).toEqual(new Set())
+  })
+
+  it('does not ask for a Brain Map just because a word was bookmarked', async () => {
+    // Marking a word important asks for its map immediately. A bookmark must
+    // not, or every pick would demand one and the recommendation stops meaning
+    // anything.
+    const { student, ids } = await library(['maintain'])
+    await toggleBookmark({ userId: student.id, vocabularyId: ids[0]!, bookmarked: true })
+
+    expect((await getTodaySummary(student.id)).recommendedCount).toBe(0)
+
+    await markImportant({
+      userId: student.id,
+      vocabularyId: ids[0]!,
+      important: true,
+      reason: 'teacher_selected',
+      markedBy: student.id,
+    })
+    expect((await getTodaySummary(student.id)).recommendedCount).toBe(1)
   })
 })

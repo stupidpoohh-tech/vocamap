@@ -6,9 +6,10 @@ import { buildSemanticMap } from '@/lib/data/semantic-map'
 import { Badge, Card } from '@/components/ui'
 import { RETENTION_BAND_LABEL } from '@/lib/learning/scheduler'
 import { relativeKo } from '@/lib/utils'
+import { bookmarkedIds } from '@/lib/data/study'
+import { BookmarkButton } from '../bookmark-button'
 import { BrainMapExplorer } from './brain-map-explorer'
 import { GenerateButton } from './generate-button'
-import { ImportantToggle } from './important-toggle'
 
 export default async function WordPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -16,9 +17,10 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
 
   // Curators see drafts so they can review them in situ; students never do.
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'
-  const [personal, map] = await Promise.all([
+  const [personal, map, bookmarks] = await Promise.all([
     getPersonalBrainMap(actor.id, id),
     buildSemanticMap(actor.id, id, { approvedOnly: !isCurator }),
+    bookmarkedIds(actor.id, [id]),
   ])
   if (!personal) notFound()
 
@@ -36,7 +38,10 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
               it is something to study rather than a subtitle to skim. */}
           <p className="mt-1 text-sm text-muted break-keep">{personal.translation ?? '—'}</p>
         </div>
-        <ImportantToggle vocabularyId={id} isImportant={personal.isImportant} />
+        <div className="flex shrink-0 items-center gap-2">
+          {personal.isImportant ? <Badge tone="warn">중요 단어</Badge> : null}
+          <BookmarkButton vocabularyId={id} bookmarked={bookmarks.has(id)} size="lg" />
+        </div>
       </header>
 
       <RecallStrip directions={personal.directions} />

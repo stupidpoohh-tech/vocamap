@@ -447,6 +447,12 @@ export const userVocabularyState = pgTable(
     vocabularyId: uuid()
       .notNull()
       .references(() => vocabularies.id, { onDelete: 'cascade' }),
+    /**
+     * "I want to study this word." Kept apart from `isImportant` on purpose:
+     * marking a word important asks for its Brain Map immediately, and a
+     * bookmark must not — most bookmarked words should just be drilled.
+     */
+    bookmarkedAt: timestamp({ withTimezone: true }),
     isImportant: boolean().notNull().default(false),
     importantReason: importantReason(),
     markedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
@@ -459,6 +465,7 @@ export const userVocabularyState = pgTable(
   (t) => [
     primaryKey({ columns: [t.userId, t.vocabularyId] }),
     index('uvs_recommended_idx').on(t.userId, t.brainMapRecommendedAt),
+    index('uvs_bookmarked_idx').on(t.userId, t.bookmarkedAt),
   ],
 )
 
