@@ -6,8 +6,10 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { sessions, users } from '@/lib/db/schema'
 import { SESSION_COOKIE } from './cookie'
+import { GUEST_ID } from './guest'
 
 export { SESSION_COOKIE } from './cookie'
+export { GUEST_ID } from './guest'
 const SESSION_DAYS = 30
 
 export type Role = 'student' | 'teacher' | 'admin'
@@ -105,6 +107,30 @@ export const getActor = cache(async function getActor(): Promise<Actor | null> {
   if (!row || row.expiresAt.getTime() < Date.now()) return null
   return { id: row.id, email: row.email, displayName: row.displayName, role: row.role }
 })
+
+/** Whoever is reading a screen — signed in or not. */
+export type Viewer = Actor & { isGuest: boolean }
+
+const GUEST: Viewer = {
+  id: GUEST_ID,
+  email: '',
+  displayName: '',
+  role: 'student',
+  isGuest: true,
+}
+
+/**
+ * Who is reading, never null.
+ *
+ * The screens that only show what a tutor has published — the word list, the
+ * maps, a single word — use this instead of `requireActor`, so the app opens
+ * without a sign-in wall. Anything that keeps something for you still calls
+ * `requireActor`.
+ */
+export async function getViewer(): Promise<Viewer> {
+  const actor = await getActor()
+  return actor ? { ...actor, isGuest: false } : GUEST
+}
 
 export async function requireActor(): Promise<Actor> {
   const actor = await getActor()

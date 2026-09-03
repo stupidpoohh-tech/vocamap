@@ -8,8 +8,11 @@ const initial: AuthFormState = {}
 
 export function LoginForm({
   initialMode = 'signin',
+  next,
 }: {
   initialMode?: 'signin' | 'signup'
+  /** Where the reader was when they were asked to sign in. */
+  next?: string
 }) {
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode)
   const action = mode === 'signin' ? signIn : signUp
@@ -37,6 +40,7 @@ export function LoginForm({
       </div>
 
       <form action={formAction} className="flex flex-col gap-3">
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         {mode === 'signup' ? (
           <>
             <Input name="displayName" placeholder="이름" autoComplete="name" required />

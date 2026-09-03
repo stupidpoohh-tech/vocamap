@@ -1,6 +1,6 @@
 'use server'
 
-import { requireActor } from '@/lib/auth/session'
+import { getActor } from '@/lib/auth/session'
 import { recordRecallAnswer } from '@/lib/data/study'
 import type { Direction } from '@/lib/learning/scheduler'
 import { relativeKo } from '@/lib/utils'
@@ -25,7 +25,19 @@ export async function submitAnswer(input: {
   responseTimeMs: number
   choice?: string
 }): Promise<AnswerResult> {
-  const actor = await requireActor()
+  const actor = await getActor()
+  // A guest is welcome to take the test; there is simply nowhere to schedule
+  // the next review, so the result comes back without one and the session
+  // screen says so.
+  if (!actor) {
+    return {
+      correct: input.correct,
+      nextReviewLabel: '',
+      retentionPercent: 0,
+      brainMapRecommended: false,
+      recommendationMessage: null,
+    }
+  }
 
   const outcome = await recordRecallAnswer({
     userId: actor.id,

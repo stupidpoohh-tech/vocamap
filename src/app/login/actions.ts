@@ -10,6 +10,20 @@ import { isConnectionFailure } from '@/lib/db/errors'
 
 export type AuthFormState = { error?: string }
 
+/**
+ * Where to land after signing in.
+ *
+ * Only a path within this app is accepted — a `next` that starts with `//` or
+ * carries a scheme is somebody else's site, and following it would turn the
+ * sign-in screen into an open redirect. Anything suspect falls back to the
+ * reader's own home screen.
+ */
+function destinationFrom(formData: FormData, role: string): string {
+  const next = String(formData.get('next') ?? '')
+  if (next.startsWith('/') && !next.startsWith('//')) return next
+  return role === 'student' ? '/study' : '/teacher'
+}
+
 export async function signIn(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const password = String(formData.get('password') ?? '')
@@ -32,7 +46,7 @@ export async function signIn(_prev: AuthFormState, formData: FormData): Promise<
     }
 
     await createSession(user.id)
-    destination = user.role === 'student' ? '/study' : '/teacher'
+    destination = destinationFrom(formData, user.role)
   } catch (error) {
     return { error: describeFailure(error, 'signIn') }
   }
@@ -72,7 +86,7 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
     if (!created) return { error: '가입에 실패했습니다. 다시 시도해 주세요.' }
 
     await createSession(created.id)
-    destination = created.role === 'student' ? '/study' : '/teacher'
+    destination = destinationFrom(formData, created.role)
   } catch (error) {
     return { error: describeFailure(error, 'signUp') }
   }
@@ -82,8 +96,9 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
 
 export async function signOut(): Promise<void> {
   await destroySession()
-  // Back to the landing page, not the login form: signing out should not look
-  // like an invitation to sign straight back in.
+  // Back to the app, not to the login form. There is no landing page any more,
+  // and signing out should not look like an invitation to sign straight back
+  // in — the word list reads perfectly well as a guest.
   redirect('/')
 }
 

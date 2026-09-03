@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { requireActor } from '@/lib/auth/session'
+import { getViewer } from '@/lib/auth/session'
 import { getTodaySummary } from '@/lib/data/study'
 import {
   listStudyWords,
@@ -10,6 +10,7 @@ import {
 import { Button, EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
 import { SkeletonLine } from '@/components/ui/skeleton'
+import { GuestNote } from '@/components/guest-note'
 
 /**
  * SCREEN 1 — the study book, browsed set by set.
@@ -28,7 +29,7 @@ export default async function StudyPage({
   searchParams: Promise<{ q?: string; set?: string; dir?: string; page?: string }>
 }) {
   const { q, set, dir, page } = await searchParams
-  const actor = await requireActor()
+  const actor = await getViewer()
   const query = q?.trim() ?? ''
   const direction: ListDirection = dir === 'ko_en' ? 'ko_en' : 'en_ko'
 
@@ -49,11 +50,17 @@ export default async function StudyPage({
         <>
           <PageHeader title="단어" subtitle="세트를 열어 단어를 보고, 모르는 단어를 담아요" />
 
-          {/* Streamed on its own so the shelf below does not wait on it: the
-              counts and the words are independent questions. */}
-          <Suspense fallback={<DueStripSkeleton />}>
-            <DueStrip userId={actor.id} direction={direction} />
-          </Suspense>
+          {actor.isGuest ? (
+            <GuestNote next="/study">
+              지금은 게스트로 보고 있어요. 담은 단어와 복습 기록을 남기려면
+            </GuestNote>
+          ) : (
+            /* Streamed on its own so the shelf below does not wait on it: the
+               counts and the words are independent questions. */
+            <Suspense fallback={<DueStripSkeleton />}>
+              <DueStrip userId={actor.id} direction={direction} />
+            </Suspense>
+          )}
 
           <form action="/study" className="mb-5">
             <Input

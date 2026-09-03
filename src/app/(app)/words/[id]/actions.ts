@@ -1,14 +1,25 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireActor, requireRole } from '@/lib/auth/session'
+import { getActor, requireRole } from '@/lib/auth/session'
+import { NEEDS_LOGIN, WROTE, type WriteResult } from '@/lib/auth/write-result'
 import { logLearningEvent, markImportant, recordNodeAnswer } from '@/lib/data/study'
 import { markBrainMapOpened } from '@/lib/data/personal'
 import { ensureBrainMap } from '@/lib/data/brain-map'
 import type { NodeType } from '@/lib/learning/nodes'
 
+/**
+ * Progress writes, and what a guest does with them.
+ *
+ * Opening a map and answering a question fire on their own as the reader works.
+ * A guest has nowhere to record them, so they do nothing — the screen still
+ * behaves, and the reader is told once, on the screen itself, that a guest's
+ * progress is not kept. Interrupting every answer with a sign-in prompt would
+ * be a wall built out of nagging instead of out of a landing page.
+ */
 export async function openBrainMap(vocabularyId: string): Promise<void> {
-  const actor = await requireActor()
+  const actor = await getActor()
+  if (!actor) return
   await markBrainMapOpened(actor.id, vocabularyId)
   await logLearningEvent({
     userId: actor.id,
@@ -26,7 +37,10 @@ export async function answerNode(input: {
   pairId?: string
   payload?: Record<string, unknown>
 }): Promise<{ nodeStatus: string }> {
-  const actor = await requireActor()
+  const actor = await getActor()
+  // Nothing to record against, but the answer still stands on screen.
+  if (!actor) return { nodeStatus: input.correct ? 'learning' : 'weak' }
+
   const result = await recordNodeAnswer({
     userId: actor.id,
     vocabularyId: input.vocabularyId,
@@ -43,8 +57,10 @@ export async function answerNode(input: {
 export async function toggleImportant(
   vocabularyId: string,
   important: boolean,
-): Promise<void> {
-  const actor = await requireActor()
+): Promise<WriteResult> {
+  const actor = await getActor()
+  if (!actor) return NEEDS_LOGIN
+
   await markImportant({
     userId: actor.id,
     vocabularyId,
@@ -53,6 +69,7 @@ export async function toggleImportant(
     markedBy: actor.id,
   })
   revalidatePath(`/words/${vocabularyId}`)
+  return WROTE
 }
 
 /**

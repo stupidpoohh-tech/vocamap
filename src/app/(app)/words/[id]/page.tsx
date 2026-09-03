@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { requireActor } from '@/lib/auth/session'
+import { getViewer } from '@/lib/auth/session'
 import { getPersonalBrainMap } from '@/lib/data/personal'
 import { buildSemanticMap } from '@/lib/data/semantic-map'
 import { Tag } from '@/components/ui'
@@ -12,7 +12,7 @@ import { DeleteWord } from './delete-word'
 
 export default async function WordPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const actor = await requireActor()
+  const actor = await getViewer()
 
   // Curators see drafts so they can review them in situ; students never do.
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'

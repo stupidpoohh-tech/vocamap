@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { requireActor } from '@/lib/auth/session'
+import { getViewer } from '@/lib/auth/session'
 import { listStudyWords, mapCounts } from '@/lib/data/library'
 import { listRecommendedWords } from '@/lib/data/personal'
 import { EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
@@ -24,7 +24,7 @@ export default async function MapPage({
   searchParams: Promise<{ tab?: string; q?: string; page?: string }>
 }) {
   const { tab, q, page } = await searchParams
-  const actor = await requireActor()
+  const actor = await getViewer()
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'
   const query = q?.trim() ?? ''
   const view = resolveView(tab, isCurator)

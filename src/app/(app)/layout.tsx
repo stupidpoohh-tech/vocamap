@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
 import { getActor } from '@/lib/auth/session'
 import { signOut } from '@/app/login/actions'
 import { BottomNav, NavShell } from './nav'
@@ -32,14 +31,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           >
             Voca Brain Map
           </Link>
-          <div className="flex items-center gap-3 text-[0.8125rem]">
-            <Suspense fallback={null}>
-              <UserName />
-            </Suspense>
-            <form action={signOut}>
-              <button className="text-ink-3 transition hover:text-ink-2">로그아웃</button>
-            </form>
-          </div>
+          <Suspense fallback={null}>
+            <Account />
+          </Suspense>
         </div>
       </header>
 
@@ -72,18 +66,40 @@ const STUDENT_LINKS = [
   { href: '/map', label: '맵' },
 ]
 
-async function UserName() {
+/**
+ * Who you are, or a way to become someone.
+ *
+ * A guest is not shown a wall — they are reading the app already — so this is
+ * a quiet link, the same weight as the sign-out it replaces.
+ */
+async function Account() {
   const actor = await getActor()
-  if (!actor) return null
-  return <span className="hidden text-ink-3 sm:inline">{actor.displayName}</span>
+
+  if (!actor) {
+    return (
+      <Link href="/login" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
+        로그인
+      </Link>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-3 text-[0.8125rem]">
+      <span className="hidden text-ink-3 sm:inline">{actor.displayName}</span>
+      <form action={signOut}>
+        <button className="text-ink-3 transition hover:text-ink-2">로그아웃</button>
+      </form>
+    </div>
+  )
 }
 
 async function Navigation() {
   const actor = await getActor()
-  // The guard still lives in the shell, so a signed-out request never renders
-  // an app screen — middleware turns most of those away before this runs, and
-  // every page under here also calls `requireActor`.
-  if (!actor) redirect('/login')
+  // A guest gets the student's three destinations. Two of them read without an
+  // account; the third, the vault, is their own saved words and asks for a
+  // sign-in when they open it — which is the point at which the account
+  // actually means something.
+  if (!actor) return <BottomNav links={STUDENT_LINKS} />
 
   // Curation is a teacher's job as much as an admin's — the review page and
   // every action behind it accept both — so the links must follow suit.

@@ -5,6 +5,10 @@ import { SESSION_COOKIE } from '@/lib/auth/cookie'
 /**
  * Sends a signed-out request to the sign-in page before anything renders.
  *
+ * Only for the screens that are about *you*. Reading what a tutor published —
+ * the word list, the maps, a single word — needs no account, so those routes
+ * are not matched here and render for a guest. See `getViewer`.
+ *
  * The guard used to live at the top of the app layout, which meant the layout
  * had to await a database round trip before it could return any markup — and
  * with it, the loading skeleton of whatever page was opening. Moving the guard
@@ -41,5 +45,5 @@ async function isOurs(token: string): Promise<boolean> {
 }
 
 export const config = {
-  matcher: ['/study/:path*', '/vault/:path*', '/map/:path*', '/words/:path*', '/teacher/:path*', '/admin/:path*'],
+  matcher: ['/vault/:path*', '/teacher/:path*', '/admin/:path*'],
 }
