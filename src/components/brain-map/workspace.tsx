@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
  * the cards on the map, so the two read as one family.
  */
 const CARD =
-  'rounded-container bg-surface px-4 py-3.5 shadow-card ring-1 ring-line/70 sm:px-6 sm:py-4'
+  'rounded-panel bg-surface px-4 py-3.5 shadow-panel ring-1 ring-line-soft sm:px-6 sm:py-4'
 
 export type WorkspaceAnswer = (input: {
   node: SemanticNode
@@ -72,20 +72,23 @@ export function Workspace({
 function Heading({ node, step }: { node: SemanticNode; step?: string }) {
   return (
     <>
+      {/* A marker and a word, not a pill. The grey chip was a box inside a box
+          that said less than the two characters of colour beside it do. */}
       <div className="flex items-center justify-between gap-3">
-        <span className="rounded-chip bg-sunken px-2.5 py-0.5 text-[11px] text-ink-2 sm:py-1">
-          지금 학습 중
+        <span className="flex items-center gap-2">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand" />
+          <span className="text-[0.6875rem] tracking-[0.06em] text-ink-2">지금 학습 중</span>
         </span>
-        {step ? <span className="numeral text-xs text-ink-3">{step}</span> : null}
+        {step ? <span className="numeral text-[0.6875rem] text-ink-3">{step}</span> : null}
       </div>
       {/* From tablet up the category sits under the label, as a caption does.
           On a phone that costs a whole line the screen does not have — the map
           and this card share one height there — so the two share a baseline. */}
-      <p className="mt-2 flex flex-wrap items-baseline gap-x-2 sm:mt-3 sm:block">
-        <span className="text-base font-medium leading-snug break-keep sm:text-lg">
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-2 sm:mt-2.5 sm:block">
+        <span className="text-[1.0625rem] leading-snug font-semibold tracking-[-0.012em] break-keep sm:text-[1.1875rem]">
           {node.label}
         </span>
-        <span className="text-xs text-ink-3 sm:mt-1 sm:block">{node.eyebrow}</span>
+        <span className="text-xs text-ink-3 sm:mt-1.5 sm:block">{node.eyebrow}</span>
       </p>
     </>
   )
@@ -102,7 +105,7 @@ function Divider() {
   return (
     <div aria-hidden className="my-2.5 flex items-center gap-2 sm:my-4">
       <span className="h-px flex-1 bg-line-soft" />
-      <span className="h-1 w-1 rounded-full bg-line" />
+      <span className="h-[3px] w-[3px] rounded-full bg-line" />
       <span className="h-px flex-1 bg-line-soft" />
     </div>
   )
@@ -158,7 +161,12 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
         <div className="animate-rise">
           <Divider />
           <div className="flex items-baseline justify-between gap-3">
-            <span className={cn('text-sm', answered.correct ? 'text-good' : 'text-bad')}>
+            <span
+              className={cn(
+                'text-sm font-medium',
+                answered.correct ? 'text-good' : 'text-bad',
+              )}
+            >
               {answered.correct ? '정답입니다' : '다시 볼게요'}
             </span>
             {!last ? (
@@ -183,7 +191,7 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
               {exercise.explanation}
             </p>
           ) : (
-            <p className="mt-2 rounded-control bg-sunken px-3 py-2 text-[0.8125rem] break-keep">
+            <p className="mt-2 rounded-control bg-sunken px-3.5 py-2.5 text-[0.8125rem] break-keep">
               {exercise.answer}
             </p>
           )}
@@ -210,7 +218,7 @@ function ChoiceExercise({
 }) {
   return (
     <>
-      <p className="text-sm leading-relaxed break-keep sm:text-[0.9375rem]">{exercise.prompt}</p>
+      <p className="text-[0.9375rem] leading-[1.6] break-keep sm:text-base">{exercise.prompt}</p>
       {/* Two columns, so a pair of choices reads as a pair rather than as a
           stack the eye has to walk down. Three or four wrap onto a second row
           at the same width. */}
@@ -225,18 +233,19 @@ function ChoiceExercise({
               disabled={Boolean(answered)}
               onClick={() => onSubmit(option, isAnswer)}
               className={cn(
-                // Filled tiles rather than outlined boxes. Four hairline
-                // rectangles inside a card that already has an edge is
-                // box-in-box; a soft fill separates them without adding one.
-                'rounded-card px-2.5 py-2 text-left text-[0.8125rem] leading-[1.45] transition',
-                'disabled:cursor-default sm:px-3 sm:py-2.5 sm:text-sm',
+                // Wells, not cards: recessed neutral fills inside the panel,
+                // with no shadow and no accent of their own. Answers are not
+                // the thing on this screen that should be coloured — being
+                // right or wrong is, and only once you have chosen.
+                'rounded-control px-2.5 py-2 text-left text-[0.8125rem] leading-[1.45] transition',
+                'duration-150 disabled:cursor-default sm:px-3.5 sm:py-3 sm:text-sm',
                 answered && isAnswer
-                  ? 'bg-good-soft text-good ring-1 ring-good/30'
+                  ? 'bg-good-soft text-good ring-1 ring-good/25'
                   : answered && picked
-                    ? 'bg-bad-soft text-bad ring-1 ring-bad/30'
+                    ? 'bg-bad-soft text-bad ring-1 ring-bad/25'
                     : answered
                       ? 'bg-sunken text-ink-3'
-                      : 'bg-brand-soft text-ink hover:ring-1 hover:ring-brand-line',
+                      : 'bg-sunken text-ink hover:bg-surface hover:ring-1 hover:ring-line',
               )}
             >
               <span className="break-keep">{option}</span>
@@ -265,7 +274,7 @@ function TranslateExercise({
 
   return (
     <>
-      <p className="text-sm leading-relaxed sm:text-[0.9375rem]">
+      <p className="text-[0.9375rem] leading-[1.6] sm:text-base">
         {highlight(exercise.prompt, exercise.highlight)}
       </p>
 
@@ -276,7 +285,7 @@ function TranslateExercise({
             onChange={(e) => onDraft(e.target.value)}
             rows={2}
             placeholder="직접 해석해 보세요"
-            className="w-full resize-none rounded-control border border-line bg-paper px-3 py-2 text-sm focus:border-brand-line focus:outline-none"
+            className="w-full resize-none rounded-control bg-sunken px-3.5 py-2.5 text-sm ring-1 ring-line focus:bg-surface focus:ring-brand-line focus:outline-none"
           />
           <Button variant="secondary" onClick={() => setRevealed(true)}>
             해석 확인

@@ -20,14 +20,15 @@ import { BottomNav, NavShell } from './nav'
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-line bg-paper/92 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-line-soft bg-paper/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
-          {/* The wordmark is the one piece of chrome allowed the brand colour.
-              Everything else on the page earns attention with position and
-              weight, which is what keeps the accent meaning something. */}
+          {/* Ink, not accent. A wordmark is the one thing on a screen that
+              never needs colour to be found — it is always in the same corner —
+              and painting it the accent spends the product's one loud colour on
+              the least urgent thing on the page. */}
           <Link
             href="/study"
-            className="text-[0.8125rem] font-semibold tracking-[0.14em] text-brand uppercase"
+            className="text-[0.75rem] font-semibold tracking-[0.16em] text-ink uppercase"
           >
             Voca Brain Map
           </Link>

@@ -5,31 +5,43 @@
     sans-serif;
 
   /* ── Surfaces ────────────────────────────────────────────────────────────
-     Neutral carries the screen. Everything here is within a few percent of
-     white; separation comes from spacing and a hairline, not from filled
-     boxes. */
-  --color-paper: oklch(99.2% 0.002 250);
-  --color-surface: oklch(100% 0 0);
-  --color-sunken: oklch(97.6% 0.003 250);
-  --color-line: oklch(93.2% 0.004 250);
-  --color-line-soft: oklch(96.4% 0.003 250);
+     The page and the things on it are the same white. Separation is a
+     hairline and a shadow, never a change of tint — a page of faintly grey
+     panels on a faintly greyer ground is the look this is trying not to have.
+     `sunken` is the one recessed tone, for controls that should read as wells
+     rather than as objects. */
+  --color-paper: #ffffff;
+  --color-surface: #ffffff;
+  --color-sunken: #f6f7f9;
+  --color-line: #e9ebf0;
+  --color-line-soft: #f1f2f5;
 
   /* ── Text, in three steps ────────────────────────────────────────────────
      Two was never enough: with only ink and muted, a label and the value it
      labels ended up the same weight, and hierarchy had to be faked with bold. */
-  --color-ink: oklch(23% 0.008 265);
-  --color-ink-2: oklch(48% 0.008 265);
-  --color-ink-3: oklch(66% 0.006 265);
+  --color-ink: #17181c;
+  --color-ink-2: #666b76;
+  --color-ink-3: #999eaa;
   /* Kept as an alias so existing markup reads correctly; equals ink-2. */
-  --color-muted: oklch(48% 0.008 265);
+  --color-muted: #666b76;
 
   /* ── Brand ───────────────────────────────────────────────────────────────
-     One accent, deliberately desaturated, and rationed: the primary action,
-     the selected state, a focus ring. Not headings, not every number, not the
-     navigation. */
-  --color-brand: oklch(48% 0.108 268);
-  --color-brand-soft: oklch(96.5% 0.017 268);
-  --color-brand-line: oklch(88% 0.045 268);
+     A muted indigo, and rationed to one idea: *what you are working on now*.
+     The selected node, the connector to it, the marker beside the question,
+     the primary action. Not the wordmark, not the navigation, not the word at
+     the centre of the map — when everything structural was painted the same
+     purple, the colour stopped meaning anything and the product read as a
+     template. */
+  --color-brand: oklch(47% 0.088 273);
+  --color-brand-strong: oklch(38% 0.092 273);
+  --color-brand-soft: oklch(97.6% 0.011 273);
+  --color-brand-line: oklch(90% 0.032 273);
+
+  /* ── The word at the centre of a map ─────────────────────────────────────
+     Near-black with a trace of the brand hue. It anchors the map because it is
+     the darkest thing on the screen, not because it is the most colourful —
+     which leaves the accent free to mean "here is where you are". */
+  --color-core: oklch(27% 0.036 273);
 
   /* ── Data colours ────────────────────────────────────────────────────────
      Separate from the brand on purpose. When learning state borrowed the
@@ -52,17 +64,21 @@
      One radius everywhere flattens the structure: a chip and the container
      holding it read as the same kind of thing. */
   --radius-chip: 0.5rem;
-  --radius-control: 0.625rem;
+  --radius-control: 0.75rem;
   --radius-card: 0.875rem;
   --radius-container: 1.125rem;
+  /* The one genuinely elevated surface on a screen. */
+  --radius-panel: 1.375rem;
 
-  /* ── Elevation ───────────────────────────────────────────────────────────
-     Two steps, both soft and close to the page. `card` lifts a node off the
-     map just enough to read as an object rather than an outlined region;
-     `float` is for the one element that genuinely hovers over content, the
-     navigation. Anything stronger turns a quiet page into a stack of trays. */
-  --shadow-card: 0 1px 2px oklch(23% 0.008 265 / 0.04), 0 4px 12px oklch(23% 0.008 265 / 0.05);
-  --shadow-float: 0 2px 6px oklch(23% 0.008 265 / 0.05), 0 10px 30px oklch(23% 0.008 265 / 0.09);
+  /* ── Elevation, one step per role ────────────────────────────────────────
+     `card` barely lifts a node off the map — enough to read as an object on a
+     surface, not enough to compete with what is below it. `panel` is for the
+     single working surface on a screen, the thing you are actually using.
+     `float` is for what genuinely hovers over content: the navigation.
+     Three roles, three depths, and nothing else gets a shadow at all. */
+  --shadow-card: 0 1px 2px oklch(20% 0.01 273 / 0.04), 0 2px 6px oklch(20% 0.01 273 / 0.04);
+  --shadow-panel: 0 1px 2px oklch(20% 0.01 273 / 0.03), 0 8px 28px oklch(20% 0.01 273 / 0.07);
+  --shadow-float: 0 2px 8px oklch(20% 0.01 273 / 0.06), 0 12px 32px oklch(20% 0.01 273 / 0.1);
 }
 
 @layer base {
@@ -107,10 +123,10 @@
     border-radius: var(--radius-card);
   }
 
-  /* Numbers read as data, not as prose. */
+  /* Numbers read as data, not as prose — and line up wherever they appear. */
   .numeral {
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.01em;
   }
 
   @keyframes shake {

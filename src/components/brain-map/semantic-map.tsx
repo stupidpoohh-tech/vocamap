@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import {
   layoutNodes,
   MAP_CARD,
@@ -92,6 +92,7 @@ export function SemanticMap({
   )
 
   const height = mapFrameHeight(onMap.length)
+  const fade = useId()
 
   return (
     <>
@@ -100,12 +101,23 @@ export function SemanticMap({
           clearances between a card, its neighbours and the word are measured in
           pixels, so the frame that guarantees them has to be too. */}
       <div className="relative mx-auto hidden w-full sm:block" style={{ height }}>
+        <MapGround />
+
         <svg
           className="absolute inset-0 h-full w-full"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
           aria-hidden
         >
+          <defs>
+            {/* One paint for every connector: strong at the word, gone by the
+                time it reaches a card. The lines then read as something the
+                word radiates rather than as wires between boxes. */}
+            <radialGradient id={fade} cx="50%" cy="50%" r="50%" gradientUnits="objectBoundingBox">
+              <stop offset="0%" stopColor="var(--color-brand)" stopOpacity="0.62" />
+              <stop offset="100%" stopColor="var(--color-brand)" stopOpacity="0.22" />
+            </radialGradient>
+          </defs>
           {onMap.map((node) => {
             const p = placed.get(node.id)
             if (!p) return null
@@ -117,14 +129,9 @@ export function SemanticMap({
                 y1={50}
                 x2={p.x}
                 y2={p.y}
-                stroke="currentColor"
-                strokeWidth={active ? p.strokeWidth + 0.7 : p.strokeWidth}
-                strokeOpacity={active ? 1 : selectedId ? p.strokeOpacity * 0.55 : p.strokeOpacity}
-                // Drawn in the brand, not in ink. The connectors are the one
-                // part of the map that is pure structure, and tinting them is
-                // what makes the word and its branches read as a single object
-                // rather than as cards that happen to have lines behind them.
-                className={active ? 'text-brand' : 'text-brand-line'}
+                stroke={active ? 'var(--color-brand)' : `url(#${fade})`}
+                strokeWidth={active ? p.strokeWidth + 0.5 : p.strokeWidth}
+                strokeOpacity={active ? 0.9 : selectedId ? 0.45 : 1}
                 vectorEffect="non-scaling-stroke"
               />
             )
@@ -211,18 +218,27 @@ function MobileSemanticMap({
   )
 
   const height = mobileFrameHeight(visible.length)
+  const fade = useId()
 
   return (
     <div className="sm:hidden">
       {/* Full-bleed: the page's side padding costs the map 40px it needs to
           keep two nodes and the word on one line at 320px. */}
       <div className="relative -mx-5" style={{ height }}>
+        <MapGround />
+
         <svg
           className="absolute inset-0 h-full w-full"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
           aria-hidden
         >
+          <defs>
+            <radialGradient id={fade} cx="50%" cy="50%" r="50%" gradientUnits="objectBoundingBox">
+              <stop offset="0%" stopColor="var(--color-brand)" stopOpacity="0.62" />
+              <stop offset="100%" stopColor="var(--color-brand)" stopOpacity="0.22" />
+            </radialGradient>
+          </defs>
           {visible.map((node) => {
             const p = placed.get(node.id)
             if (!p) return null
@@ -234,23 +250,27 @@ function MobileSemanticMap({
                 y1={50}
                 x2={p.x}
                 y2={p.y}
-                stroke="currentColor"
-                strokeWidth={active ? p.strokeWidth + 0.6 : p.strokeWidth}
-                strokeOpacity={active ? 0.9 : p.strokeOpacity}
-                className={active ? 'text-brand' : 'text-brand-line'}
+                stroke={active ? 'var(--color-brand)' : `url(#${fade})`}
+                strokeWidth={active ? p.strokeWidth + 0.5 : p.strokeWidth}
+                strokeOpacity={active ? 0.9 : 1}
                 vectorEffect="non-scaling-stroke"
               />
             )
           })}
         </svg>
 
+        <div
+          aria-hidden
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-brand-line/70"
+          style={{ height: MOBILE_CENTRE.height + 22, width: MOBILE_CENTRE.width + 22 }}
+        />
         {/* Soft rounded rather than a strict circle: a circle wide enough for
             one syllable clipped every real headword. */}
         <div
-          className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand px-3"
+          className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-core px-3"
           style={{ height: MOBILE_CENTRE.height, maxWidth: MOBILE_CENTRE.width }}
         >
-          <span className="truncate text-[13px] font-medium lowercase tracking-tight text-white">
+          <span className="truncate text-[13px] font-medium lowercase tracking-[-0.015em] text-white">
             {lemma}
           </span>
         </div>
@@ -357,9 +377,9 @@ function MobileNode({
       onClick={() => onSelect(node.id)}
       aria-pressed={selected}
       className={cn(
-        // Same family as the wide map's cards: lifted, not outlined.
+        // Same family as the wide map's cards.
         'w-full rounded-card bg-surface px-2 py-1.5 text-left shadow-card ring-1 transition',
-        selected ? 'ring-brand' : urgent ? 'ring-brand-line' : 'ring-line/70',
+        selected ? 'bg-brand-soft ring-brand' : urgent ? 'ring-brand-line' : 'ring-line',
       )}
     >
       <span className="flex items-center gap-1">
@@ -383,22 +403,54 @@ function MobileNode({
   )
 }
 
-/** The word itself, at the centre of the desktop map. */
-function CentreWord({ lemma }: { lemma: string }) {
+/**
+ * The ground the map is drawn on.
+ *
+ * Not a card — no border, no edge you can point at. Just the faintest light
+ * gathering where the word is, so the middle of the frame reads as the middle
+ * of something rather than as an empty patch of page. It is what makes the map
+ * a place instead of a group of boxes.
+ */
+function MapGround() {
   return (
     <div
-      className={cn(
-        // The one filled shape on the map, and the only place the brand colour
-        // appears at full strength. Everything orbiting it is drawn in ink.
-        'absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2',
-        'items-center justify-center rounded-full bg-brand text-center',
-      )}
-      style={{ width: MAP_CENTRE, height: MAP_CENTRE }}
-    >
-      <span className="px-3 text-[1.0625rem] font-medium lowercase tracking-tight text-white">
-        {lemma}
-      </span>
-    </div>
+      aria-hidden
+      className="pointer-events-none absolute inset-0"
+      style={{
+        background:
+          'radial-gradient(58% 60% at 50% 50%, var(--color-brand-soft) 0%, transparent 70%)',
+      }}
+    />
+  )
+}
+
+/**
+ * The word itself, at the centre of the map.
+ *
+ * Near-black, not brand-coloured. It anchors the map by being the darkest
+ * thing on the screen, which leaves the accent free to mean "this is the one
+ * you are working on" — and stops the screen reading as a purple app.
+ *
+ * The ring around it is the orbit its branches sit on. One hairline, drawn
+ * once; it does more for the map's identity than any amount of decoration.
+ */
+function CentreWord({ lemma }: { lemma: string }) {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-brand-line/70"
+        style={{ width: MAP_CENTRE + 30, height: MAP_CENTRE + 30 }}
+      />
+      <div
+        className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-core text-center"
+        style={{ width: MAP_CENTRE, height: MAP_CENTRE }}
+      >
+        <span className="px-3 text-[1.0625rem] font-medium lowercase tracking-[-0.015em] text-white">
+          {lemma}
+        </span>
+      </div>
+    </>
   )
 }
 
@@ -424,17 +476,18 @@ function NodeCard({
       aria-pressed={selected}
       style={{ height: MAP_CARD.height }}
       className={cn(
-        // Lifted rather than outlined. A ring of hairline boxes reads as a
-        // form; a ring of cards that sit slightly above the page reads as a
-        // diagram, which is what this is.
-        'flex w-full flex-col justify-center rounded-container bg-surface px-3.5 text-left',
-        'shadow-card ring-1 transition',
+        // Objects on a canvas, so: a hairline and the barest lift. The panel
+        // below is the screen's one raised surface, and a ring of cards with
+        // the same shadow would flatten the difference between "here is the
+        // structure" and "here is what you are doing".
+        'flex w-full flex-col justify-center rounded-card bg-surface px-3.5 text-left',
+        'shadow-card ring-1 transition duration-200',
         selected
-          ? 'ring-brand'
+          ? 'bg-brand-soft ring-brand'
           : urgent
-            ? 'ring-brand-line hover:ring-brand/50'
-            : 'ring-line/70 hover:ring-brand-line',
-        dimmed && !selected && 'opacity-40',
+            ? 'ring-brand-line hover:ring-brand/45'
+            : 'ring-line hover:ring-ink-3/40',
+        dimmed && !selected && 'opacity-45',
       )}
     >
       {/* The status dot rides in front of the category, where the mock has a
@@ -445,7 +498,9 @@ function NodeCard({
           aria-hidden
           className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[node.status])}
         />
-        <span className="truncate text-[0.6875rem] text-ink-3">{node.eyebrow}</span>
+        <span className="truncate text-[0.6875rem] tracking-[0.02em] text-ink-3">
+          {node.eyebrow}
+        </span>
         {node.recommended ? (
           <span className="ml-auto shrink-0 text-[0.6875rem] text-brand">추천</span>
         ) : null}
@@ -456,7 +511,7 @@ function NodeCard({
           list below the map renders the same node unclamped. */}
       <span
         className={cn(
-          'mt-1.5 line-clamp-2 block text-[0.9375rem] leading-snug break-keep',
+          'mt-1.5 line-clamp-2 block text-[0.9375rem] leading-[1.35] tracking-[-0.006em] break-keep',
           // Importance shows in weight now that every card is one size.
           node.importance >= 0.85 ? 'font-medium text-ink' : 'text-ink',
         )}

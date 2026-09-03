@@ -44,9 +44,9 @@ const FRAME_HEIGHT: Record<number, number> = {
   1: 212,
   2: 232,
   3: 256,
-  4: 252,
-  5: 272,
-  6: 272,
+  4: 244,
+  5: 262,
+  6: 258,
 }
 
 /**
@@ -89,8 +89,8 @@ const SLOTS: Record<number, MobileSlot[]> = {
     { x: 50, y: 21, width: 118 },
     { x: 15, y: 39, width: 88 },
     { x: 85, y: 39, width: 88 },
-    { x: 15, y: 65, width: 86 },
-    { x: 85, y: 65, width: 86 },
+    { x: 15, y: 66, width: 86 },
+    { x: 85, y: 66, width: 86 },
     { x: 50, y: 87, width: 102 },
   ],
 }

@@ -32,11 +32,13 @@ export function BottomNav({ links }: { links: Array<{ href: string; label: strin
             aria-current={active ? 'page' : undefined}
             className={cn(
               'flex flex-1 flex-col items-center gap-0.5 rounded-container py-2 transition sm:gap-1 sm:py-2.5',
-              active ? 'text-brand' : 'text-ink-3 hover:text-ink-2',
+              active ? 'text-ink' : 'text-ink-3 hover:text-ink-2',
             )}
           >
             <Icon />
-            <span className={cn('text-[0.6875rem]', active && 'font-medium')}>{link.label}</span>
+            <span className={cn('text-[0.6875rem]', active ? 'font-semibold' : undefined)}>
+              {link.label}
+            </span>
           </Link>
         )
       })}
@@ -48,7 +50,7 @@ export function BottomNav({ links }: { links: Array<{ href: string; label: strin
 export function NavShell({ children }: { children: React.ReactNode }) {
   return (
     <nav className="fixed inset-x-0 bottom-2 z-20 px-4 sm:bottom-4">
-      <div className="mx-auto max-w-md rounded-container bg-surface/95 shadow-float ring-1 ring-line/70 backdrop-blur">
+      <div className="mx-auto max-w-md rounded-panel bg-surface/80 shadow-float ring-1 ring-line/80 backdrop-blur-xl">
         {children}
       </div>
     </nav>

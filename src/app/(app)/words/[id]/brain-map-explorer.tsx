@@ -73,7 +73,10 @@ export function BrainMapExplorer({
   // Map, then the question it leads to, then whatever did not fit. The map and
   // the card are the screen; everything else waits until after them.
   return (
-    <div className="mt-4 flex flex-col gap-4 sm:mt-6 sm:gap-5">
+    // Rhythm, not uniform air: the map sits well away from the word block
+    // because they are different subjects, and the panel sits closer to the
+    // map because it is about whichever node the map has selected.
+    <div className="mt-6 flex flex-col gap-4 sm:mt-8 sm:gap-5">
       <section>
         <SemanticMap
           lemma={lemma}

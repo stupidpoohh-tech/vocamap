@@ -56,6 +56,15 @@ export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
       role="img"
       aria-label={`${lemma}의 Brain Map 예시 — 핵심 의미, 헷갈리는 단어, 함께 쓰는 표현, 파생어가 연결되어 있습니다`}
     >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(58% 60% at 50% 50%, var(--color-brand-soft) 0%, transparent 70%)',
+        }}
+      />
+
       <svg
         className="absolute inset-0 h-full w-full"
         viewBox="0 0 100 100"
@@ -72,14 +81,19 @@ export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
             stroke="currentColor"
             strokeWidth={p.strokeWidth}
             strokeOpacity={p.strokeOpacity}
-            className="text-brand-line"
+            className="text-brand/35"
             vectorEffect="non-scaling-stroke"
           />
         ))}
       </svg>
 
       <div
-        className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-center"
+        aria-hidden
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-brand-line/70"
+        style={{ width: pct(MAP_CENTRE + 30), aspectRatio: '1' }}
+      />
+      <div
+        className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-core text-center"
         style={{ width: pct(MAP_CENTRE), aspectRatio: '1' }}
       >
         <span
@@ -96,7 +110,7 @@ export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
           <div
             key={p.id}
             aria-hidden
-            className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col justify-center rounded-container bg-surface px-[6%] text-left shadow-card ring-1 ring-line/70"
+            className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col justify-center rounded-card bg-surface px-[6%] text-left shadow-card ring-1 ring-line"
             style={{
               left: `${p.x}%`,
               top: `${p.y}%`,

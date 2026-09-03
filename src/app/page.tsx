@@ -36,7 +36,9 @@ function SiteHeader() {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-paper/85 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
-        <span className="text-[0.8125rem] font-medium text-ink-2">VOCA BRAIN MAP</span>
+        <span className="text-[0.75rem] font-semibold tracking-[0.16em] text-ink">
+          VOCA BRAIN MAP
+        </span>
         <Link href="/login" className="text-sm font-medium text-ink-3 hover:text-ink">
           로그인
         </Link>
@@ -353,7 +355,7 @@ function SiteFooter() {
   return (
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-5xl flex-col gap-2 px-5 py-8 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between">
-        <span className="font-semibold text-brand">VOCA BRAIN MAP</span>
+        <span className="font-semibold tracking-[0.08em] text-ink">VOCA BRAIN MAP</span>
         <span>암기는 반복하고, 이해가 필요한 단어는 연결한다.</span>
       </div>
     </footer>

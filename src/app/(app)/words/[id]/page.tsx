@@ -47,15 +47,16 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {/* The word is the largest thing on the page and the map is the second.
-          Everything else here is a caption. */}
-      <header className="mt-2 flex flex-wrap items-start justify-between gap-3 sm:mt-3">
+          Everything else here is a caption. Tight tracking and a tight gap to
+          the gloss, so the two read as one block rather than as two rows. */}
+      <header className="mt-3 flex flex-wrap items-start justify-between gap-3 sm:mt-4">
         <div className="min-w-0">
-          <h1 className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
+          <h1 className="text-[1.875rem] leading-[1.15] font-semibold tracking-[-0.028em] sm:text-[2.25rem]">
             {personal.lemma}
           </h1>
           {/* Just the gloss. The core meaning belongs on its own node, where
               it is something to study rather than a subtitle to skim. */}
-          <p className="mt-0.5 text-sm text-ink-2 break-keep">{personal.translation ?? '—'}</p>
+          <p className="mt-1 text-sm text-ink-2 break-keep">{personal.translation ?? '—'}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {personal.isImportant ? <Tag tone="warn">중요</Tag> : null}
