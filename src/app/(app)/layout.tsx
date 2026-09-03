@@ -43,9 +43,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Bottom padding clears the floating navigation, which the page scrolls
-          under rather than stopping above. */}
-      <main className="mx-auto max-w-2xl px-5 pb-28 pt-4 sm:pt-7">{children}</main>
+      {/* Reading width by default. A page that lays itself out in columns says
+          so with `data-wide`, and gets the room to do it — but only once the
+          screen is big enough that the columns are worth having. Bottom padding
+          clears the floating navigation, which the page scrolls under rather
+          than stopping above. */}
+      <main className="mx-auto max-w-2xl px-5 pb-28 pt-4 sm:pt-7 min-[1120px]:has-[[data-wide]]:max-w-[74rem] min-[1120px]:has-[[data-wide]]:px-8">
+        {children}
+      </main>
 
       <NavShell>
         <Suspense fallback={<BottomNav links={STUDENT_LINKS} />}>

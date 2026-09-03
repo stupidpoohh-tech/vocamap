@@ -128,7 +128,7 @@ export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
               </span>
             </span>
             <span
-              className="mt-[3%] line-clamp-2 block leading-snug break-keep"
+              className="mt-[3%] line-clamp-2 leading-snug break-keep"
               style={{ fontSize: cqw(15) }}
             >
               {node.label}

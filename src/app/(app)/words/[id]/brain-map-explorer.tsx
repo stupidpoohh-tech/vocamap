@@ -73,27 +73,46 @@ export function BrainMapExplorer({
   // Map, then the question it leads to, then whatever did not fit. The map and
   // the card are the screen; everything else waits until after them.
   return (
-    // Rhythm, not uniform air: the map sits well away from the word block
-    // because they are different subjects, and the panel sits closer to the
-    // map because it is about whichever node the map has selected.
-    <div className="mt-6 flex flex-col gap-4 sm:mt-8 sm:gap-5">
-      <section>
-        <SemanticMap
-          lemma={lemma}
-          nodes={nodes}
-          selectedId={selectedId}
-          dimOthers={chosen}
-          onSelect={select}
-        />
+    // One grid, placed twice.
+    //
+    // Stacked on a phone, because there is one column and the map has to come
+    // first. Side by side once there is room for both at full size, because
+    // that is what the screen is actually about: you click a node on the left
+    // and the question on the right changes. Stacked, that relationship costs
+    // a scroll to see, and a wide screen spends its width on empty margin
+    // instead — a phone layout stretched across a desktop.
+    //
+    // 1120px is not a taste call: below it the map column would be narrower
+    // than the width its clearances were verified at.
+    <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-5 min-[1120px]:grid-cols-[minmax(0,1fr)_25rem] min-[1120px]:grid-rows-[auto_1fr] min-[1120px]:gap-x-10 min-[1120px]:gap-y-6">
+      <section className="min-[1120px]:col-start-1 min-[1120px]:row-span-2 min-[1120px]:row-start-1">
+        {/* Capped, not stretched. The map is drawn to scale, so a column much
+            wider than this makes the frame tall enough to push the question
+            off a laptop screen. */}
+        <div className="mx-auto w-full max-w-[37.5rem] min-[1120px]:max-w-none">
+          <SemanticMap
+            lemma={lemma}
+            nodes={nodes}
+            selectedId={selectedId}
+            dimOthers={chosen}
+            onSelect={select}
+          />
+        </div>
         {/* No wrapper: the legend renders nothing when a word has fewer than
             two learning states, and a wrapper would still charge the layout
             its margin for the empty space. */}
         <MapLegend statuses={nodes.map((n) => n.status)} />
       </section>
 
-      <Workspace node={selected} onAnswer={handleAnswer} />
+      {/* The working column. What you are studying now, and the connections you
+          can switch to — the same list, put where switching happens rather than
+          under a picture it is no longer part of. It also stops the right half
+          of a wide screen ending halfway down. */}
+      <div className="min-[1120px]:col-start-2 min-[1120px]:row-start-1">
+        <Workspace node={selected} onAnswer={handleAnswer} />
+      </div>
 
-      <div className="pb-2">
+      <div className="pb-2 min-[1120px]:col-start-2 min-[1120px]:row-start-2">
         <MapOverflow nodes={nodes} selectedId={selectedId} onSelect={select} />
       </div>
     </div>

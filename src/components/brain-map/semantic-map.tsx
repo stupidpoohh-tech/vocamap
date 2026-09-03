@@ -6,6 +6,7 @@ import {
   MAP_CARD,
   MAP_CENTRE,
   MAP_MAX_NODES,
+  MAP_MIN_WIDTH,
   mapFrameHeight,
 } from '@/lib/learning/map-layout'
 import {
@@ -33,6 +34,16 @@ import { cn } from '@/lib/utils'
  * "you are part-way through this" the same shade — two unrelated facts sharing
  * one signal. The map's state colours are now a family of their own.
  */
+/**
+ * The wide map is drawn to scale, not to size.
+ *
+ * Its clearances were verified in pixels at a 600px frame, so every size here
+ * is that measurement as a share of the frame — positions already were. The
+ * map is then correct at any width its column happens to be, and grows into a
+ * large screen instead of sitting in the middle of one at phone proportions.
+ */
+const share = (px: number) => `${(px / MAP_MIN_WIDTH) * 100}%`
+
 const STATUS_DOT: Record<NodeStatus, string> = {
   completed: 'bg-data-known',
   learning: 'bg-data-learning',
@@ -97,10 +108,10 @@ export function SemanticMap({
   return (
     <>
       {/* Constellation — desktop and tablet. */}
-      {/* Height is set per node count rather than by an aspect ratio: the
-          clearances between a card, its neighbours and the word are measured in
-          pixels, so the frame that guarantees them has to be too. */}
-      <div className="relative mx-auto hidden w-full sm:block" style={{ height }}>
+      <div
+        className="@container relative mx-auto hidden w-full sm:block"
+        style={{ aspectRatio: `${MAP_MIN_WIDTH} / ${height}` }}
+      >
         <MapGround />
 
         <svg
@@ -147,7 +158,7 @@ export function SemanticMap({
             <div
               key={node.id}
               className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${p.x}%`, top: `${p.y}%`, width: MAP_CARD.width }}
+              style={{ left: `${p.x}%`, top: `${p.y}%`, width: share(MAP_CARD.width) }}
             >
               <NodeCard
                 node={node}
@@ -391,7 +402,7 @@ function MobileNode({
       </span>
       <span
         className={cn(
-          'mt-0.5 line-clamp-2 block text-[12px] leading-[1.35] break-keep',
+          'mt-0.5 line-clamp-2 text-[12px] leading-[1.35] break-keep',
           // Importance shows in weight as well as in size and distance, which
           // is what stops the map reading as a menu of equals.
           node.importance >= 0.85 ? 'font-medium text-ink' : 'text-ink',
@@ -440,13 +451,16 @@ function CentreWord({ lemma }: { lemma: string }) {
       <div
         aria-hidden
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-brand-line/70"
-        style={{ width: MAP_CENTRE + 30, height: MAP_CENTRE + 30 }}
+        style={{ width: share(MAP_CENTRE + 30), aspectRatio: '1' }}
       />
       <div
         className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-core text-center"
-        style={{ width: MAP_CENTRE, height: MAP_CENTRE }}
+        style={{ width: share(MAP_CENTRE), aspectRatio: '1' }}
       >
-        <span className="px-3 text-[1.0625rem] font-medium lowercase tracking-[-0.015em] text-white">
+        <span
+          className="px-3 font-medium lowercase tracking-[-0.015em] text-white"
+          style={{ fontSize: 'clamp(1rem, 2.9cqw, 1.3rem)' }}
+        >
           {lemma}
         </span>
       </div>
@@ -474,14 +488,14 @@ function NodeCard({
       type="button"
       onClick={() => onSelect(node.id)}
       aria-pressed={selected}
-      style={{ height: MAP_CARD.height }}
+      style={{ aspectRatio: `${MAP_CARD.width} / ${MAP_CARD.height}` }}
       className={cn(
         // Objects on a canvas, so: a hairline and the barest lift. The panel
         // below is the screen's one raised surface, and a ring of cards with
         // the same shadow would flatten the difference between "here is the
         // structure" and "here is what you are doing".
-        'flex w-full flex-col justify-center rounded-card bg-surface px-3.5 text-left',
-        'shadow-card ring-1 transition duration-200',
+        'flex w-full flex-col justify-center overflow-hidden rounded-card bg-surface text-left',
+        'px-[7%] shadow-card ring-1 transition duration-200',
         selected
           ? 'bg-brand-soft ring-brand'
           : urgent
@@ -498,11 +512,19 @@ function NodeCard({
           aria-hidden
           className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[node.status])}
         />
-        <span className="truncate text-[0.6875rem] tracking-[0.02em] text-ink-3">
+        <span
+          className="truncate tracking-[0.02em] text-ink-3"
+          style={{ fontSize: 'clamp(0.6875rem, 1.9cqw, 0.8125rem)' }}
+        >
           {node.eyebrow}
         </span>
         {node.recommended ? (
-          <span className="ml-auto shrink-0 text-[0.6875rem] text-brand">추천</span>
+          <span
+            className="ml-auto shrink-0 text-brand"
+            style={{ fontSize: 'clamp(0.6875rem, 1.9cqw, 0.8125rem)' }}
+          >
+            추천
+          </span>
         ) : null}
       </span>
 
@@ -511,10 +533,11 @@ function NodeCard({
           list below the map renders the same node unclamped. */}
       <span
         className={cn(
-          'mt-1.5 line-clamp-2 block text-[0.9375rem] leading-[1.35] tracking-[-0.006em] break-keep',
+          'mt-1.5 line-clamp-2 leading-[1.35] tracking-[-0.006em] break-keep',
           // Importance shows in weight now that every card is one size.
           node.importance >= 0.85 ? 'font-medium text-ink' : 'text-ink',
         )}
+        style={{ fontSize: 'clamp(0.9375rem, 2.6cqw, 1.0625rem)' }}
       >
         {node.label}
       </span>
