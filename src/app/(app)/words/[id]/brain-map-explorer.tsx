@@ -84,7 +84,7 @@ export function BrainMapExplorer({
     //
     // 1120px is not a taste call: below it the map column would be narrower
     // than the width its clearances were verified at.
-    <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-5 min-[1120px]:grid-cols-[minmax(0,1fr)_25rem] min-[1120px]:grid-rows-[auto_1fr] min-[1120px]:gap-x-10 min-[1120px]:gap-y-6">
+    <div className="mt-5 grid gap-4 sm:mt-8 sm:gap-5 min-[1120px]:grid-cols-[minmax(0,1fr)_25rem] min-[1120px]:grid-rows-[auto_1fr] min-[1120px]:gap-x-10 min-[1120px]:gap-y-6">
       <section className="min-[1120px]:col-start-1 min-[1120px]:row-span-2 min-[1120px]:row-start-1">
         {/* Capped, not stretched. The map is drawn to scale, so a column much
             wider than this makes the frame tall enough to push the question

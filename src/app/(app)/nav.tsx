@@ -31,7 +31,7 @@ export function BottomNav({ links }: { links: Array<{ href: string; label: strin
             href={link.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex flex-1 flex-col items-center gap-0.5 rounded-container py-2 transition sm:gap-1 sm:py-2.5',
+              'flex flex-1 flex-col items-center gap-0.5 rounded-container py-1.5 transition sm:gap-1 sm:py-2.5',
               active ? 'text-ink' : 'text-ink-3 hover:text-ink-2',
             )}
           >
@@ -46,14 +46,42 @@ export function BottomNav({ links }: { links: Array<{ href: string; label: strin
   )
 }
 
-/** Same shape as the real bar, so the frame does not shift when roles arrive. */
-export function NavShell({ children }: { children: React.ReactNode }) {
+/**
+ * The fixed bottom chrome: the tab bar, and the credit line under it.
+ *
+ * One container rather than two fixed elements stacked, so the strip has a
+ * single height the page can be padded against — and so the credit cannot end
+ * up behind the bar it is supposed to sit below.
+ *
+ * `children` is the bar itself, which streams in once the reader's role is
+ * known; the shape is the same either way, so the frame does not shift.
+ */
+export function NavShell({
+  children,
+  footer,
+}: {
+  children: React.ReactNode
+  footer?: React.ReactNode
+}) {
   return (
-    <nav className="fixed inset-x-0 bottom-2 z-20 px-4 sm:bottom-4">
-      <div className="mx-auto max-w-md rounded-panel bg-surface/80 shadow-float ring-1 ring-line/80 backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-0 z-20 px-4 pb-1 sm:pb-2">
+      {/* Ground under the strip.
+          The bar is a pill with air around it, and the credit line beneath it
+          has no fill at all, so a scrolling page used to run straight through
+          both. This fades the page out before it reaches them — content
+          dissolves into the ground rather than colliding with the chrome. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-8 bottom-0"
+        style={{
+          background: 'linear-gradient(to bottom, transparent 0%, var(--color-paper) 42%)',
+        }}
+      />
+      <nav className="relative mx-auto max-w-md rounded-panel bg-surface/80 shadow-float ring-1 ring-line/80 backdrop-blur-xl">
         {children}
-      </div>
-    </nav>
+      </nav>
+      {footer ? <div className="relative">{footer}</div> : null}
+    </div>
   )
 }
 

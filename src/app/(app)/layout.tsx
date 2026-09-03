@@ -19,9 +19,7 @@ import { SiteFooter } from '@/components/site-footer'
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    // A column, so the credit line sits at the bottom of the screen on a short
-    // page instead of floating directly under two lines of content.
-    <div className="flex min-h-dvh flex-col">
+    <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-line-soft bg-paper/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
           {/* Ink, not accent. A wordmark is the one thing on a screen that
@@ -43,16 +41,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Reading width by default. A page that lays itself out in columns says
           so with `data-wide`, and gets the room to do it — but only once the
           screen is big enough that the columns are worth having. Bottom padding
-          clears the floating navigation, which the page scrolls under rather
-          than stopping above — that clearance now lives on the footer beneath
-          it, which is the last thing on the page. */}
-      <main className="mx-auto w-full max-w-2xl flex-1 px-5 pt-4 sm:pt-7 min-[1120px]:has-[[data-wide]]:max-w-[74rem] min-[1120px]:has-[[data-wide]]:px-8">
+          clears the fixed bottom strip — the tab bar and the credit line
+          beneath it — which the page scrolls under rather than stopping
+          above. */}
+      <main className="mx-auto w-full max-w-2xl px-5 pt-4 pb-28 sm:pt-7 min-[1120px]:has-[[data-wide]]:max-w-[74rem] min-[1120px]:has-[[data-wide]]:px-8">
         {children}
       </main>
 
-      <SiteFooter />
-
-      <NavShell>
+      <NavShell footer={<SiteFooter />}>
         <Suspense fallback={<BottomNav links={STUDENT_LINKS} />}>
           <Navigation />
         </Suspense>

@@ -1,14 +1,19 @@
 /**
- * Who made this.
+ * Who made this — the last line on the screen.
  *
- * Sits below the content and above the floating navigation, centred — a credit
- * line, not a section: one row of the quietest text on the screen, so it is
- * findable without ever competing with a word the reader is studying.
+ * Beneath the navigation rather than above it, because a credit belongs at the
+ * very bottom and nowhere else. That makes it permanent chrome, so it is built
+ * to cost as little height as it can: one 10px line and a 24px mark, sharing
+ * the strip the tab bar was already floating above.
+ *
+ * 24px is a floor, not a style choice. The mark sits a few pixels under the tab
+ * bar, so anything smaller turns a slightly high tap into a navigation away
+ * from the screen the reader was on.
  */
 export function SiteFooter() {
   return (
-    <footer className="mx-auto flex max-w-2xl items-center justify-center gap-2.5 px-5 pb-28 pt-8">
-      <span className="text-[0.6875rem] text-ink-3">
+    <footer className="mt-1.5 flex items-center justify-center gap-2">
+      <span className="text-[0.625rem] leading-none text-ink-3">
         만든사람 <span className="font-medium text-ink-2">DADA</span>
       </span>
 
@@ -20,7 +25,7 @@ export function SiteFooter() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="DADA 홈페이지 열기 (새 탭)"
-        className="flex h-8 w-8 items-center justify-center rounded-control text-ink-3 ring-1 ring-line transition hover:text-ink-2 hover:ring-ink-3/40"
+        className="flex h-6 w-6 items-center justify-center rounded-chip text-ink-3 ring-1 ring-line transition hover:text-ink-2 hover:ring-ink-3/40"
       >
         {/* The navigation's icon family — 24px grid, 1.6 stroke, round caps —
             so the one glyph down here does not read as a stray from elsewhere. */}
@@ -31,7 +36,7 @@ export function SiteFooter() {
           strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="h-[1.0625rem] w-[1.0625rem]"
+          className="h-3.5 w-3.5"
           aria-hidden
         >
           <path d="M4 10.2 12 4l8 6.2V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8.8Z" />
