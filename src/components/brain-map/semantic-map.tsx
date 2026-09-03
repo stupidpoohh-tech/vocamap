@@ -83,12 +83,14 @@ export function SemanticMap({
   // student's head, not everything true about the word. Everything else sits
   // under it as a quiet row, so nothing a curator wrote becomes unreachable.
   // The slice is a rendering backstop, not the rule.
-  const { onMap, overflow } = useMemo(() => {
-    const byImportance = [...nodes].sort((a, b) => b.importance - a.importance)
-    const chosen = byImportance.filter((n) => n.onMap).slice(0, CONSTELLATION_LIMIT)
-    const chosenIds = new Set(chosen.map((n) => n.id))
-    return { onMap: chosen, overflow: byImportance.filter((n) => !chosenIds.has(n.id)) }
-  }, [nodes])
+  const onMap = useMemo(
+    () =>
+      [...nodes]
+        .sort((a, b) => b.importance - a.importance)
+        .filter((n) => n.onMap)
+        .slice(0, CONSTELLATION_LIMIT),
+    [nodes],
+  )
 
   const placed = useMemo(
     () =>
@@ -155,46 +157,6 @@ export function SemanticMap({
         })}
       </div>
 
-      {overflow.length ? (
-        <div className="mt-1 hidden sm:block">
-          <p className="text-xs text-ink-3">그 밖의 연결</p>
-          {/* Rows, not cards. These are the connections that did not earn a
-              place on the map, and three more bordered boxes under it competed
-              with the thing they were demoted from. */}
-          <ul className="mt-1 divide-y divide-line-soft border-t border-line">
-            {overflow.map((node) => (
-              <li key={node.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(node.id)}
-                  aria-pressed={selectedId === node.id}
-                  className="flex w-full items-baseline gap-3 py-2 text-left"
-                >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
-                      STATUS_DOT[node.status],
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      'min-w-0 flex-1 truncate text-sm break-keep',
-                      selectedId === node.id ? 'text-brand' : 'text-ink',
-                    )}
-                  >
-                    {node.label}
-                  </span>
-                  <span className="shrink-0 truncate text-xs text-ink-3">
-                    {node.secondaryLabel ?? node.eyebrow}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       {/* Phones get their own map, not this one at a smaller scale — see
           `MobileSemanticMap`. */}
       <MobileSemanticMap
@@ -237,7 +199,6 @@ function MobileSemanticMap({
   // which meant the map arrived saying it was incomplete — the opposite of
   // "these are the connections of this word".
   const visible = byImportance.slice(0, MOBILE_MAX_NODES)
-  const rest = byImportance.slice(MOBILE_MAX_NODES)
 
   const placed = useMemo(
     () =>
@@ -313,45 +274,67 @@ function MobileSemanticMap({
         })}
       </div>
 
-      {/* A word with more connections than the frame can place keeps them in
-          view as rows rather than behind a control — the same treatment the
-          wide map gives them. */}
-      {rest.length ? (
-        <div className="mt-3">
-          <p className="text-xs text-ink-3">그 밖의 연결</p>
-          <ul className="mt-1 divide-y divide-line-soft border-t border-line">
-            {rest.map((node) => (
-              <li key={node.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(node.id)}
-                  aria-pressed={selectedId === node.id}
-                  className="flex w-full items-baseline gap-2.5 py-2 text-left"
-                >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
-                      STATUS_DOT[node.status],
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      'min-w-0 flex-1 truncate text-[0.8125rem] break-keep',
-                      selectedId === node.id ? 'text-brand' : 'text-ink',
-                    )}
-                  >
-                    {node.label}
-                  </span>
-                  <span className="shrink-0 truncate text-[0.6875rem] text-ink-3">
-                    {node.eyebrow}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+    </div>
+  )
+}
+
+/**
+ * The connections that did not fit the map.
+ *
+ * Rendered below the practice card rather than between it and the map: the two
+ * of them are what the screen is for and they have to sit together on one phone
+ * height. Always visible — never behind an expand control.
+ */
+export function MapOverflow({
+  nodes,
+  selectedId,
+  onSelect,
+}: {
+  nodes: SemanticNode[]
+  selectedId: string | null
+  onSelect: (id: string) => void
+}) {
+  const rest = useMemo(() => {
+    const byImportance = [...nodes].sort((a, b) => b.importance - a.importance)
+    const placed = new Set(
+      byImportance.filter((n) => n.onMap).slice(0, CONSTELLATION_LIMIT).map((n) => n.id),
+    )
+    // A phone places more than the wide map does, so anything on either is out.
+    for (const node of byImportance.slice(0, MOBILE_MAX_NODES)) placed.add(node.id)
+    return byImportance.filter((n) => !placed.has(n.id))
+  }, [nodes])
+
+  if (!rest.length) return null
+
+  return (
+    <div>
+      <p className="text-xs text-ink-3">그 밖의 연결</p>
+      <ul className="mt-1 divide-y divide-line-soft border-t border-line">
+        {rest.map((node) => (
+          <li key={node.id}>
+            <button
+              type="button"
+              onClick={() => onSelect(node.id)}
+              aria-pressed={selectedId === node.id}
+              className="flex w-full items-baseline gap-2.5 py-2 text-left"
+            >
+              <span
+                aria-hidden
+                className={cn('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[node.status])}
+              />
+              <span
+                className={cn(
+                  'min-w-0 flex-1 truncate text-[0.8125rem] break-keep',
+                  selectedId === node.id ? 'text-brand' : 'text-ink',
+                )}
+              >
+                {node.label}
+              </span>
+              <span className="shrink-0 truncate text-[0.6875rem] text-ink-3">{node.eyebrow}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

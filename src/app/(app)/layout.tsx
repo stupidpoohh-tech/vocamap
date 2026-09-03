@@ -39,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-5 pb-24 pt-7">{children}</main>
+      <main className="mx-auto max-w-2xl px-5 pb-24 pt-4 sm:pt-7">{children}</main>
 
       <NavShell>
         <Suspense fallback={<BottomNav links={STUDENT_LINKS} />}>

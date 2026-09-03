@@ -9,8 +9,15 @@ import {
 
 /** The narrowest phone we support. */
 const NARROW_FRAME = 320
-/** Eyebrow, two lines of label, a status line and padding. */
-const CARD_HEIGHT = 72
+/** Measured from the rendered card at 320px in a browser, not guessed. */
+const CARD_HEIGHT = 65
+/**
+ * Cards have to be this far apart, not merely non-overlapping.
+ *
+ * A slot table that clears by a fraction of a pixel is one font-metric change
+ * away from cards touching, and a map whose cards touch reads as a stack.
+ */
+const CLEARANCE = 3
 
 function nodes(count: number): MobileInput[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -37,22 +44,25 @@ function boxes(count: number) {
   })
 }
 
-const overlaps = (a: ReturnType<typeof boxes>[number], b: ReturnType<typeof boxes>[number]) =>
-  a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+const tooClose = (a: ReturnType<typeof boxes>[number], b: ReturnType<typeof boxes>[number]) =>
+  a.left < b.right + CLEARANCE &&
+  b.left < a.right + CLEARANCE &&
+  a.top < b.bottom + CLEARANCE &&
+  b.top < a.bottom + CLEARANCE
 
 describe('mobile map layout', () => {
-  it('never overlaps a card with another card, at any size the map reaches', () => {
+  it('keeps every card clear of every other card, at any size the map reaches', () => {
     for (let count = 1; count <= MOBILE_MAX_NODES; count += 1) {
       const placed = boxes(count)
       for (let i = 0; i < placed.length; i += 1) {
         for (let j = i + 1; j < placed.length; j += 1) {
-          expect(overlaps(placed[i]!, placed[j]!), `${count} nodes: ${i} vs ${j}`).toBe(false)
+          expect(tooClose(placed[i]!, placed[j]!), `${count} nodes: ${i} vs ${j}`).toBe(false)
         }
       }
     }
   })
 
-  it('never lets a card cross the centre word', () => {
+  it('never lets a card reach the centre word', () => {
     // The whole point of the frame is that the word sits in the middle of it.
     for (let count = 1; count <= MOBILE_MAX_NODES; count += 1) {
       const height = mobileFrameHeight(count)
@@ -67,7 +77,7 @@ describe('mobile map layout', () => {
         height,
       }
       for (const card of boxes(count)) {
-        expect(overlaps(card, centre), `${count} nodes: ${card.id}`).toBe(false)
+        expect(tooClose(card, centre), `${count} nodes: ${card.id}`).toBe(false)
       }
     }
   })
@@ -85,13 +95,19 @@ describe('mobile map layout', () => {
   })
 
   it('puts the most important node nearest the word', () => {
+    // Not a strict ordering across every slot: a symmetric arrangement in a
+    // frame that is wider than it is tall cannot give six slots six distinct
+    // distances without wasting the height the practice card needs. What has
+    // to hold is that nothing outranks the node that matters most.
     for (const count of [3, 4, 5, 6]) {
       const placed = boxes(count)
       const height = mobileFrameHeight(count)
       const distance = (c: (typeof placed)[number]) =>
         Math.hypot(c.cx - NARROW_FRAME / 2, c.cy - height / 2)
-      // Slots are ordered by importance, so distance has to climb with them.
-      expect(distance(placed[0]!), `${count} nodes`).toBeLessThan(distance(placed.at(-1)!))
+      const nearest = distance(placed[0]!)
+      for (const other of placed.slice(1)) {
+        expect(nearest, `${count} nodes vs ${other.id}`).toBeLessThanOrEqual(distance(other) + 0.5)
+      }
     }
   })
 
@@ -109,11 +125,10 @@ describe('mobile map layout', () => {
   })
 
   it('stays inside the height a phone screen can show at a glance', () => {
-    // A map that needs scrolling to be taken in is not a map. Six is the one
-    // size allowed past this, and only because the alternative is hiding
-    // connections the word actually has.
-    for (const count of [1, 2, 3, 4, 5]) {
-      expect(mobileFrameHeight(count), `${count} nodes`).toBeLessThanOrEqual(400)
+    // The map and the practice card have to share one phone screen, so the
+    // frame is budgeted rather than merely bounded.
+    for (const count of [1, 2, 3, 4, 5, 6]) {
+      expect(mobileFrameHeight(count), `${count} nodes`).toBeLessThanOrEqual(284)
     }
   })
 })

@@ -41,53 +41,57 @@ export const MOBILE_MAX_NODES = 6
 
 /** Frame height in px, per node count. Wide enough that nothing scrolls. */
 const FRAME_HEIGHT: Record<number, number> = {
-  1: 260,
-  2: 288,
-  3: 320,
-  4: 344,
-  5: 372,
-  // Only reached once the reader asks for more, so it is allowed past the
-  // at-a-glance height the default view keeps to.
-  6: 420,
+  1: 212,
+  2: 232,
+  3: 256,
+  4: 252,
+  5: 272,
+  6: 284,
 }
 
 /**
  * Slot tables, ordered most important first.
  *
- * Each row was checked at a 320px frame against a 60px centre and a card up to
- * 72px tall: no card crosses the centre word, its neighbours, or the frame.
+ * Every row was checked numerically at a 320px-wide frame against the 96x64
+ * centre word and the 65px a two-line card actually measures in the browser,
+ * with 3px of clearance required rather than mere non-overlap: no card comes
+ * near the centre, its neighbours, or the frame edge, and the first slot is
+ * always the one nearest the centre.
+ *
+ * The frames are as short as those clearances allow, because the map and the
+ * practice card have to share one phone height without scrolling.
  */
 const SLOTS: Record<number, MobileSlot[]> = {
-  1: [{ x: 50, y: 19, width: 126 }],
+  1: [{ x: 50, y: 17, width: 128 }],
   2: [
-    { x: 50, y: 22, width: 124 },
-    { x: 50, y: 80, width: 116 },
+    { x: 50, y: 16, width: 126 },
+    { x: 50, y: 84, width: 118 },
   ],
   3: [
-    { x: 50, y: 20, width: 124 },
-    { x: 19, y: 68, width: 100 },
-    { x: 81, y: 68, width: 100 },
+    { x: 50, y: 15, width: 124 },
+    { x: 19, y: 78, width: 102 },
+    { x: 81, y: 78, width: 102 },
   ],
   4: [
     { x: 50, y: 22, width: 124 },
-    { x: 16, y: 47, width: 94 },
-    { x: 84, y: 47, width: 94 },
-    { x: 50, y: 83, width: 110 },
+    { x: 15, y: 50, width: 96 },
+    { x: 85, y: 50, width: 96 },
+    { x: 50, y: 85, width: 112 },
   ],
   5: [
-    { x: 50, y: 22, width: 122 },
-    { x: 15, y: 46, width: 90 },
-    { x: 85, y: 46, width: 90 },
-    { x: 28, y: 84, width: 96 },
-    { x: 72, y: 84, width: 96 },
+    { x: 50, y: 20, width: 122 },
+    { x: 15, y: 50, width: 92 },
+    { x: 85, y: 50, width: 92 },
+    { x: 27, y: 82, width: 96 },
+    { x: 73, y: 82, width: 96 },
   ],
   6: [
-    { x: 50, y: 23, width: 118 },
-    { x: 15, y: 45, width: 88 },
-    { x: 85, y: 45, width: 88 },
-    { x: 15, y: 74, width: 86 },
-    { x: 85, y: 74, width: 86 },
-    { x: 50, y: 90, width: 102 },
+    { x: 50, y: 21, width: 118 },
+    { x: 15, y: 39, width: 88 },
+    { x: 85, y: 39, width: 88 },
+    { x: 15, y: 64, width: 86 },
+    { x: 85, y: 64, width: 86 },
+    { x: 50, y: 87, width: 102 },
   ],
 }
 
@@ -96,7 +100,7 @@ const SLOTS: Record<number, MobileSlot[]> = {
  * every real headword, so it is a soft rounded rect that fits a lemma — and
  * every slot above is placed to clear it at 320px.
  */
-export const MOBILE_CENTRE = { width: 92, height: 60 }
+export const MOBILE_CENTRE = { width: 96, height: 64 }
 
 export function mobileFrameHeight(count: number): number {
   return FRAME_HEIGHT[clampCount(count)] ?? FRAME_HEIGHT[MOBILE_MAX_NODES]!

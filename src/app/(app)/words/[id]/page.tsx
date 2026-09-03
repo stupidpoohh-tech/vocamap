@@ -48,9 +48,11 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
 
       {/* The word is the largest thing on the page and the map is the second.
           Everything else here is a caption. */}
-      <header className="mt-3 flex flex-wrap items-start justify-between gap-3">
+      <header className="mt-2 flex flex-wrap items-start justify-between gap-3 sm:mt-3">
         <div className="min-w-0">
-          <h1 className="text-[2rem] font-semibold tracking-tight">{personal.lemma}</h1>
+          <h1 className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
+            {personal.lemma}
+          </h1>
           {/* Just the gloss. The core meaning belongs on its own node, where
               it is something to study rather than a subtitle to skim. */}
           <p className="mt-0.5 text-sm text-ink-2 break-keep">{personal.translation ?? '—'}</p>

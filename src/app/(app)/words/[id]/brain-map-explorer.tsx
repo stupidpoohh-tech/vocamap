@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapLegend, SemanticMap } from '@/components/brain-map/semantic-map'
+import { MapLegend, MapOverflow, SemanticMap } from '@/components/brain-map/semantic-map'
 import { Workspace, type WorkspaceAnswer } from '@/components/brain-map/workspace'
 import type { SemanticNode } from '@/lib/data/semantic-map'
 import { answerNode, openBrainMap } from './actions'
@@ -65,27 +65,32 @@ export function BrainMapExplorer({
   // Straight to the map. The two strips that used to sit here — the memory
   // state of each direction, and a paragraph explaining why the word was
   // expanded — pushed the thing this page exists for below the fold.
+  const select = (id: string) => {
+    setChosen(true)
+    setSelectedId((current) => (current === id ? null : id))
+  }
+
+  // Map, then the question it leads to, then whatever did not fit. The map and
+  // the card are the screen; everything else waits until after them.
   return (
-    <div className="mt-6">
+    <div className="mt-4 flex flex-col gap-4 sm:mt-6 sm:gap-5">
       <section>
         <SemanticMap
           lemma={lemma}
           nodes={nodes}
           selectedId={selectedId}
           dimOthers={chosen}
-          onSelect={(id) => {
-            setChosen(true)
-            setSelectedId((current) => (current === id ? null : id))
-          }}
+          onSelect={select}
         />
-        <div className="mt-4 sm:mt-2">
+        <div className="mt-2 sm:mt-3">
           <MapLegend statuses={nodes.map((n) => n.status)} />
         </div>
       </section>
 
-      {/* Clear of the fixed bottom bar. */}
-      <div className="mt-6 pb-4 sm:mt-8">
-        <Workspace node={selected} onAnswer={handleAnswer} />
+      <Workspace node={selected} onAnswer={handleAnswer} />
+
+      <div className="pb-2">
+        <MapOverflow nodes={nodes} selectedId={selectedId} onSelect={select} />
       </div>
     </div>
   )
