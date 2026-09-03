@@ -1,4 +1,15 @@
-import { layoutNodes } from '@/lib/learning/map-layout'
+import { layoutNodes, MAP_CARD, MAP_CENTRE, MAP_MIN_WIDTH, mapFrameHeight } from '@/lib/learning/map-layout'
+
+/**
+ * The illustration is the real map, drawn to scale rather than to size.
+ *
+ * The app's map is laid out in pixels, because its clearances are pixel facts.
+ * This one sits in a column that is anywhere from a phone's width to 860px, so
+ * it renders at the design width and expresses every size as a share of its own
+ * container — same geometry, any width, nothing to keep in sync by hand.
+ */
+const pct = (px: number) => `${(px / MAP_MIN_WIDTH) * 100}%`
+const cqw = (px: number) => `${((px / MAP_MIN_WIDTH) * 100).toFixed(3)}cqw`
 
 /**
  * A non-interactive Brain Map for the landing page.
@@ -35,23 +46,22 @@ const TONE: Record<Demo['tone'], string> = {
   done: 'bg-good',
 }
 
-const SIZE = {
-  hero: 'w-[11rem] px-3 py-2',
-  primary: 'w-[10rem] px-3 py-2',
-  secondary: 'w-[9rem] px-2.5 py-1.5',
-  peripheral: 'w-[8rem] px-2.5 py-1.5',
-} as const
-
 export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
   const placed = layoutNodes(DEMO.map((d) => ({ id: d.id, importance: d.importance })))
 
   return (
     <div
-      className="relative aspect-[16/12] w-full"
+      className="@container relative w-full"
+      style={{ aspectRatio: `${MAP_MIN_WIDTH} / ${mapFrameHeight(DEMO.length)}` }}
       role="img"
       aria-label={`${lemma}의 Brain Map 예시 — 핵심 의미, 헷갈리는 단어, 함께 쓰는 표현, 파생어가 연결되어 있습니다`}
     >
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden>
+      <svg
+        className="absolute inset-0 h-full w-full"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden
+      >
         {placed.map((p) => (
           <line
             key={p.id}
@@ -62,14 +72,20 @@ export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
             stroke="currentColor"
             strokeWidth={p.strokeWidth}
             strokeOpacity={p.strokeOpacity}
-            className="text-brand/70"
+            className="text-brand-line"
             vectorEffect="non-scaling-stroke"
           />
         ))}
       </svg>
 
-      <div className="absolute left-1/2 top-1/2 z-10 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-center">
-        <span className="px-2 text-sm font-semibold lowercase tracking-tight text-white">
+      <div
+        className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-center"
+        style={{ width: pct(MAP_CENTRE), aspectRatio: '1' }}
+      >
+        <span
+          className="px-[3%] font-medium lowercase tracking-tight text-white"
+          style={{ fontSize: cqw(17) }}
+        >
           {lemma}
         </span>
       </div>
@@ -80,21 +96,28 @@ export function MapIllustration({ lemma = 'maintain' }: { lemma?: string }) {
           <div
             key={p.id}
             aria-hidden
-            className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-card border border-line bg-surface text-left ${SIZE[p.tier]}`}
-            style={{ left: `${p.x}%`, top: `${p.y}%` }}
+            className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col justify-center rounded-container bg-surface px-[6%] text-left shadow-card ring-1 ring-line/70"
+            style={{
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: pct(MAP_CARD.width),
+              aspectRatio: `${MAP_CARD.width} / ${MAP_CARD.height}`,
+            }}
           >
-            <span className="block truncate text-[10px] font-medium uppercase tracking-wide text-ink-3">
-              {node.eyebrow}
+            <span className="flex items-center gap-[3%]">
+              <span
+                className={`aspect-square shrink-0 rounded-full ${TONE[node.tone]}`}
+                style={{ width: cqw(6) }}
+              />
+              <span className="truncate text-ink-3" style={{ fontSize: cqw(11) }}>
+                {node.eyebrow}
+              </span>
             </span>
             <span
-              className={`mt-0.5 block font-semibold break-keep ${
-                p.tier === 'hero' ? 'text-[13px]' : 'text-[12px]'
-              }`}
+              className="mt-[3%] line-clamp-2 block leading-snug break-keep"
+              style={{ fontSize: cqw(15) }}
             >
               {node.label}
-            </span>
-            <span className="mt-1 flex items-center gap-1.5">
-              <span className={`h-1.5 w-1.5 rounded-full ${TONE[node.tone]}`} />
             </span>
           </div>
         )

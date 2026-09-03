@@ -128,7 +128,7 @@ describe('mobile map layout', () => {
     // The map and the practice card have to share one phone screen, so the
     // frame is budgeted rather than merely bounded.
     for (const count of [1, 2, 3, 4, 5, 6]) {
-      expect(mobileFrameHeight(count), `${count} nodes`).toBeLessThanOrEqual(284)
+      expect(mobileFrameHeight(count), `${count} nodes`).toBeLessThanOrEqual(272)
     }
   })
 })

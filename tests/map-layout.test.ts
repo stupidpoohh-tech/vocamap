@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { layoutNodes, sizeTier, type LayoutInput } from '@/lib/learning/map-layout'
+import {
+  layoutNodes,
+  MAP_CARD,
+  MAP_CENTRE,
+  MAP_MAX_NODES,
+  MAP_MIN_WIDTH,
+  mapFrameHeight,
+  type LayoutInput,
+} from '@/lib/learning/map-layout'
 
-// Measured from the rendered cards, not guessed — the first version of these
-// was too narrow and let cards overlap on screen while the test passed.
-const FOOTPRINT = {
-  hero: { w: 13.5, h: 12 },
-  primary: { w: 11.5, h: 12 },
-  secondary: { w: 10, h: 11 },
-  peripheral: { w: 8.5, h: 10 },
-}
+/**
+ * Cards have to be this far apart, not merely non-overlapping — the same rule
+ * the phone map is held to, for the same reason: a table that clears by a
+ * fraction of a pixel is one font-metric change away from cards touching.
+ */
+const CLEARANCE = 12
 
 function nodes(count: number): LayoutInput[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -18,94 +24,115 @@ function nodes(count: number): LayoutInput[] {
   }))
 }
 
-function overlaps(count: number): number {
-  const placed = layoutNodes(nodes(count))
-  let found = 0
-  for (let i = 0; i < placed.length; i += 1) {
-    for (let j = i + 1; j < placed.length; j += 1) {
-      const a = placed[i]!
-      const b = placed[j]!
-      const fa = FOOTPRINT[a.tier]
-      const fb = FOOTPRINT[b.tier]
-      // A small tolerance: cards may sit shoulder to shoulder, not on top of
-      // each other.
-      if (
-        Math.abs(a.x - b.x) < (fa.w + fb.w) * 0.82 &&
-        Math.abs(a.y - b.y) < (fa.h + fb.h) * 0.82
-      ) {
-        found += 1
-      }
+type Box = { id: string; l: number; r: number; t: number; b: number; cx: number; cy: number }
+
+function boxes(count: number, width = MAP_MIN_WIDTH): Box[] {
+  const height = mapFrameHeight(count)
+  return layoutNodes(nodes(count)).map((p) => {
+    const cx = (p.x / 100) * width
+    const cy = (p.y / 100) * height
+    return {
+      id: p.id,
+      l: cx - MAP_CARD.width / 2,
+      r: cx + MAP_CARD.width / 2,
+      t: cy - MAP_CARD.height / 2,
+      b: cy + MAP_CARD.height / 2,
+      cx,
+      cy,
     }
-  }
-  return found
+  })
 }
 
+function word(count: number, width = MAP_MIN_WIDTH): Box {
+  const height = mapFrameHeight(count)
+  return {
+    id: 'word',
+    l: width / 2 - MAP_CENTRE / 2,
+    r: width / 2 + MAP_CENTRE / 2,
+    t: height / 2 - MAP_CENTRE / 2,
+    b: height / 2 + MAP_CENTRE / 2,
+    cx: width / 2,
+    cy: height / 2,
+  }
+}
+
+const tooClose = (a: Box, b: Box) =>
+  a.l < b.r + CLEARANCE && b.l < a.r + CLEARANCE && a.t < b.b + CLEARANCE && b.t < a.b + CLEARANCE
+
+const COUNTS = [1, 2, 3, 4, 5, 6, 7, 8]
+
 describe('semantic map layout', () => {
-  it('keeps cards from stacking, at every size a word actually reaches', () => {
-    // A map is three to five nodes now; six and eight cover the maps written
+  it('keeps every card clear of every other card, at every size a map reaches', () => {
+    // A map is three to five nodes now; six to eight cover the maps written
     // before that rule, which still have to render.
-    for (const count of [1, 2, 3, 4, 5, 6, 8]) {
-      expect(overlaps(count), `${count} nodes`).toBe(0)
-    }
-  })
-
-  it('spreads a small map across the box instead of huddling it', () => {
-    // With four cards the old ring left the constellation in the middle third
-    // of the box, which threw away the space that makes distance readable.
-    // Real importance values bunch near the top — a core meaning is 0.95 and
-    // even a minor collocation is 0.52 — so the ring has to rank them against
-    // each other rather than read the raw number.
-    const placed = layoutNodes([
-      { id: 'core', importance: 0.95 },
-      { id: 'confusable', importance: 0.85 },
-      { id: 'colloc-1', importance: 0.82 },
-      { id: 'colloc-2', importance: 0.66 },
-    ])
-    const distances = placed.map((p) => Math.hypot(p.x - 50, p.y - 50))
-    expect(Math.max(...distances)).toBeGreaterThan(38)
-    expect(Math.min(...distances)).toBeLessThan(30)
-  })
-
-  it('places important nodes closer to the word than peripheral ones', () => {
-    const placed = layoutNodes([
-      { id: 'core', importance: 0.95 },
-      { id: 'edge', importance: 0.32 },
-    ])
-    const distance = (id: string) => {
-      const p = placed.find((n) => n.id === id)!
-      return Math.hypot(p.x - 50, p.y - 50)
-    }
-    expect(distance('core')).toBeLessThan(distance('edge'))
-  })
-
-  it('never lets a lesser node sit closer to the word than a stronger one', () => {
-    // Cartesian relaxation used to push the biggest cards outward to make room,
-    // so a confusable the student keeps failing ended up further out than a
-    // derived form. Distance has to keep meaning importance.
-    const input = nodes(8)
-    const placed = layoutNodes(input)
-    const importance = new Map(input.map((n) => [n.id, n.importance]))
-    const distance = (id: string) => {
-      const p = placed.find((n) => n.id === id)!
-      return Math.hypot(p.x - 50, p.y - 50)
-    }
-    for (const a of input) {
-      for (const b of input) {
-        // Only a difference the reader can actually see has to hold.
-        if (importance.get(a.id)! - importance.get(b.id)! <= 0.1) continue
-        expect(distance(a.id), `${a.id} vs ${b.id}`).toBeLessThanOrEqual(distance(b.id) + 0.5)
+    for (const count of COUNTS) {
+      const placed = boxes(count)
+      for (let i = 0; i < placed.length; i += 1) {
+        for (let j = i + 1; j < placed.length; j += 1) {
+          expect(tooClose(placed[i]!, placed[j]!), `${count} nodes: ${i} vs ${j}`).toBe(false)
+        }
       }
     }
   })
 
-  it('puts equally important nodes on one ring rather than inventing an order', () => {
-    const placed = layoutNodes([
-      { id: 'a', importance: 0.8 },
-      { id: 'b', importance: 0.8 },
-      { id: 'c', importance: 0.8 },
-    ])
-    const distances = placed.map((p) => Math.hypot(p.x - 50, p.y - 50))
-    expect(Math.max(...distances) - Math.min(...distances)).toBeLessThan(2)
+  it('never lets a card reach the word in the middle', () => {
+    for (const count of COUNTS) {
+      for (const card of boxes(count)) {
+        expect(tooClose(card, word(count)), `${count} nodes: ${card.id}`).toBe(false)
+      }
+    }
+  })
+
+  it('keeps every card inside the frame, at every width the wide map is used at', () => {
+    // 600px is what a 640px viewport leaves once the page's padding is taken;
+    // below that the phone map takes over.
+    for (const width of [MAP_MIN_WIDTH, 632]) {
+      for (const count of COUNTS) {
+        const height = mapFrameHeight(count)
+        for (const card of boxes(count, width)) {
+          expect(card.l, `${width}/${count}: ${card.id} left`).toBeGreaterThanOrEqual(0)
+          expect(card.r, `${width}/${count}: ${card.id} right`).toBeLessThanOrEqual(width)
+          expect(card.t, `${width}/${count}: ${card.id} top`).toBeGreaterThanOrEqual(0)
+          expect(card.b, `${width}/${count}: ${card.id} bottom`).toBeLessThanOrEqual(height)
+        }
+      }
+    }
+  })
+
+  it('is mirror-symmetric about the word', () => {
+    // The arrangement needs a centre line for the eye to read it against.
+    // Without one a constellation looks like an accident, however carefully
+    // its distances were chosen.
+    // A lone node has nothing to mirror against; every other count does.
+    for (const count of COUNTS.filter((c) => c > 1)) {
+      const xs = layoutNodes(nodes(count)).map((p) => p.x)
+      for (const x of xs) {
+        const mirrored = xs.some((other) => Math.abs(other - (100 - x)) < 0.01)
+        expect(mirrored, `${count} nodes: no mirror for x=${x}`).toBe(true)
+      }
+    }
+  })
+
+  it('puts the most important node nearest the word', () => {
+    // Not a strict ordering across every slot: a mirror-symmetric arrangement
+    // gives paired slots the same distance by construction. What has to hold is
+    // that nothing outranks the node that matters most.
+    for (const count of COUNTS) {
+      const placed = boxes(count)
+      const centre = word(count)
+      const distance = (c: Box) => Math.hypot(c.cx - centre.cx, c.cy - centre.cy)
+      const nearest = distance(placed[0]!)
+      for (const other of placed.slice(1)) {
+        expect(nearest, `${count} nodes vs ${other.id}`).toBeLessThanOrEqual(distance(other) + 0.5)
+      }
+    }
+  })
+
+  it('gives paired slots the same distance, rather than inventing an order', () => {
+    const placed = boxes(3)
+    const centre = word(3)
+    const distance = (c: Box) => Math.hypot(c.cx - centre.cx, c.cy - centre.cy)
+    expect(Math.abs(distance(placed[1]!) - distance(placed[2]!))).toBeLessThan(0.01)
   })
 
   it('draws a heavier connector for a stronger relation', () => {
@@ -118,23 +145,11 @@ describe('semantic map layout', () => {
   })
 
   it('is stable, so the map does not rearrange between visits', () => {
-    const input = nodes(9)
+    const input = nodes(6)
     expect(layoutNodes(input)).toEqual(layoutNodes(input))
   })
 
-  it('keeps every card inside the box', () => {
-    for (const p of layoutNodes(nodes(8))) {
-      expect(p.x).toBeGreaterThan(0)
-      expect(p.x).toBeLessThan(100)
-      expect(p.y).toBeGreaterThan(0)
-      expect(p.y).toBeLessThan(100)
-    }
-  })
-
-  it('sizes by importance, not by learning state', () => {
-    expect(sizeTier(0.95)).toBe('hero')
-    expect(sizeTier(0.8)).toBe('primary')
-    expect(sizeTier(0.5)).toBe('secondary')
-    expect(sizeTier(0.32)).toBe('peripheral')
+  it('places what it can and leaves the rest to the list beneath the map', () => {
+    expect(layoutNodes(nodes(11))).toHaveLength(MAP_MAX_NODES)
   })
 })

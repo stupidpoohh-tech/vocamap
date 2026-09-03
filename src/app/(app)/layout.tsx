@@ -22,9 +22,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-line bg-paper/92 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
+          {/* The wordmark is the one piece of chrome allowed the brand colour.
+              Everything else on the page earns attention with position and
+              weight, which is what keeps the accent meaning something. */}
           <Link
             href="/study"
-            className="text-[0.8125rem] font-medium tracking-[0.14em] text-ink-2 uppercase"
+            className="text-[0.8125rem] font-semibold tracking-[0.14em] text-brand uppercase"
           >
             Voca Brain Map
           </Link>
@@ -39,7 +42,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-5 pb-24 pt-4 sm:pt-7">{children}</main>
+      {/* Bottom padding clears the floating navigation, which the page scrolls
+          under rather than stopping above. */}
+      <main className="mx-auto max-w-2xl px-5 pb-28 pt-4 sm:pt-7">{children}</main>
 
       <NavShell>
         <Suspense fallback={<BottomNav links={STUDENT_LINKS} />}>

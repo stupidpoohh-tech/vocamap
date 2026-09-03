@@ -55,6 +55,14 @@
   --radius-control: 0.625rem;
   --radius-card: 0.875rem;
   --radius-container: 1.125rem;
+
+  /* ── Elevation ───────────────────────────────────────────────────────────
+     Two steps, both soft and close to the page. `card` lifts a node off the
+     map just enough to read as an object rather than an outlined region;
+     `float` is for the one element that genuinely hovers over content, the
+     navigation. Anything stronger turns a quiet page into a stack of trays. */
+  --shadow-card: 0 1px 2px oklch(23% 0.008 265 / 0.04), 0 4px 12px oklch(23% 0.008 265 / 0.05);
+  --shadow-float: 0 2px 6px oklch(23% 0.008 265 / 0.05), 0 10px 30px oklch(23% 0.008 265 / 0.09);
 }
 
 @layer base {

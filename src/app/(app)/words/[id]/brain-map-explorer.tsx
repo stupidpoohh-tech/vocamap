@@ -82,9 +82,10 @@ export function BrainMapExplorer({
           dimOthers={chosen}
           onSelect={select}
         />
-        <div className="mt-2 sm:mt-3">
-          <MapLegend statuses={nodes.map((n) => n.status)} />
-        </div>
+        {/* No wrapper: the legend renders nothing when a word has fewer than
+            two learning states, and a wrapper would still charge the layout
+            its margin for the empty space. */}
+        <MapLegend statuses={nodes.map((n) => n.status)} />
       </section>
 
       <Workspace node={selected} onAnswer={handleAnswer} />

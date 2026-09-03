@@ -46,7 +46,7 @@ const FRAME_HEIGHT: Record<number, number> = {
   3: 256,
   4: 252,
   5: 272,
-  6: 284,
+  6: 272,
 }
 
 /**
@@ -89,8 +89,8 @@ const SLOTS: Record<number, MobileSlot[]> = {
     { x: 50, y: 21, width: 118 },
     { x: 15, y: 39, width: 88 },
     { x: 85, y: 39, width: 88 },
-    { x: 15, y: 64, width: 86 },
-    { x: 85, y: 64, width: 86 },
+    { x: 15, y: 65, width: 86 },
+    { x: 85, y: 65, width: 86 },
     { x: 50, y: 87, width: 102 },
   ],
 }
@@ -127,7 +127,7 @@ export function layoutMobileNodes(nodes: MobileInput[]): MobilePlacement[] {
       ...slot,
       // A visible spread, but nothing thick enough to compete with the cards.
       strokeWidth: 0.5 + strength * 0.9,
-      strokeOpacity: 0.2 + strength * 0.35,
+      strokeOpacity: 0.5 + strength * 0.45,
     }
   })
 }

@@ -1,21 +1,26 @@
 /**
- * Places semantic nodes around a word.
+ * Places semantic nodes around a word, on a wide screen.
  *
- * The old map put five category cards at five fixed angles, all the same size.
- * That reads as a menu, and a menu cannot say which of these things matters or
- * which one you are weak at. This lays out arbitrary nodes so that importance
- * is legible without a legend: important nodes are larger and sit closer in.
+ * Fixed slots, mirror-symmetric about the word, chosen per node count — the
+ * same approach the phone map uses, for the same reason. The previous version
+ * scattered cards by golden angle and then pushed them apart until they fit,
+ * which is defensible as information design and reads as an accident: a
+ * constellation the eye cannot find a centre line in looks unfinished next to
+ * anything else on the page.
  *
- * Deterministic — a word always lays out the same way, so the map does not
- * rearrange itself under the reader between visits. Pure, so it can be tested
- * without a browser.
+ * Importance has not stopped being drawn. It decides which slot a node gets —
+ * slot order is importance order, and the slots get further from the word as
+ * they go — and it still sets the weight of the connector. What it no longer
+ * does is change the size of the card, because a ring of four different card
+ * sizes is what made the old map read as debris rather than as a shape.
+ *
+ * Deterministic and pure: a word lays out the same way on every visit, and the
+ * geometry can be checked without a browser.
  */
-
-export type SizeTier = 'hero' | 'primary' | 'secondary' | 'peripheral'
 
 export type LayoutInput = {
   id: string
-  /** 0..1. Drives size, distance from centre and link weight. */
+  /** 0..1. Decides slot order, and the weight of the connector. */
   importance: number
   /** 0..1. How strongly this belongs to the word. Drives the connector only. */
   relationStrength?: number
@@ -23,228 +28,137 @@ export type LayoutInput = {
 
 export type PlacedNode = {
   id: string
-  /** Percentages within the map box, node centre. */
+  /** Node centre, as a percentage of the frame. */
   x: number
   y: number
-  tier: SizeTier
-  /** Stroke width for the connector, in viewBox units. */
+  /** Stroke width for the connector, in the frame's 0..100 space. */
   strokeWidth: number
   strokeOpacity: number
 }
 
-export function sizeTier(importance: number): SizeTier {
-  if (importance >= 0.9) return 'hero'
-  if (importance >= 0.7) return 'primary'
-  if (importance >= 0.45) return 'secondary'
-  return 'peripheral'
+/**
+ * Past roughly this many cards a constellation stops reading as one shape and
+ * starts reading as clutter, whatever the layout does. A Brain Map is three to
+ * five nodes; the larger tables exist for maps written before that rule.
+ */
+export const MAP_MAX_NODES = 8
+
+/** Card size in px. Fixed, so the frame's clearances are true at any width. */
+export const MAP_CARD = { width: 168, height: 84 }
+
+/** The word in the middle, in px. */
+export const MAP_CENTRE = 104
+
+/**
+ * The narrowest the wide map is ever asked to render.
+ *
+ * Below 640px the phone map takes over, and at 640px the page's own padding
+ * leaves this much for the frame. Every slot table is verified against it.
+ */
+export const MAP_MIN_WIDTH = 600
+
+/** Frame height in px, per node count. */
+const FRAME_HEIGHT: Record<number, number> = {
+  1: 170,
+  2: 170,
+  3: 310,
+  4: 320,
+  5: 340,
+  6: 360,
+  7: 390,
+  8: 440,
 }
 
 /**
- * Half-extents per tier, in the same 0..100 space as the positions.
+ * Slot tables, ordered most important first.
  *
- * Vertical extents are relatively large because the box is wider than it is
- * tall — one unit of y covers fewer pixels than one unit of x — and because
- * labels wrap to two lines. Sizing these from a single line is what let cards
- * overlap.
+ * Mirror-symmetric about the word, so the arrangement has a centre line to
+ * read it against. Verified numerically at 600px: no card comes within 12px of
+ * another card, of the word, or of the frame edge, and the first slot is the
+ * one nearest the word.
+ *
+ * One and two nodes sit beside the word rather than above it. A card directly
+ * over the word needs half the word plus a card's height of clearance, which
+ * for a single node buys a tall frame that is mostly empty.
  */
-const FOOTPRINT: Record<SizeTier, { w: number; h: number }> = {
-  hero: { w: 13.5, h: 12 },
-  primary: { w: 11.5, h: 12 },
-  secondary: { w: 10, h: 11 },
-  peripheral: { w: 8.5, h: 10 },
+const SLOTS: Record<number, Array<{ x: number; y: number }>> = {
+  1: [{ x: 78, y: 50 }],
+  2: [
+    { x: 78, y: 50 },
+    { x: 22, y: 50 },
+  ],
+  3: [
+    { x: 50, y: 14 },
+    { x: 15, y: 74 },
+    { x: 85, y: 74 },
+  ],
+  4: [
+    { x: 50, y: 15 },
+    { x: 15, y: 50 },
+    { x: 85, y: 50 },
+    { x: 50, y: 86 },
+  ],
+  5: [
+    { x: 50, y: 14 },
+    { x: 15, y: 46 },
+    { x: 85, y: 46 },
+    { x: 30, y: 86 },
+    { x: 70, y: 86 },
+  ],
+  6: [
+    { x: 50, y: 13 },
+    { x: 15, y: 36 },
+    { x: 85, y: 36 },
+    { x: 15, y: 71 },
+    { x: 85, y: 71 },
+    { x: 50, y: 88 },
+  ],
+  7: [
+    { x: 50, y: 12 },
+    { x: 15, y: 33 },
+    { x: 85, y: 33 },
+    { x: 15, y: 64 },
+    { x: 85, y: 64 },
+    { x: 30, y: 89 },
+    { x: 70, y: 89 },
+  ],
+  8: [
+    { x: 50, y: 10 },
+    { x: 15, y: 29 },
+    { x: 85, y: 29 },
+    { x: 15, y: 54 },
+    { x: 85, y: 54 },
+    { x: 15, y: 79 },
+    { x: 85, y: 79 },
+    { x: 50, y: 90 },
+  ],
 }
 
-const CENTRE = { x: 50, y: 50 }
-/**
- * Keeps nodes clear of the central word. Uniform on purpose: scaling it by the
- * card's own height pushed the biggest cards furthest out, which inverted the
- * one thing the distance is supposed to say.
- */
-const CENTRE_CLEARANCE = 26
-const GOLDEN_ANGLE = 137.508
-/**
- * Positions are a circle in the box's own 0..100 space, which the box's 16:10
- * aspect renders as an ellipse. That is deliberate: nodes of equal importance
- * land on one ring the reader can see, and squashing the circle to compensate
- * would only make the ring stop being a ring.
- */
-const PASSES = 400
-
-/**
- * The ring the least important node sits on.
- *
- * A map is three to five nodes, so the ring can afford to be wide: a handful of
- * cards huddled around the word wastes the space that makes the difference
- * between important and peripheral visible at a glance. It still widens with
- * the count, because the relaxation pass needs somewhere to put the extras when
- * a legacy map carries more.
- */
-function maxRadius(count: number): number {
-  if (count <= 2) return 34
-  return Math.min(46, 36 + count * 1.5)
+export function mapFrameHeight(count: number): number {
+  return FRAME_HEIGHT[clampCount(count)]!
 }
 
-/**
- * Turns importance into a 0..1 position on the ring, relative to the other
- * nodes on *this* map.
- *
- * Absolute importance bunches near the top — a core meaning is 0.95 and even a
- * minor collocation is 0.52 — so reading it directly left every map huddled in
- * the inner third of the box, with the gap between the most and least important
- * node too small to see. What the reader needs is the ranking, and the ring is
- * what the ranking is drawn with.
- *
- * When everything really is equally important, one ring is the honest answer.
- */
-function importanceRanker(values: number[]): (importance: number) => number {
-  const top = Math.max(...values)
-  const span = top - Math.min(...values)
-  if (span < 0.05) return () => 0.35
-  return (importance) => clamp((top - importance) / span, 0, 1)
-}
-
-/** FNV-1a. Small, stable, and good enough to scatter angles reproducibly. */
-function hash(value: string): number {
-  let h = 0x811c9dc5
-  for (let i = 0; i < value.length; i += 1) {
-    h ^= value.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return (h >>> 0) / 0xffffffff
-}
-
-/**
- * Golden-angle placement, perturbed per node so the result never reads as a
- * regular polygon, then relaxed so cards do not overlap.
- *
- * The relaxation works in polar coordinates on purpose. Pushing cards apart in
- * x/y is simpler, but it moves them radially, and radius is the one thing that
- * has to keep meaning importance — a confusable the student keeps failing
- * ended up further out than a derived form that way. Here overlaps are
- * resolved by sliding cards *around* the word, and a card is only allowed to
- * drift outward when there is genuinely no room at its own radius — and then
- * only the less important card of the pair.
- */
 export function layoutNodes(nodes: LayoutInput[]): PlacedNode[] {
   if (!nodes.length) return []
 
-  // Most important first: the sweep below always yields to the earlier node, so
-  // this is what makes "more important stays closer" hold.
-  const ordered = [...nodes].sort((a, b) => b.importance - a.importance)
+  const ordered = [...nodes].sort((a, b) => b.importance - a.importance).slice(0, MAP_MAX_NODES)
+  const slots = SLOTS[clampCount(ordered.length)]!
 
-  const outer = maxRadius(ordered.length)
-  const rankOf = importanceRanker(ordered.map((n) => clamp(n.importance, 0, 1)))
-
-  const polar: Polar[] = ordered.map((node, index) => {
-    const seed = hash(node.id)
-    const importance = clamp(node.importance, 0, 1)
-
-    // Deliberately not evenly spaced: the golden angle never repeats a
-    // direction, and the jitter breaks any residual regularity.
-    // Jitter goes into the angle only. A radial wobble reads as noise on the
-    // one channel that has to stay readable: a node 1.5 units closer than a
-    // more important one is a lie about which one matters.
-    const angle = ((index * GOLDEN_ANGLE + seed * 34 - 17) * Math.PI) / 180
-    const radius = CENTRE_CLEARANCE + rankOf(importance) * (outer - CENTRE_CLEARANCE)
-
+  return ordered.map((node, index) => {
+    const slot = slots[index]!
+    const strength = clamp(node.relationStrength ?? node.importance, 0, 1)
     return {
       id: node.id,
-      angle,
-      radius,
-      tier: sizeTier(importance),
-      strokeWidth: 0.55 + (node.relationStrength ?? importance) * 1.15,
-      strokeOpacity: 0.22 + (node.relationStrength ?? importance) * 0.42,
+      x: slot.x,
+      y: slot.y,
+      strokeWidth: 0.55 + strength * 1.15,
+      strokeOpacity: 0.55 + strength * 0.45,
     }
   })
-
-  relax(polar)
-
-  return polar.map((node) => ({
-    id: node.id,
-    x: CENTRE.x + Math.cos(node.angle) * node.radius,
-    y: CENTRE.y + Math.sin(node.angle) * node.radius ,
-    tier: node.tier,
-    strokeWidth: node.strokeWidth,
-    strokeOpacity: node.strokeOpacity,
-  }))
 }
 
-type Polar = {
-  id: string
-  angle: number
-  radius: number
-  tier: SizeTier
-  strokeWidth: number
-  strokeOpacity: number
-}
-
-/** How far the box lets a card at this angle sit before it clips an edge. */
-function radiusLimit(angle: number, tier: SizeTier): number {
-  const f = FOOTPRINT[tier]
-  const cos = Math.abs(Math.cos(angle))
-  const sin = Math.abs(Math.sin(angle))
-  const byX = cos < 1e-6 ? Infinity : (49 - f.w) / cos
-  const byY = sin < 1e-6 ? Infinity : (49 - f.h) / sin
-  return Math.max(CENTRE_CLEARANCE, Math.min(byX, byY))
-}
-
-function relax(nodes: Polar[]): void {
-  for (let pass = 0; pass < PASSES; pass += 1) {
-    // Radial relief is a last resort, so it only switches on once sliding
-    // around the word has had a fair chance to work.
-    const radialRelief = pass > PASSES * 0.4
-
-    for (let i = 0; i < nodes.length; i += 1) {
-      const a = nodes[i]!
-      const fa = FOOTPRINT[a.tier]
-
-      for (let j = i + 1; j < nodes.length; j += 1) {
-        const b = nodes[j]!
-        const fb = FOOTPRINT[b.tier]
-
-        const dx = b.radius * Math.cos(b.angle) - a.radius * Math.cos(a.angle)
-        const dy = b.radius * Math.sin(b.angle) - a.radius * Math.sin(a.angle)
-        const overlapX = fa.w + fb.w - Math.abs(dx)
-        const overlapY = fa.h + fb.h - Math.abs(dy)
-        if (overlapX <= 0 || overlapY <= 0) continue
-
-        // Smallest translation that separates the two cards.
-        const push =
-          overlapX < overlapY
-            ? { x: (overlapX / 2) * (dx >= 0 ? 1 : -1), y: 0 }
-            : { x: 0, y: (overlapY / 2) * (dy >= 0 ? 1 : -1) }
-
-        // `a` is the more important of the two, so it gives less ground.
-        slide(a, -push.x * 0.35, -push.y * 0.35)
-        slide(b, push.x * 0.65, push.y * 0.65)
-
-        if (radialRelief) {
-          // Only outward, and only for the less important card, so the pair
-          // never ends up in the wrong order.
-          const outward = push.x * Math.cos(b.angle) + push.y * Math.sin(b.angle)
-          if (outward > 0) b.radius += outward * 0.3
-        }
-      }
-
-      a.radius = clamp(a.radius, CENTRE_CLEARANCE, radiusLimit(a.angle, a.tier))
-    }
-
-    // Radial relief can push a card past one that matters less than it does.
-    // `nodes` is sorted by importance, so making the radii non-decreasing along
-    // it restores the invariant — by pulling the stronger card back in, never by
-    // pushing the weaker one further out into the margin. Inside the loop, so
-    // the remaining passes clear any overlap this reopens.
-    for (let i = nodes.length - 2; i >= 0; i -= 1) {
-      const here = nodes[i]!
-      here.radius = Math.min(here.radius, nodes[i + 1]!.radius)
-    }
-  }
-}
-
-/** Turns a cartesian nudge into rotation around the word, dropping the rest. */
-function slide(node: Polar, dx: number, dy: number): void {
-  const tangential = -dx * Math.sin(node.angle) + dy * Math.cos(node.angle)
-  node.angle += tangential / Math.max(node.radius, 1)
+function clampCount(count: number): number {
+  return Math.min(MAP_MAX_NODES, Math.max(1, count))
 }
 
 function clamp(value: number, min: number, max: number): number {

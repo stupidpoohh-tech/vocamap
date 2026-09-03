@@ -1,7 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
-import { layoutNodes, type PlacedNode, type SizeTier } from '@/lib/learning/map-layout'
+import {
+  layoutNodes,
+  MAP_CARD,
+  MAP_CENTRE,
+  MAP_MAX_NODES,
+  mapFrameHeight,
+} from '@/lib/learning/map-layout'
 import {
   layoutMobileNodes,
   MOBILE_CENTRE,
@@ -43,27 +49,6 @@ const STATUS_LABEL: Record<NodeStatus, string> = {
   unseen: '아직 안 봄',
 }
 
-/**
- * Card scale per tier. Deliberately uneven — equal cards read as a menu.
- *
- * Widths are a share of the map box rather than a fixed rem, so a card always
- * occupies the same fraction of the layout's coordinate space no matter how
- * wide the viewport is. Sizing them in rem meant the collision footprints the
- * layout works with were only correct at one screen width.
- */
-const TIER: Record<SizeTier, { widthPct: number; pad: string; label: string }> = {
-  hero: { widthPct: 27, pad: 'px-4 py-3', label: 'text-[15px] leading-snug' },
-  primary: { widthPct: 23, pad: 'px-3.5 py-2.5', label: 'text-[14px] leading-snug' },
-  secondary: { widthPct: 20, pad: 'px-3 py-2', label: 'text-[13px] leading-snug' },
-  peripheral: { widthPct: 17, pad: 'px-2.5 py-1.5', label: 'text-[12px] leading-snug' },
-}
-
-/**
- * Past roughly this many cards a constellation stops reading as one shape and
- * starts reading as clutter, whatever the layout does.
- */
-const CONSTELLATION_LIMIT = 8
-
 export function SemanticMap({
   lemma,
   nodes,
@@ -88,7 +73,7 @@ export function SemanticMap({
       [...nodes]
         .sort((a, b) => b.importance - a.importance)
         .filter((n) => n.onMap)
-        .slice(0, CONSTELLATION_LIMIT),
+        .slice(0, MAP_MAX_NODES),
     [nodes],
   )
 
@@ -106,13 +91,21 @@ export function SemanticMap({
     [onMap],
   )
 
+  const height = mapFrameHeight(onMap.length)
+
   return (
     <>
       {/* Constellation — desktop and tablet. */}
-      {/* Sized for the three to five cards a map now carries. The old box was
-          proportioned for a dozen and left a hole in the middle of the page. */}
-      <div className="relative mx-auto hidden aspect-[16/11] w-full max-w-xl sm:block">
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden>
+      {/* Height is set per node count rather than by an aspect ratio: the
+          clearances between a card, its neighbours and the word are measured in
+          pixels, so the frame that guarantees them has to be too. */}
+      <div className="relative mx-auto hidden w-full sm:block" style={{ height }}>
+        <svg
+          className="absolute inset-0 h-full w-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
           {onMap.map((node) => {
             const p = placed.get(node.id)
             if (!p) return null
@@ -126,8 +119,12 @@ export function SemanticMap({
                 y2={p.y}
                 stroke="currentColor"
                 strokeWidth={active ? p.strokeWidth + 0.7 : p.strokeWidth}
-                strokeOpacity={active ? 0.85 : selectedId ? p.strokeOpacity * 0.5 : p.strokeOpacity}
-                className={active ? 'text-brand' : 'text-ink-3'}
+                strokeOpacity={active ? 1 : selectedId ? p.strokeOpacity * 0.55 : p.strokeOpacity}
+                // Drawn in the brand, not in ink. The connectors are the one
+                // part of the map that is pure structure, and tinting them is
+                // what makes the word and its branches read as a single object
+                // rather than as cards that happen to have lines behind them.
+                className={active ? 'text-brand' : 'text-brand-line'}
                 vectorEffect="non-scaling-stroke"
               />
             )
@@ -142,12 +139,11 @@ export function SemanticMap({
           return (
             <div
               key={node.id}
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 justify-center"
-              style={{ left: `${p.x}%`, top: `${p.y}%`, width: `${TIER[p.tier].widthPct}%` }}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${p.x}%`, top: `${p.y}%`, width: MAP_CARD.width }}
             >
               <NodeCard
                 node={node}
-                tier={p.tier}
                 selected={selectedId === node.id}
                 dimmed={dimOthers && selectedId !== node.id}
                 onSelect={onSelect}
@@ -241,7 +237,7 @@ function MobileSemanticMap({
                 stroke="currentColor"
                 strokeWidth={active ? p.strokeWidth + 0.6 : p.strokeWidth}
                 strokeOpacity={active ? 0.9 : p.strokeOpacity}
-                className={active ? 'text-brand' : 'text-ink-3'}
+                className={active ? 'text-brand' : 'text-brand-line'}
                 vectorEffect="non-scaling-stroke"
               />
             )
@@ -297,7 +293,7 @@ export function MapOverflow({
   const rest = useMemo(() => {
     const byImportance = [...nodes].sort((a, b) => b.importance - a.importance)
     const placed = new Set(
-      byImportance.filter((n) => n.onMap).slice(0, CONSTELLATION_LIMIT).map((n) => n.id),
+      byImportance.filter((n) => n.onMap).slice(0, MAP_MAX_NODES).map((n) => n.id),
     )
     // A phone places more than the wide map does, so anything on either is out.
     for (const node of byImportance.slice(0, MOBILE_MAX_NODES)) placed.add(node.id)
@@ -361,12 +357,9 @@ function MobileNode({
       onClick={() => onSelect(node.id)}
       aria-pressed={selected}
       className={cn(
-        'w-full rounded-card border bg-surface px-2 py-1.5 text-left transition',
-        selected
-          ? 'border-brand'
-          : urgent
-            ? 'border-ink-3/45'
-            : 'border-line',
+        // Same family as the wide map's cards: lifted, not outlined.
+        'w-full rounded-card bg-surface px-2 py-1.5 text-left shadow-card ring-1 transition',
+        selected ? 'ring-brand' : urgent ? 'ring-brand-line' : 'ring-line/70',
       )}
     >
       <span className="flex items-center gap-1">
@@ -397,11 +390,12 @@ function CentreWord({ lemma }: { lemma: string }) {
       className={cn(
         // The one filled shape on the map, and the only place the brand colour
         // appears at full strength. Everything orbiting it is drawn in ink.
-        'absolute left-1/2 top-1/2 z-10 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2',
+        'absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2',
         'items-center justify-center rounded-full bg-brand text-center',
       )}
+      style={{ width: MAP_CENTRE, height: MAP_CENTRE }}
     >
-      <span className="px-2 text-[15px] font-medium lowercase tracking-tight text-white">
+      <span className="px-3 text-[1.0625rem] font-medium lowercase tracking-tight text-white">
         {lemma}
       </span>
     </div>
@@ -410,20 +404,15 @@ function CentreWord({ lemma }: { lemma: string }) {
 
 function NodeCard({
   node,
-  tier,
   selected,
   dimmed,
   onSelect,
-  fullWidth = false,
 }: {
   node: SemanticNode
-  tier: SizeTier
   selected: boolean
   dimmed: boolean
   onSelect: (id: string) => void
-  fullWidth?: boolean
 }) {
-  const spec = TIER[tier]
   // Something both important and shaky is the reason the word was expanded, so
   // it stays legible before anything is selected.
   const urgent = node.recommended || (node.status === 'weak' && node.importance >= 0.7)
@@ -433,45 +422,46 @@ function NodeCard({
       type="button"
       onClick={() => onSelect(node.id)}
       aria-pressed={selected}
-      style={fullWidth ? undefined : { width: '100%' }}
+      style={{ height: MAP_CARD.height }}
       className={cn(
-        'group rounded-card border bg-surface text-left transition',
-        fullWidth ? 'w-full px-4 py-3' : spec.pad,
-        // Selection is the only strong state on the map. "Urgent" is a hint,
-        // so it is a slightly darker hairline rather than a second accent.
+        // Lifted rather than outlined. A ring of hairline boxes reads as a
+        // form; a ring of cards that sit slightly above the page reads as a
+        // diagram, which is what this is.
+        'flex w-full flex-col justify-center rounded-container bg-surface px-3.5 text-left',
+        'shadow-card ring-1 transition',
         selected
-          ? 'border-brand'
+          ? 'ring-brand'
           : urgent
-            ? 'border-ink-3/40 hover:border-ink-3'
-            : 'border-line hover:border-ink-3/50',
-        dimmed && !selected && 'opacity-45',
+            ? 'ring-brand-line hover:ring-brand/50'
+            : 'ring-line/70 hover:ring-brand-line',
+        dimmed && !selected && 'opacity-40',
       )}
     >
+      {/* The status dot rides in front of the category, where the mock has a
+          bullet. One row instead of two, and the colour is doing the work the
+          third line used to do in words. */}
       <span className="flex items-center gap-1.5">
-        <span className="truncate text-[10px] text-ink-3">{node.eyebrow}</span>
+        <span
+          aria-hidden
+          className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[node.status])}
+        />
+        <span className="truncate text-[0.6875rem] text-ink-3">{node.eyebrow}</span>
         {node.recommended ? (
-          <span className="shrink-0 text-[10px] text-brand">추천</span>
+          <span className="ml-auto shrink-0 text-[0.6875rem] text-brand">추천</span>
         ) : null}
       </span>
 
-      {/* Clamped on the map: the layout reserves a fixed footprint per tier, so a
-          label that wrapped to a third line would overrun its neighbour. The
+      {/* Clamped on the map: the frame reserves a fixed footprint per card, so
+          a label that wrapped to a third line would overrun its neighbour. The
           list below the map renders the same node unclamped. */}
       <span
         className={cn(
-          'mt-1 block font-medium break-keep',
-          fullWidth ? '' : 'line-clamp-2',
-          spec.label,
+          'mt-1.5 line-clamp-2 block text-[0.9375rem] leading-snug break-keep',
+          // Importance shows in weight now that every card is one size.
+          node.importance >= 0.85 ? 'font-medium text-ink' : 'text-ink',
         )}
       >
         {node.label}
-      </span>
-
-      <span className="mt-1.5 flex items-center gap-1.5">
-        <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[node.status])} />
-        <span className="truncate text-[11px] text-ink-3">
-          {node.secondaryLabel ?? STATUS_LABEL[node.status]}
-        </span>
       </span>
     </button>
   )
@@ -484,7 +474,7 @@ export function MapLegend({ statuses }: { statuses: NodeStatus[] }) {
   if (present.length < 2) return null
 
   return (
-    <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs text-ink-3">
+    <ul className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs text-ink-3 sm:mt-3">
       {present.map((status) => (
         <li key={status} className="flex items-center gap-1.5">
           <span className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[status])} aria-hidden />

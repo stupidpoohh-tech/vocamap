@@ -5,6 +5,16 @@ import { Button } from '@/components/ui'
 import type { Exercise, SemanticNode } from '@/lib/data/semantic-map'
 import { cn } from '@/lib/utils'
 
+/**
+ * The practice card.
+ *
+ * Tight on a phone, where it has to share one screen height with the map, and
+ * roomier from tablet up, where it does not. Lifted rather than outlined, like
+ * the cards on the map, so the two read as one family.
+ */
+const CARD =
+  'rounded-container bg-surface px-4 py-3.5 shadow-card ring-1 ring-line/70 sm:px-6 sm:py-4'
+
 export type WorkspaceAnswer = (input: {
   node: SemanticNode
   correct: boolean
@@ -39,7 +49,7 @@ export function Workspace({
 
   if (!node.exercises.length) {
     return (
-      <section className="rounded-container border border-line bg-surface px-4 py-3">
+      <section className={CARD}>
         <Heading node={node} />
         <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-2 break-keep">
           {node.secondaryLabel ?? '아직 이 항목의 문제가 준비되지 않았어요.'}
@@ -63,16 +73,38 @@ function Heading({ node, step }: { node: SemanticNode; step?: string }) {
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <span className="rounded-chip bg-sunken px-2 py-0.5 text-[11px] text-ink-2">
+        <span className="rounded-chip bg-sunken px-2.5 py-0.5 text-[11px] text-ink-2 sm:py-1">
           지금 학습 중
         </span>
         {step ? <span className="numeral text-xs text-ink-3">{step}</span> : null}
       </div>
-      <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="text-base font-medium leading-snug break-keep">{node.label}</span>
-        <span className="text-xs text-ink-3">{node.eyebrow}</span>
+      {/* From tablet up the category sits under the label, as a caption does.
+          On a phone that costs a whole line the screen does not have — the map
+          and this card share one height there — so the two share a baseline. */}
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-2 sm:mt-3 sm:block">
+        <span className="text-base font-medium leading-snug break-keep sm:text-lg">
+          {node.label}
+        </span>
+        <span className="text-xs text-ink-3 sm:mt-1 sm:block">{node.eyebrow}</span>
       </p>
     </>
+  )
+}
+
+/**
+ * A rule with a mark on it.
+ *
+ * A plain hairline says "another section"; this says "same card, next part" —
+ * which is what the step from the thing being learned to the question actually
+ * is.
+ */
+function Divider() {
+  return (
+    <div aria-hidden className="my-2.5 flex items-center gap-2 sm:my-4">
+      <span className="h-px flex-1 bg-line-soft" />
+      <span className="h-1 w-1 rounded-full bg-line" />
+      <span className="h-px flex-1 bg-line-soft" />
+    </div>
   )
 }
 
@@ -104,12 +136,11 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
   const last = index === node.exercises.length - 1
 
   return (
-    // Compact on purpose: the map above it is the point of the screen, and
-    // the two have to share one phone height.
-    <section className="rounded-container border border-line bg-surface px-4 py-3">
+    <section className={CARD}>
       <Heading node={node} step={`${index + 1} / ${node.exercises.length}`} />
 
-      <div className="mt-3 border-t border-line-soft pt-3">
+      <Divider />
+      <div>
         {exercise.kind === 'choice' ? (
           <ChoiceExercise exercise={exercise} answered={answered} onSubmit={submit} />
         ) : (
@@ -124,7 +155,8 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
       </div>
 
       {answered ? (
-        <div className="mt-3 animate-rise border-t border-line-soft pt-3">
+        <div className="animate-rise">
+          <Divider />
           <div className="flex items-baseline justify-between gap-3">
             <span className={cn('text-sm', answered.correct ? 'text-good' : 'text-bad')}>
               {answered.correct ? '정답입니다' : '다시 볼게요'}
@@ -182,7 +214,7 @@ function ChoiceExercise({
       {/* Two columns, so a pair of choices reads as a pair rather than as a
           stack the eye has to walk down. Three or four wrap onto a second row
           at the same width. */}
-      <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+      <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:mt-3 sm:gap-2">
         {exercise.options.map((option) => {
           const isAnswer = option === exercise.answer
           const picked = answered?.given === option
@@ -193,15 +225,18 @@ function ChoiceExercise({
               disabled={Boolean(answered)}
               onClick={() => onSubmit(option, isAnswer)}
               className={cn(
-                'rounded-card border px-2.5 py-1.5 text-left text-[0.8125rem] leading-[1.4] transition',
-                'disabled:cursor-default',
+                // Filled tiles rather than outlined boxes. Four hairline
+                // rectangles inside a card that already has an edge is
+                // box-in-box; a soft fill separates them without adding one.
+                'rounded-card px-2.5 py-2 text-left text-[0.8125rem] leading-[1.45] transition',
+                'disabled:cursor-default sm:px-3 sm:py-2.5 sm:text-sm',
                 answered && isAnswer
-                  ? 'border-good/40 bg-good-soft text-good'
+                  ? 'bg-good-soft text-good ring-1 ring-good/30'
                   : answered && picked
-                    ? 'border-bad/40 bg-bad-soft text-bad'
+                    ? 'bg-bad-soft text-bad ring-1 ring-bad/30'
                     : answered
-                      ? 'border-line text-ink-3'
-                      : 'border-line bg-surface hover:border-ink-3',
+                      ? 'bg-sunken text-ink-3'
+                      : 'bg-brand-soft text-ink hover:ring-1 hover:ring-brand-line',
               )}
             >
               <span className="break-keep">{option}</span>
