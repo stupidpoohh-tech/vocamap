@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { getActor } from '@/lib/auth/session'
 import { signOut } from '@/app/login/actions'
 import { BottomNav, NavShell } from './nav'
+import { SiteFooter } from '@/components/site-footer'
 
 /**
  * The app shell.
@@ -18,7 +19,9 @@ import { BottomNav, NavShell } from './nav'
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh">
+    // A column, so the credit line sits at the bottom of the screen on a short
+    // page instead of floating directly under two lines of content.
+    <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-20 border-b border-line-soft bg-paper/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
           {/* Ink, not accent. A wordmark is the one thing on a screen that
@@ -41,10 +44,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           so with `data-wide`, and gets the room to do it — but only once the
           screen is big enough that the columns are worth having. Bottom padding
           clears the floating navigation, which the page scrolls under rather
-          than stopping above. */}
-      <main className="mx-auto max-w-2xl px-5 pb-28 pt-4 sm:pt-7 min-[1120px]:has-[[data-wide]]:max-w-[74rem] min-[1120px]:has-[[data-wide]]:px-8">
+          than stopping above — that clearance now lives on the footer beneath
+          it, which is the last thing on the page. */}
+      <main className="mx-auto w-full max-w-2xl flex-1 px-5 pt-4 sm:pt-7 min-[1120px]:has-[[data-wide]]:max-w-[74rem] min-[1120px]:has-[[data-wide]]:px-8">
         {children}
       </main>
+
+      <SiteFooter />
 
       <NavShell>
         <Suspense fallback={<BottomNav links={STUDENT_LINKS} />}>
@@ -57,13 +63,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 /**
  * Three destinations for a student, and they are the three things this app is:
- * the word list you test yourself on, the words you kept or got wrong, and the
- * handful of words that have a Brain Map.
+ * the word list, the handful of words that have a Brain Map, and the words you
+ * kept or got wrong.
+ *
+ * In that order: the two that are about the material come first, and the one
+ * that is about you comes last — which is also the only one that asks for an
+ * account.
  */
 const STUDENT_LINKS = [
   { href: '/study', label: '단어' },
-  { href: '/vault', label: '보관함' },
   { href: '/map', label: '맵' },
+  { href: '/vault', label: '보관함' },
 ]
 
 /**
