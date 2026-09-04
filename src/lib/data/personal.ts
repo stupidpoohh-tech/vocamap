@@ -56,7 +56,7 @@ export type PersonalBrainMap = {
 export async function getPersonalBrainMap(
   userId: string,
   vocabularyId: string,
-  opts: { state?: WordStateRead } = {},
+  opts: { state?: WordStateRead; translations?: Array<{ text: string; isPrimary: boolean }> } = {},
   db: Db = defaultDb,
 ): Promise<PersonalBrainMap | null> {
   const [vocab] = await db
@@ -74,11 +74,7 @@ export async function getPersonalBrainMap(
   // fetched again here: they are the same rows `collectWordState` already
   // loaded, and reading them twice is what made this page's round trips double.
   const [translations, progress, wordState] = await Promise.all([
-    db
-      .select({ text: vocabularyTranslations.text, isPrimary: vocabularyTranslations.isPrimary })
-      .from(vocabularyTranslations)
-      .where(eq(vocabularyTranslations.vocabularyId, vocabularyId))
-      .orderBy(desc(vocabularyTranslations.isPrimary), vocabularyTranslations.sortOrder),
+    opts.translations ?? listTranslations(vocabularyId, db),
     db
       .select()
       .from(brainMapNodeProgress)
@@ -204,6 +200,24 @@ export async function getBrainMapView(
  * recommendation time, and a first-open timestamp from weeks ago would wrongly
  * suppress every future recommendation for the word.
  */
+/**
+ * A word's Korean glosses, primary first.
+ *
+ * Exported because two readers on the word page want the identical rows —
+ * the personal view and the semantic map — and running in parallel neither can
+ * hand them to the other. The page reads once and passes them in.
+ */
+export async function listTranslations(
+  vocabularyId: string,
+  db: Db = defaultDb,
+): Promise<Array<{ text: string; isPrimary: boolean }>> {
+  return db
+    .select({ text: vocabularyTranslations.text, isPrimary: vocabularyTranslations.isPrimary })
+    .from(vocabularyTranslations)
+    .where(eq(vocabularyTranslations.vocabularyId, vocabularyId))
+    .orderBy(desc(vocabularyTranslations.isPrimary), vocabularyTranslations.sortOrder)
+}
+
 export async function markBrainMapOpened(
   userId: string,
   vocabularyId: string,

@@ -17,11 +17,14 @@ export function BrainMapExplorer({
   lemma,
   nodes: initialNodes,
   recommendedNodeId,
+  alreadyOpened,
 }: {
   vocabularyId: string
   lemma: string
   nodes: SemanticNode[]
   recommendedNodeId: string | null
+  /** Whether this student has opened this word's map before. */
+  alreadyOpened: boolean
 }) {
   const [nodes, setNodes] = useState(initialNodes)
   // Opens on the recommended node rather than on an empty panel telling the
@@ -34,10 +37,14 @@ export function BrainMapExplorer({
   // state — a map that arrives with four of five nodes faded is not a map.
   const [chosen, setChosen] = useState(false)
 
-  // Opening the map is itself a signal — it tells us the recommendation landed.
+  // Opening the map is itself a signal — it tells us the recommendation
+  // landed. That is a fact about the first time, so it is recorded once. It
+  // used to fire on every visit: a server round trip, a session lookup and two
+  // writes each time a student reopened a word they were revising.
   useEffect(() => {
+    if (alreadyOpened) return
     void openBrainMap(vocabularyId)
-  }, [vocabularyId])
+  }, [alreadyOpened, vocabularyId])
 
   const selected = nodes.find((n) => n.id === selectedId) ?? null
 

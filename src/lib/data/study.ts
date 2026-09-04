@@ -735,6 +735,14 @@ export async function logLearningEvent(
 /* ───────────────────────── recommendation engine ───────────────────────── */
 
 const RECENT_WINDOW = 8
+/**
+ * How far back one read of a word's history goes.
+ *
+ * Generous enough that the error counts derived from it are exact for any word
+ * a student has actually drilled, and bounded so a single word cannot drag an
+ * unbounded number of rows into a page render.
+ */
+const HISTORY_WINDOW = 300
 
 /**
  * One read of everything this student's state for one word.
@@ -765,7 +773,7 @@ export async function collectWordState(
   vocabularyId: string,
   db: Db = defaultDb,
 ): Promise<WordStateRead> {
-  const [cards, recent, nodeErrors, state] = await Promise.all([
+  const [cards, events, state] = await Promise.all([
     db
       .select()
       .from(userVocabularyCards)
@@ -775,29 +783,25 @@ export async function collectWordState(
           eq(userVocabularyCards.vocabularyId, vocabularyId),
         ),
       ),
+    // One read of this word's history, not two.
+    //
+    // The recent run and the per-node error counts are the same rows filtered
+    // two ways, and asking twice costs a second round trip — which is what the
+    // page's cost is actually made of once a query leaves the machine. Capped
+    // because the row count grows with drilling: a word answered more times
+    // than this has an error count off by whatever fell outside, which changes
+    // no decision the signals feed.
     db
-      .select({ correct: reviewEvents.correct })
+      .select({
+        questionType: reviewEvents.questionType,
+        correct: reviewEvents.correct,
+      })
       .from(reviewEvents)
       .where(
-        and(
-          eq(reviewEvents.userId, userId),
-          eq(reviewEvents.vocabularyId, vocabularyId),
-          inArray(reviewEvents.questionType, ['recall_choice', 'recall_typed']),
-        ),
+        and(eq(reviewEvents.userId, userId), eq(reviewEvents.vocabularyId, vocabularyId)),
       )
       .orderBy(desc(reviewEvents.reviewedAt))
-      .limit(RECENT_WINDOW),
-    db
-      .select({ questionType: reviewEvents.questionType, value: count() })
-      .from(reviewEvents)
-      .where(
-        and(
-          eq(reviewEvents.userId, userId),
-          eq(reviewEvents.vocabularyId, vocabularyId),
-          eq(reviewEvents.correct, false),
-        ),
-      )
-      .groupBy(reviewEvents.questionType),
+      .limit(HISTORY_WINDOW),
     db
       .select()
       .from(userVocabularyState)
@@ -811,8 +815,13 @@ export async function collectWordState(
   ])
 
   const now = new Date()
+
+  const recent = events
+    .filter((e) => e.questionType === 'recall_choice' || e.questionType === 'recall_typed')
+    .slice(0, RECENT_WINDOW)
+
   const errorsOf = (type: string) =>
-    nodeErrors.find((e) => e.questionType === type)?.value ?? 0
+    events.filter((e) => e.questionType === type && !e.correct).length
 
   const retentions = cards.map((c) =>
     estimatedRetention(

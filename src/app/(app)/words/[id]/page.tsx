@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getViewer } from '@/lib/auth/session'
-import { getPersonalBrainMap } from '@/lib/data/personal'
+import { getPersonalBrainMap, listTranslations } from '@/lib/data/personal'
 import { buildSemanticMap } from '@/lib/data/semantic-map'
 import { Tag } from '@/components/ui'
-import { bookmarkedIds, collectWordState } from '@/lib/data/study'
+import { collectWordState } from '@/lib/data/study'
 import { BookmarkButton } from '@/components/words/bookmark-button'
 import { SpeakButton } from '@/components/words/speak-button'
 import { BrainMapExplorer } from './brain-map-explorer'
@@ -20,11 +20,19 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
   // One read of this student's state for the word, shared by both views below.
   // They used to collect it separately, which doubled the page's round trips
   // for one set of numbers.
-  const state = await collectWordState(actor.id, id)
-  const [personal, map, bookmarks] = await Promise.all([
-    getPersonalBrainMap(actor.id, id, { state }),
-    buildSemanticMap(actor.id, id, { approvedOnly: !isCurator, state }),
-    bookmarkedIds(actor.id, [id]),
+  // Both reads below want this student's state and this word's glosses, and
+  // running in parallel neither can hand them to the other — so they are read
+  // once here. The bookmark used to be a third query for a column this row
+  // already carries.
+  const [state, translations] = await Promise.all([
+    collectWordState(actor.id, id),
+    listTranslations(id),
+  ])
+  const bookmarked = state.state?.bookmarkedAt != null
+
+  const [personal, map] = await Promise.all([
+    getPersonalBrainMap(actor.id, id, { state, translations }),
+    buildSemanticMap(actor.id, id, { approvedOnly: !isCurator, state, translations }),
   ])
   if (!personal) notFound()
 
@@ -72,7 +80,7 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {personal.isImportant ? <Tag tone="warn">중요</Tag> : null}
-          <BookmarkButton vocabularyId={id} bookmarked={bookmarks.has(id)} size="lg" />
+          <BookmarkButton vocabularyId={id} bookmarked={bookmarked} size="lg" />
         </div>
       </header>
 
@@ -82,6 +90,7 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
           lemma={map.lemma}
           nodes={map.nodes}
           recommendedNodeId={map.recommendedNodeId}
+          alreadyOpened={personal.openedAt !== null}
         />
       ) : (
         <div className="mt-10 text-center">

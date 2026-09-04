@@ -79,7 +79,13 @@ function create(): Db {
       : {}),
     // On a Worker this caps concurrency *within a single request*, which is
     // what our `Promise.all` reads need — not a long-lived pool.
-    max: isWorkerd ? 3 : process.env.NODE_ENV === 'production' ? 10 : 3,
+    //
+    // Three was too few. The word page issues fourteen reads at once and this
+    // is what decides how many round trips that becomes: at three it is five
+    // waves, at six it is three. Hyperdrive keeps the real pool on Cloudflare's
+    // side, so what is opened here is cheap — the number only has to be large
+    // enough that a page's own parallel reads are not queued behind each other.
+    max: isWorkerd ? 6 : process.env.NODE_ENV === 'production' ? 10 : 3,
     // Let sockets retire on their own; nothing closes them explicitly once the
     // request that owns them is gone.
     idle_timeout: isWorkerd ? 10 : undefined,

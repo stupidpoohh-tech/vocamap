@@ -6,6 +6,7 @@ import type { NodeType } from '@/lib/learning/nodes'
 import { MAP_NODE_BUDGET, MAP_NODE_TARGET } from '@/lib/ai'
 import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
 import { collectWordState, type WordStateRead } from './study'
+import { listTranslations } from './personal'
 
 /**
  * Turns the shared Brain Map content into a semantic network of the word.
@@ -168,7 +169,12 @@ export async function buildSemanticMap(
    * map side by side, and each used to collect the same four reads for itself —
    * eight round trips for one set of numbers.
    */
-  opts: { approvedOnly?: boolean; state?: WordStateRead } = {},
+  opts: {
+    approvedOnly?: boolean
+    state?: WordStateRead
+    /** The same glosses the personal view reads. See `listTranslations`. */
+    translations?: Array<{ text: string; isPrimary: boolean }>
+  } = {},
   db: Db = defaultDb,
 ): Promise<SemanticMap | null> {
   const master = await getMasterBrainMap(
@@ -180,11 +186,7 @@ export async function buildSemanticMap(
 
   const [tallies, translations, confusions, wordState] = await Promise.all([
     itemTallies(userId, vocabularyId, db),
-    db
-      .select({ text: vocabularyTranslations.text, isPrimary: vocabularyTranslations.isPrimary })
-      .from(vocabularyTranslations)
-      .where(eq(vocabularyTranslations.vocabularyId, vocabularyId))
-      .orderBy(desc(vocabularyTranslations.isPrimary), vocabularyTranslations.sortOrder),
+    opts.translations ?? listTranslations(vocabularyId, db),
     master.similarWords.length
       ? db
           .select({
