@@ -135,6 +135,12 @@ export const vocabularies = pgTable(
     lemma: text().notNull(),
     language: text().notNull().default('en'),
     partOfSpeech: text(),
+    /**
+     * How the word is said, as the wordbook prints it — e.g. `kəntémpərèri`.
+     * Nullable and never guessed: a made-up transcription is worse than none,
+     * and the browser can speak the word without one either way.
+     */
+    pronunciation: text(),
     /** CEFR-ish label. Nullable on purpose: we do not invent levels. */
     level: text(),
     /** Lower is more frequent. Nullable until we import a real frequency list. */

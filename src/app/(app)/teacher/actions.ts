@@ -5,7 +5,15 @@ import { eq, sql } from 'drizzle-orm'
 import { requireRole } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
-import { addToSet, assignSet, assertCanAccessStudent, createSet, linkStudent } from '@/lib/data/teacher'
+import {
+  addToSet,
+  assignSet,
+  assertCanAccessStudent,
+  createSet,
+  deleteWordSet,
+  linkStudent,
+} from '@/lib/data/teacher'
+import { ForbiddenError, NotFoundError } from '@/lib/data/errors'
 import { importVocabularyList } from '@/lib/data/vocabulary'
 import { markImportant } from '@/lib/data/study'
 
@@ -92,4 +100,30 @@ export async function flagImportant(studentId: string, vocabularyId: string): Pr
     markedBy: actor.id,
   })
   revalidatePath(`/teacher/students/${studentId}`)
+}
+
+/**
+ * Deletes a set, but never its words.
+ *
+ * Worth saying out loud because the two are easy to confuse: the words stay in
+ * the library with their Brain Maps and every student's history intact. What
+ * goes is the grouping and the assignments that handed it out.
+ */
+export async function removeWordSet(
+  input: { setId: string },
+): Promise<{ ok: true; title: string } | { ok: false; message: string }> {
+  const actor = await requireRole('teacher', 'admin')
+
+  try {
+    const { title } = await deleteWordSet({ setId: input.setId, actor })
+    revalidatePath('/teacher')
+    revalidatePath('/study')
+    revalidatePath('/map')
+    return { ok: true, title }
+  } catch (error) {
+    if (error instanceof NotFoundError || error instanceof ForbiddenError) {
+      return { ok: false, message: error.message }
+    }
+    throw error
+  }
 }

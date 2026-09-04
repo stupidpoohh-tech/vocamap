@@ -35,9 +35,22 @@ describe('wordbook import format', () => {
     expect(entries.map((e) => e.lemma)).toEqual(['contemporary', 'candidate'])
   })
 
-  it('drops the pronunciation the book prints beside the headword', () => {
+  it('keeps the pronunciation the book prints beside the headword', () => {
+    // The one thing a student always asks about a new word.
     const [first] = parseWordbook(PAGE).entries
     expect(first!.lemma).toBe('contemporary')
+    expect(first!.pronunciation).toBe('kəntémpərèri')
+  })
+
+  it('takes a pronunciation written between slashes too', () => {
+    const [entry] = parseWordbook('candidate /ˈkændɪdeɪt/\nn. 후보').entries
+    expect(entry!.lemma).toBe('candidate')
+    expect(entry!.pronunciation).toBe('ˈkændɪdeɪt')
+  })
+
+  it('leaves the pronunciation null when the book printed none', () => {
+    const [entry] = parseWordbook('ethics\nn. 윤리학').entries
+    expect(entry!.pronunciation).toBeNull()
   })
 
   it('keeps each part of speech as its own sense, in book order', () => {

@@ -14,7 +14,7 @@ import {
   vocabularySets,
   wordPairs,
 } from '@/lib/db/schema'
-import { ForbiddenError } from './errors'
+import { ForbiddenError, NotFoundError } from './errors'
 
 /**
  * The only gate between a teacher and a student's data. Every teacher-facing
@@ -188,6 +188,37 @@ export async function listSets(ownerId: string, db: Db = defaultDb) {
     ...s,
     wordCount: counts.find((c) => c.setId === s.id)?.value ?? 0,
   }))
+}
+
+/**
+ * Removes a set, leaving its words alone.
+ *
+ * A set is a grouping, not a container: the same word can sit in several sets
+ * and carries a Brain Map and every student's history with it. Deleting the
+ * grouping must not take any of that with it, so this deletes the set row and
+ * lets the cascade clear only what belongs to the set itself — its membership
+ * rows and the assignments handing it to students.
+ *
+ * The owner check is the authorisation. An admin can remove anyone's set; a
+ * teacher only their own.
+ */
+export async function deleteWordSet(
+  input: { setId: string; actor: Actor },
+  db: Db = defaultDb,
+): Promise<{ title: string }> {
+  const [set] = await db
+    .select({ title: vocabularySets.title, ownerId: vocabularySets.ownerId })
+    .from(vocabularySets)
+    .where(eq(vocabularySets.id, input.setId))
+    .limit(1)
+
+  if (!set) throw new NotFoundError('세트를 찾을 수 없어요.')
+  if (input.actor.role !== 'admin' && set.ownerId !== input.actor.id) {
+    throw new ForbiddenError('내가 만든 세트만 삭제할 수 있어요.')
+  }
+
+  await db.delete(vocabularySets).where(eq(vocabularySets.id, input.setId))
+  return { title: set.title }
 }
 
 export async function studentProgressSummary(studentId: string, db: Db = defaultDb) {

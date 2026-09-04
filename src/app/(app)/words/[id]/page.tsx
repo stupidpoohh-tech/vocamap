@@ -6,6 +6,7 @@ import { buildSemanticMap } from '@/lib/data/semantic-map'
 import { Tag } from '@/components/ui'
 import { bookmarkedIds, collectWordState } from '@/lib/data/study'
 import { BookmarkButton } from '@/components/words/bookmark-button'
+import { SpeakButton } from '@/components/words/speak-button'
 import { BrainMapExplorer } from './brain-map-explorer'
 import { GenerateButton } from './generate-button'
 import { DeleteWord } from './delete-word'
@@ -51,9 +52,20 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
           the gloss, so the two read as one block rather than as two rows. */}
       <header className="mt-3 flex flex-wrap items-start justify-between gap-3 sm:mt-4">
         <div className="min-w-0">
-          <h1 className="text-[1.875rem] leading-[1.15] font-semibold tracking-[-0.028em] sm:text-[2.25rem]">
-            {personal.lemma}
-          </h1>
+          {/* The word, then how to say it, then what it means. A student who
+              cannot pronounce a word has not learned it, and that question
+              comes before the gloss. */}
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-[1.875rem] leading-[1.15] font-semibold tracking-[-0.028em] sm:text-[2.25rem]">
+              {personal.lemma}
+            </h1>
+            <SpeakButton text={personal.lemma} size="lg" />
+          </div>
+          {personal.pronunciation ? (
+            <p className="mt-1 font-mono text-[0.8125rem] text-ink-3">
+              [{personal.pronunciation}]
+            </p>
+          ) : null}
           {/* Just the gloss. The core meaning belongs on its own node, where
               it is something to study rather than a subtitle to skim. */}
           <p className="mt-1 text-sm text-ink-2 break-keep">{personal.translation ?? '—'}</p>

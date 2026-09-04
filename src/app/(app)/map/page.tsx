@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { getViewer } from '@/lib/auth/session'
-import { listStudyWords, mapCounts } from '@/lib/data/library'
+import { listStudyWords, listWordSets, mapCounts, wordSetName } from '@/lib/data/library'
 import { listRecommendedWords } from '@/lib/data/personal'
 import { EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { BookmarkButton } from '@/components/words/bookmark-button'
@@ -17,80 +17,86 @@ import { DeleteWordButton } from '@/components/words/delete-word-button'
  *
  * Curators get two extra lists so the generation queue stays reachable: this is
  * the only screen that knows which words still lack a map.
+ *
+ * Browsed set by set, like the study book. Words live under sets either way, so
+ * a flat list of every mapped word was the same dictionary problem one screen
+ * over: a student could not tell which of them were this week's. The shelf only
+ * counts words whose map is published, so a set with none does not appear.
+ *
+ * The other tabs stay flat. "저장한 맵" and the curator queues are selections
+ * that cut across sets — grouping them by set would hide the thing they select
+ * for.
  */
 export default async function MapPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; page?: string }>
+  searchParams: Promise<{ tab?: string; q?: string; set?: string; page?: string }>
 }) {
-  const { tab, q, page } = await searchParams
+  const { tab, q, set, page } = await searchParams
   const actor = await getViewer()
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'
   const query = q?.trim() ?? ''
   const view = resolveView(tab, isCurator)
   const pageIndex = Math.max(0, Number(page ?? 0) || 0)
 
-  // Only the list on screen is fetched. Loading all four to take their lengths
-  // meant four full scans to render one of them; the tab counts are one query.
-  const [words, counts] = await Promise.all([
-    listStudyWords({
-      userId: actor.id,
-      scope: SCOPE_OF[view],
-      savedOnly: view === 'saved',
-      query,
-      page: pageIndex,
-    }),
-    mapCounts(actor.id),
-  ])
+  // `set=none` is the bucket of mapped words no set contains — without it they
+  // would be unreachable the moment the maps are browsed set by set.
+  const unassigned = set === 'none'
+  const setId = unassigned ? undefined : set
+  const insideSet = Boolean(set)
+  // The shelf is the default view of the published tab only. A search is
+  // someone hunting one word who does not know which set it is in.
+  const browsing = view === 'published' && !insideSet && !query
 
-  return (
-    <div className="animate-rise">
-      <PageHeader title="맵" subtitle="Brain Map이 있는 단어만 모여 있어요" />
+  const counts = await mapCounts(actor.id)
 
-      {/* Streamed: the list is what the tab is for, and it should not wait on
-          a strip that is empty most of the time. */}
-      {view === 'published' ? (
+  if (browsing) {
+    return (
+      <div className="animate-rise">
+        <PageHeader title="맵" subtitle="Brain Map이 있는 단어만 모여 있어요" />
+
         <Suspense fallback={null}>
           <Recommended userId={actor.id} />
         </Suspense>
-      ) : null}
 
-      <form action="/map" className="mb-4">
-        {tab ? <input type="hidden" name="tab" value={tab} /> : null}
-        <Input
-          name="q"
-          defaultValue={query}
-          placeholder="단어 검색"
-          aria-label="맵 검색"
-        />
-      </form>
+        <SearchForm query={query} />
+        <Tabs view={view} counts={counts} query={query} isCurator={isCurator} />
 
-      <TabBar>
-        <TabLink href={href({ q: query })} active={view === 'published'} count={counts.published}>
-          전체 맵
-        </TabLink>
-        <TabLink href={href({ tab: 'saved', q: query })} active={view === 'saved'} count={counts.saved}>
-          저장한 맵
-        </TabLink>
-        {isCurator ? (
-          <>
-            <TabLink
-              href={href({ tab: 'pending', q: query })}
-              active={view === 'pending'}
-              count={counts.pending}
-            >
-              검수 대기
-            </TabLink>
-            <TabLink
-              href={href({ tab: 'missing', q: query })}
-              active={view === 'missing'}
-              count={counts.missing}
-            >
-              맵 없음
-            </TabLink>
-          </>
-        ) : null}
-      </TabBar>
+        <Suspense fallback={null}>
+          <Shelf userId={actor.id} role={actor.role} />
+        </Suspense>
+      </div>
+    )
+  }
+
+  const words = await listStudyWords({
+    userId: actor.id,
+    scope: SCOPE_OF[view],
+    savedOnly: view === 'saved',
+    setId,
+    unassigned,
+    query,
+    page: pageIndex,
+  })
+  const setTitle = setId ? await wordSetName(setId) : unassigned ? '세트에 없는 단어' : null
+
+  return (
+    <div className="animate-rise">
+      {insideSet ? (
+        <>
+          <Link href="/map" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
+            ← 맵
+          </Link>
+          <PageHeader title={setTitle ?? '맵'} subtitle="이 세트에서 맵이 있는 단어예요" />
+        </>
+      ) : (
+        <PageHeader title="맵" subtitle="Brain Map이 있는 단어만 모여 있어요" />
+      )}
+
+      <SearchForm query={query} tab={tab} set={set} />
+      {insideSet ? null : (
+        <Tabs view={view} counts={counts} query={query} isCurator={isCurator} />
+      )}
 
       {words.words.length === 0 ? (
         <EmptyState title={EMPTY[view].title} hint={EMPTY[view].hint} />
@@ -143,9 +149,114 @@ export default async function MapPage({
         page={words.page}
         pageCount={words.pageCount}
         total={words.total}
-        href={(next) => href({ tab, q: query, page: next ? String(next) : undefined })}
+        href={(next) => href({ tab, q: query, set, page: next ? String(next) : undefined })}
       />
     </div>
+  )
+}
+
+/** The search box, shared by the shelf and the lists it opens into. */
+function SearchForm({ query, tab, set }: { query: string; tab?: string; set?: string }) {
+  return (
+    <form action="/map" className="mb-4">
+      {tab ? <input type="hidden" name="tab" value={tab} /> : null}
+      {set ? <input type="hidden" name="set" value={set} /> : null}
+      <Input name="q" defaultValue={query} placeholder="단어 검색" aria-label="맵 검색" />
+    </form>
+  )
+}
+
+function Tabs({
+  view,
+  counts,
+  query,
+  isCurator,
+}: {
+  view: MapView
+  counts: Awaited<ReturnType<typeof mapCounts>>
+  query: string
+  isCurator: boolean
+}) {
+  return (
+    <TabBar>
+      <TabLink href={href({ q: query })} active={view === 'published'} count={counts.published}>
+        전체 맵
+      </TabLink>
+      <TabLink href={href({ tab: 'saved', q: query })} active={view === 'saved'} count={counts.saved}>
+        저장한 맵
+      </TabLink>
+      {isCurator ? (
+        <>
+          <TabLink
+            href={href({ tab: 'pending', q: query })}
+            active={view === 'pending'}
+            count={counts.pending}
+          >
+            검수 대기
+          </TabLink>
+          <TabLink
+            href={href({ tab: 'missing', q: query })}
+            active={view === 'missing'}
+            count={counts.missing}
+          >
+            맵 없음
+          </TabLink>
+        </>
+      ) : null}
+    </TabBar>
+  )
+}
+
+/**
+ * The sets that have something to open.
+ *
+ * A set with no published map is not shown at all — on this screen it is an
+ * empty room, and the study tab already lists it as a set of words.
+ */
+async function Shelf({ userId, role }: { userId: string; role: string }) {
+  const sets = (await listWordSets(userId)).filter((set) => set.mappedCount > 0)
+
+  if (!sets.length) {
+    return (
+      <EmptyState
+        title="아직 공개된 맵이 없어요"
+        hint={
+          role === 'student'
+            ? '자주 틀리는 단어가 생기면 선생님이 그 단어의 Brain Map을 만들어 줘요.'
+            : '단어의 맵을 만들고 검수에서 승인하면 그 단어가 속한 세트가 여기에 나타나요.'
+        }
+      />
+    )
+  }
+
+  return (
+    <ul className="divide-y divide-line-soft border-t border-line">
+      {sets.map((set) => (
+        <li key={set.id ?? 'none'}>
+          <Link
+            href={`/map?set=${set.id ?? 'none'}`}
+            className="group flex items-center gap-4 py-3.5 transition"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline gap-2">
+                <span className="truncate text-[0.9375rem] text-ink group-hover:text-brand">
+                  {set.title}
+                </span>
+                {set.assigned ? (
+                  <span className="shrink-0 text-[0.6875rem] text-brand">배정</span>
+                ) : null}
+              </span>
+            </span>
+
+            {/* Maps in this set, not words: that is what this screen is for,
+                and the study tab is one tap away for the word count. */}
+            <span className="numeral shrink-0 text-right text-xs text-ink-3">
+              <span className="text-ink-2">{set.mappedCount}</span>개
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -208,10 +319,11 @@ const EMPTY: Record<MapView, { title: string; hint: string }> = {
   },
 }
 
-function href(params: { tab?: string; q?: string; page?: string }): string {
+function href(params: { tab?: string; q?: string; set?: string; page?: string }): string {
   const search = new URLSearchParams()
   if (params.tab) search.set('tab', params.tab)
   if (params.q) search.set('q', params.q)
+  if (params.set) search.set('set', params.set)
   if (params.page) search.set('page', params.page)
   const rest = search.toString()
   return rest ? `/map?${rest}` : '/map'

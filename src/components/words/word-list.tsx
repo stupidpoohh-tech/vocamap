@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { BookmarkButton } from './bookmark-button'
+import { SpeakButton } from './speak-button'
 
 export type WordListItem = {
   id: string
@@ -123,6 +124,13 @@ export function WordList({
                   </span>
                 )}
               </button>
+
+              {/* Only once the English is on screen. In 한영 the word is the
+                  answer the student is trying to recall, and a speaker that
+                  reads it out is a button that gives it away. */}
+              {direction === 'en_ko' || open ? (
+                <SpeakButton text={item.lemma} />
+              ) : null}
 
               {item.wrongCount > 0 ? (
                 <span

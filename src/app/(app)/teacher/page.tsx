@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireActor } from '@/lib/auth/session'
 import { listSets, listStudents } from '@/lib/data/teacher'
+import { DeleteSetButton } from '@/components/words/delete-set-button'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
 import { AddStudentForm, ImportWordsForm } from './forms'
 
@@ -66,6 +67,7 @@ export default async function TeacherPage() {
                   <div className="flex shrink-0 items-center gap-2">
                     {set.isSeed ? <Badge>예시</Badge> : null}
                     <Badge tone="brand">{set.wordCount}개</Badge>
+                    <DeleteSetButton setId={set.id} title={set.title} />
                   </div>
                 </Link>
               </li>

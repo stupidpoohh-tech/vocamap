@@ -11,6 +11,10 @@ import {
   wordPairs,
 } from '@/lib/db/schema'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
+import { addToSet, assignSet, createSet, deleteWordSet, listSets } from '@/lib/data/teacher'
+import { assignments, vocabularySetItems } from '@/lib/db/schema'
+import { ForbiddenError } from '@/lib/data/errors'
+import type { Actor } from '@/lib/auth/session'
 import { getMasterBrainMap, writeDraft } from '@/lib/data/brain-map'
 import { deleteBrainMap, deleteVocabulary } from '@/lib/data/brain-map-edit'
 import { recordRecallAnswer } from '@/lib/data/study'
@@ -137,5 +141,84 @@ describe.skipIf(!hasDatabase)('deleting a word', () => {
         actorId: curator.id,
       }),
     ).rejects.toThrow()
+  })
+})
+
+const asActor = (u: { id: string; email: string; displayName: string; role: string }): Actor => ({
+  id: u.id,
+  email: u.email,
+  displayName: u.displayName,
+  role: u.role as Actor['role'],
+})
+
+/**
+ * Deleting a set is the one deletion on this product that is meant to be safe.
+ * A set is a grouping; the words in it are the library.
+ */
+describe.skipIf(!hasDatabase)('deleting a word set', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  async function aSetWithAWord() {
+    const teacher = await createUser('teacher')
+    const student = await createUser('student')
+    const setId = await createSet({ ownerId: teacher.id, title: '2주차' })
+    const { id: vocabularyId } = await findOrCreateVocabulary({
+      lemma: 'contemporary',
+      createdBy: teacher.id,
+    })
+    await addToSet(setId, [vocabularyId])
+    await assignSet({ setId, studentId: student.id, assignedBy: teacher.id })
+    return { teacher, student, setId, vocabularyId }
+  }
+
+  it('leaves the words in the library', async () => {
+    const { teacher, setId, vocabularyId } = await aSetWithAWord()
+    await deleteWordSet({ setId, actor: asActor(teacher) })
+
+    const rows = await db.select().from(vocabularies).where(eq(vocabularies.id, vocabularyId))
+    expect(rows).toHaveLength(1)
+  })
+
+  it('takes the membership and the assignment with it', async () => {
+    const { teacher, setId } = await aSetWithAWord()
+    await deleteWordSet({ setId, actor: asActor(teacher) })
+
+    expect(
+      await db.select().from(vocabularySetItems).where(eq(vocabularySetItems.setId, setId)),
+    ).toHaveLength(0)
+    expect(await db.select().from(assignments).where(eq(assignments.setId, setId))).toHaveLength(0)
+    expect(await listSets(teacher.id)).toHaveLength(0)
+  })
+
+  it('refuses a teacher who does not own the set', async () => {
+    const { setId } = await aSetWithAWord()
+    const other = await createUser('teacher')
+    await expect(deleteWordSet({ setId, actor: asActor(other) })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    )
+  })
+
+  it('lets an admin remove anyone’s set', async () => {
+    const { setId } = await aSetWithAWord()
+    const admin = await createUser('admin')
+    await expect(deleteWordSet({ setId, actor: asActor(admin) })).resolves.toEqual({
+      title: '2주차',
+    })
+  })
+
+  it('keeps a word that another set also holds', async () => {
+    const { teacher, setId, vocabularyId } = await aSetWithAWord()
+    const keeper = await createSet({ ownerId: teacher.id, title: '3주차' })
+    await addToSet(keeper, [vocabularyId])
+
+    await deleteWordSet({ setId, actor: asActor(teacher) })
+
+    const stillThere = await db
+      .select()
+      .from(vocabularySetItems)
+      .where(eq(vocabularySetItems.setId, keeper))
+    expect(stillThere).toHaveLength(1)
   })
 })
