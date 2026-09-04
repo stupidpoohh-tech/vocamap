@@ -202,3 +202,72 @@ describe('when a line cannot be read', () => {
     expect(entries.map((e) => e.lemma)).toEqual(['candidate', 'ethics'])
   })
 })
+
+/**
+ * What a wordbook page does that the first twenty words did not.
+ *
+ * Found by running likely shapes through the parser rather than by waiting for
+ * a set of forty to come back wrong — a line that silently becomes the wrong
+ * kind of thing is worse than one that fails, because nothing says so.
+ */
+describe('the shapes a page throws at it', () => {
+  const parse = (text: string) => parseWordbook(text)
+
+  it('reads the relation marks a book uses beside ≒', () => {
+    for (const marker of ['↔', 'cf.', 'syn.', 'ant.']) {
+      const { entries, problems } = parse(`normal\na. 정상의\n${marker} abnormal / 비정상적인`)
+      expect(problems, marker).toEqual([])
+      expect(entries[0]!.synonyms, marker).toEqual([{ lemma: 'abnormal', ko: '비정상적인' }])
+    }
+  })
+
+  it('does not mistake a slash inside a sentence for a gloss separator', () => {
+    // "He works the 9/5 shift." was being filed as a collocation, and its
+    // translation then had no example to attach to.
+    const { entries, problems } = parse(
+      'shift\nn. 교대\n* He works the 9/5 shift.\n= 그는 9시부터 5시까지 교대 근무를 한다.',
+    )
+    expect(problems).toEqual([])
+    expect(entries[0]!.collocations).toEqual([])
+    expect(entries[0]!.senses[0]!.examples[0]).toEqual({
+      en: 'He works the 9/5 shift.',
+      ko: '그는 9시부터 5시까지 교대 근무를 한다.',
+    })
+  })
+
+  it('keeps a slash inside a Korean gloss', () => {
+    const { entries } = parse('either\na. 둘 중 하나의\n* either A or B / A 또는 B 둘 중 하나')
+    expect(entries[0]!.collocations).toEqual([
+      { expression: 'either A or B', ko: 'A 또는 B 둘 중 하나' },
+    ])
+  })
+
+  it('takes a gloss written with no part-of-speech mark', () => {
+    const { entries, problems } = parse('albeit\n비록 ~일지라도')
+    expect(problems).toEqual([])
+    expect(entries[0]!.senses).toEqual([
+      { partOfSpeech: null, ko: '비록 ~일지라도', examples: [] },
+    ])
+  })
+
+  it('still refuses a stray Korean line once the gloss is in', () => {
+    // Guessing there would bury a line that simply lost its marker.
+    const { problems } = parse('candidate\nn. 후보\n후보를 좁히다')
+    expect(problems).toHaveLength(1)
+  })
+
+  it('takes a headword of more than one word', () => {
+    const { entries, problems } = parse(
+      'narrow down\nv. 좁히다\n* We narrowed down the list.\n= 우리는 목록을 좁혔다.',
+    )
+    expect(problems).toEqual([])
+    expect(entries[0]!.lemma).toBe('narrow down')
+  })
+
+  it('takes more than one example under one sense', () => {
+    const { entries } = parse(
+      'run\nv. 달리다\n* He runs fast.\n= 그는 빠르게 달린다.\n* She runs daily.\n= 그녀는 매일 달린다.',
+    )
+    expect(entries[0]!.senses[0]!.examples).toHaveLength(2)
+  })
+})

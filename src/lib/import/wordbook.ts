@@ -14,12 +14,16 @@
  * how the page reads to a person. So the marker is not what decides; the
  * content is:
  *
- *   no ` / `            → the example sentence
+ *   no Korean in the line → the example sentence
  *   left side has a space → a collocation   (`impulse buying / 충동 구매`)
  *   left side is one word, sharing a stem with the headword
  *                       → a derived form    (`impulsive / a. 충동적인`)
  *   left side is one word, sharing nothing
  *                       → a synonym         (`rule / v. 다스리다`)
+ *
+ * Korean rather than the separator is what tells a sentence from a term: every
+ * term the book prints carries a gloss, and no English sentence does. Reading
+ * the separator instead filed "He works the 9/5 shift." as a collocation.
  *
  * Explicit markers still win where someone writes them: `+` is always a
  * collocation and `≒` always a synonym.
@@ -72,7 +76,9 @@ const PART_OF_SPEECH: Record<string, string> = {
 const NUMBERED_HEADWORD = /^\d+\s*[.)]\s*(.+)$/
 const SENSE_LINE = /^([A-Za-z가-힣]{1,4})\.\s*(.+)$/
 const LABELLED_SENSE = /^(뜻|의미)\s*[:：]\s*(.+)$/
-const ITEM_MARKER = /^[*\-·+≒~⊕]/
+const ITEM_MARKER = /^(?:[*\-·+≒~⊕↔]|cf\.|syn\.|ant\.)/i
+/** Markers that name a relation we read but do not import. */
+const RELATION_MARKER = /^(?:≒|~|↔|cf\.|syn\.|ant\.)/i
 
 /**
  * How much of a word has to match the headword for it to count as derived.
@@ -198,8 +204,9 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
       continue
     }
 
-    if (ITEM_MARKER.test(text)) {
-      readItem(entry, text[0]!, text.slice(1).trim(), { line: number, text }, problems)
+    const item = ITEM_MARKER.exec(text)
+    if (item) {
+      readItem(entry, item[0], text.slice(item[0].length).trim(), { line: number, text }, problems)
       continue
     }
 
@@ -216,6 +223,14 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
         ko: sense[2]!.trim(),
         examples: [],
       })
+      continue
+    }
+
+    // A bare Korean line before anything else is the gloss, written without a
+    // part-of-speech mark. Only before anything else: later on it is a line
+    // that lost its marker, and guessing there would bury the mistake.
+    if (!entry.senses.length && hasKorean(text)) {
+      entry.senses.push({ partOfSpeech: null, ko: text, examples: [] })
       continue
     }
 
@@ -253,9 +268,9 @@ function readItem(
 
   const fields = rest.split('/').map((part) => part.trim()).filter(Boolean)
 
-  // No separator: this is the example sentence.
-  if (fields.length < 2) {
-    if (marker === '+' || marker === '⊕' || marker === '≒' || marker === '~') {
+  // No gloss: this is the example sentence, whatever punctuation it contains.
+  if (fields.length < 2 || !hasKorean(rest)) {
+    if (marker === '+' || marker === '⊕' || RELATION_MARKER.test(marker)) {
       problems.push({ ...at, message: '"표현 / 뜻" 형태로 적어 주세요.' })
       return
     }
@@ -271,7 +286,7 @@ function readItem(
   const [left, ...tail] = fields as [string, ...string[]]
   const right = tail.join(' / ')
 
-  if (marker === '≒' || marker === '~') {
+  if (RELATION_MARKER.test(marker)) {
     entry.synonyms.push({ lemma: left, ko: stripPos(right).ko || null })
     return
   }
@@ -312,6 +327,10 @@ function sharesStem(headword: string, other: string): boolean {
     return a.startsWith(b) || b.startsWith(a)
   }
   return a.slice(0, STEM_LENGTH) === b.slice(0, STEM_LENGTH)
+}
+
+function hasKorean(value: string): boolean {
+  return /[가-힣]/.test(value)
 }
 
 function letters(value: string): string {
