@@ -48,6 +48,17 @@ export function SessionRunner({
   const [queue, setQueue] = useState(questions)
   const [pending, startTransition] = useTransition()
   const shownAt = useRef(Date.now())
+  /**
+   * Which question is on screen, counted rather than named.
+   *
+   * The verdict is optimistic and the write follows, so on a slow connection
+   * the student can be two questions further on by the time the server answers.
+   * Without this, that late reply stamped its result on whatever question was
+   * showing — locking its options and putting "다음" under it — so one answer
+   * carried two questions past. The number lets a reply tell whether it is
+   * still about the question in front of the student.
+   */
+  const turn = useRef(0)
 
   const question = queue[index]
   const finished = index >= queue.length
@@ -77,6 +88,7 @@ export function SessionRunner({
       if (correct) setCorrectCount((n) => n + 1)
       else setMissed((prev) => (prev.some((m) => m === question) ? prev : [...prev, question]))
 
+      const asked = turn.current
       startTransition(async () => {
         const result = await submitAnswer({
           vocabularyId: question.vocabularyId,
@@ -85,6 +97,9 @@ export function SessionRunner({
           responseTimeMs,
           choice,
         })
+        // Moved on already. The answer is recorded either way — this is only
+        // the verdict, and it belongs to a question that has left the screen.
+        if (turn.current !== asked) return
         setPhase({ kind: 'answered', chosen: choice, result })
       })
     },
@@ -92,6 +107,7 @@ export function SessionRunner({
   )
 
   const advance = useCallback(() => {
+    turn.current += 1
     setPhase({ kind: 'asking' })
     setIndex((i) => i + 1)
   }, [])
@@ -125,6 +141,7 @@ export function SessionRunner({
         correct={correctCount}
         missed={missed}
         onRetryMissed={() => {
+          turn.current += 1
           setQueue(missed)
           setMissed([])
           setCorrectCount(0)
