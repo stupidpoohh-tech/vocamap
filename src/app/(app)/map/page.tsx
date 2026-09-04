@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { getViewer } from '@/lib/auth/session'
 import { listStudyWords, listWordSets, mapCounts, wordSetName } from '@/lib/data/library'
 import { listRecommendedWords } from '@/lib/data/personal'
-import { EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
+import { Button, EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { BookmarkButton } from '@/components/words/bookmark-button'
 import { DeleteWordButton } from '@/components/words/delete-word-button'
 
@@ -80,6 +80,12 @@ export default async function MapPage({
   })
   const setTitle = setId ? await wordSetName(setId) : unassigned ? '세트에 없는 단어' : null
 
+  // A test over this set's mapped words only, and asked the way mapped words
+  // are asked: a blank in a real sentence, a collocation, a word family. The
+  // 단어 tab's test over the same set covers every word in it and asks all of
+  // them for a translation, so this is a different test, not a shorter one.
+  const testHref = mapTestHref(setId, unassigned)
+
   return (
     <div className="animate-rise">
       {insideSet ? (
@@ -87,7 +93,17 @@ export default async function MapPage({
           <Link href="/map" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
             ← 맵
           </Link>
-          <PageHeader title={setTitle ?? '맵'} subtitle="이 세트에서 맵이 있는 단어예요" />
+          <PageHeader
+            title={setTitle ?? '맵'}
+            subtitle="이 세트에서 맵이 있는 단어예요"
+            action={
+              words.total > 0 && !query ? (
+                <Link href={testHref}>
+                  <Button>맵 시험 보기</Button>
+                </Link>
+              ) : null
+            }
+          />
         </>
       ) : (
         <PageHeader title="맵" subtitle="Brain Map이 있는 단어만 모여 있어요" />
@@ -151,6 +167,19 @@ export default async function MapPage({
         total={words.total}
         href={(next) => href({ tab, q: query, set, page: next ? String(next) : undefined })}
       />
+
+      {/* The same test as the one beside the title, at the end of the words —
+          because working through a set's maps ends at the bottom of the list,
+          and that is where being tested on them belongs. Only once the list is
+          long enough to have scrolled that title away: on a set of three, two
+          filled buttons a thumb apart are one button too many. */}
+      {insideSet && words.words.length > 8 && !query ? (
+        <Link href={testHref} className="mt-6 block">
+          <Button size="lg" className="w-full">
+            이 세트 맵 시험 보기
+          </Button>
+        </Link>
+      ) : null}
     </div>
   )
 }
@@ -317,6 +346,18 @@ const EMPTY: Record<MapView, { title: string; hint: string }> = {
     title: '모든 단어에 맵이 있어요',
     hint: '새 단어를 올리면 여기에 나타나요.',
   },
+}
+
+/**
+ * The set's own test, over its mapped words.
+ *
+ * `set=none` is a place on this screen, not an id — the test names that bucket
+ * `unassigned`, so the two do not share a query builder.
+ */
+function mapTestHref(setId: string | undefined, unassigned: boolean): string {
+  if (setId) return `/study/session?scope=mapped&set=${setId}`
+  if (unassigned) return '/study/session?scope=mapped&unassigned=1'
+  return '/study/session?scope=mapped'
 }
 
 function href(params: { tab?: string; q?: string; set?: string; page?: string }): string {

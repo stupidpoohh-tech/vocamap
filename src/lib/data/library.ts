@@ -424,7 +424,11 @@ export async function mapCounts(userId: string, db: Db = defaultDb): Promise<Map
   }
 }
 
-/** Both 보관함 tab counts, in one query. */
+/**
+ * How many words the student has starred, and how many they have got wrong, in
+ * one query. The 단어 tab labels its 담은 단어 tab with the first; the second
+ * tells the review desk whether it has a mistake list to offer.
+ */
 export async function vaultCounts(userId: string, db: Db = defaultDb): Promise<VaultCounts> {
   const [row] = await db
     .select({

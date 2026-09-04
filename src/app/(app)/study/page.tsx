@@ -2,11 +2,7 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { getViewer } from '@/lib/auth/session'
 import { getTodaySummary } from '@/lib/data/study'
-import {
-  listStudyWords,
-  listWordSets,
-  wordSetName,
-} from '@/lib/data/library'
+import { listStudyWords, listWordSets, vaultCounts, wordSetName } from '@/lib/data/library'
 import { Button, EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
 import { SkeletonLine } from '@/components/ui/skeleton'
@@ -20,15 +16,20 @@ import { GuestNote } from '@/components/guest-note'
  * shelf comes first and a set opens into its own word list, which is where the
  * covering, the starring and the test all live.
  *
+ * The starred words are the shelf's second tab. They used to live one tab over
+ * in 보관함, which is now the review schedule — and a star belongs beside the
+ * words it was put on, in the same list with the same covering, rather than in
+ * a screen about dates.
+ *
  * Search is the exception. Someone hunting one word does not know which set it
  * is in, so a query skips the shelf and answers across everything.
  */
 export default async function StudyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; set?: string; dir?: string; page?: string }>
+  searchParams: Promise<{ q?: string; set?: string; dir?: string; page?: string; tab?: string }>
 }) {
-  const { q, set, dir, page } = await searchParams
+  const { q, set, dir, page, tab } = await searchParams
   const actor = await getViewer()
   const query = q?.trim() ?? ''
   const direction: ListDirection = dir === 'ko_en' ? 'ko_en' : 'en_ko'
@@ -40,6 +41,8 @@ export default async function StudyPage({
   const setParam = unassigned ? 'none' : setId
   const insideSet = Boolean(set)
   const browsing = !insideSet && !query
+  const saved = browsing && tab === 'saved'
+  const pageIndex = Math.max(0, Number(page ?? 0) || 0)
 
   // One focal point per view. On the shelf that is today's session; inside a
   // set it is that set's own test. Showing both put two filled buttons on one
@@ -48,9 +51,18 @@ export default async function StudyPage({
     <div className="animate-rise">
       {browsing ? (
         <>
-          <PageHeader title="단어" subtitle="세트를 열어 단어를 보고, 모르는 단어를 담아요" />
+          <PageHeader
+            title="단어"
+            subtitle={
+              saved ? '☆ 을 눌러 담아 둔 단어예요' : '세트를 열어 단어를 보고, 모르는 단어를 담아요'
+            }
+          />
 
-          {actor.isGuest ? (
+          {/* Today's queue belongs to the shelf, not to the starred list: on
+              that tab the words on screen are the subject, and a second filled
+              button pointing elsewhere is a question the reader has to answer
+              before they can read anything. */}
+          {saved ? null : actor.isGuest ? (
             <GuestNote next="/study">
               지금은 게스트로 보고 있어요. 담은 단어와 복습 기록을 남기려면
             </GuestNote>
@@ -71,7 +83,15 @@ export default async function StudyPage({
             />
           </form>
 
-          <Shelf userId={actor.id} role={actor.role} />
+          <Suspense fallback={null}>
+            <ShelfArea
+              userId={actor.id}
+              role={actor.role}
+              saved={saved}
+              direction={direction}
+              page={pageIndex}
+            />
+          </Suspense>
         </>
       ) : (
         <>
@@ -89,7 +109,7 @@ export default async function StudyPage({
             setId={setId}
             unassigned={unassigned}
             direction={direction}
-            page={Math.max(0, Number(page ?? 0) || 0)}
+            page={pageIndex}
           />
         </>
       )}
@@ -145,6 +165,110 @@ function DueStripSkeleton() {
 }
 
 /* ─────────────────────────────── the shelf ─────────────────────────────── */
+
+/**
+ * The shelf and the starred list, under one pair of tabs.
+ *
+ * Both are fetched here rather than in the page so the tab bar streams with the
+ * list it labels — the counts and the rows are one question, and splitting them
+ * showed a tab bar above an empty space.
+ */
+async function ShelfArea({
+  userId,
+  role,
+  saved,
+  direction,
+  page,
+}: {
+  userId: string
+  role: string
+  saved: boolean
+  direction: ListDirection
+  page: number
+}) {
+  const [counts, words] = await Promise.all([
+    vaultCounts(userId),
+    saved ? listStudyWords({ userId, scope: 'saved', page }) : Promise.resolve(null),
+  ])
+
+  return (
+    <>
+      <TabBar>
+        <TabLink href="/study" active={!saved}>
+          세트
+        </TabLink>
+        <TabLink href="/study?tab=saved" active={saved} count={counts.saved}>
+          담은 단어
+        </TabLink>
+      </TabBar>
+
+      {saved && words ? (
+        <>
+          {/* Which way round the list is covered is a display option, not a
+              destination, so it reads as two words rather than a second tab
+              bar. */}
+          <div className="mb-1 flex justify-end gap-3 text-xs">
+            <DirectionLink href="/study?tab=saved&dir=en_ko" active={direction === 'en_ko'}>
+              영 → 한
+            </DirectionLink>
+            <DirectionLink href="/study?tab=saved&dir=ko_en" active={direction === 'ko_en'}>
+              한 → 영
+            </DirectionLink>
+          </div>
+
+          <WordList
+            items={words.words}
+            direction={direction}
+            emptyHint="세트를 열고 모르는 단어의 ☆ 을 누르면 여기에 담겨요."
+          />
+
+          <Pager
+            page={words.page}
+            pageCount={words.pageCount}
+            total={words.total}
+            href={(next) =>
+              buildHref('/study', {
+                tab: 'saved',
+                dir: direction,
+                page: next ? String(next) : undefined,
+              })
+            }
+          />
+
+          {words.total > 0 ? (
+            <Link href={`/study/session?scope=saved&dir=${direction}`} className="mt-6 block">
+              <Button size="lg" className="w-full">
+                담은 단어 시험 보기
+              </Button>
+            </Link>
+          ) : null}
+        </>
+      ) : (
+        <Shelf userId={userId} role={role} />
+      )}
+    </>
+  )
+}
+
+function DirectionLink({
+  href,
+  active,
+  children,
+}: {
+  href: string
+  active: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? 'true' : undefined}
+      className={active ? 'text-ink' : 'text-ink-3 transition hover:text-ink-2'}
+    >
+      {children}
+    </Link>
+  )
+}
 
 async function Shelf({ userId, role }: { userId: string; role: string }) {
   const sets = await listWordSets(userId)

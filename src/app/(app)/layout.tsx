@@ -59,8 +59,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 /**
  * Three destinations for a student, and they are the three things this app is:
- * the word list, the handful of words that have a Brain Map, and the words you
- * kept or got wrong.
+ * the word list, the handful of words that have a Brain Map, and the schedule
+ * that brings both of them back before they are forgotten.
  *
  * In that order: the two that are about the material come first, and the one
  * that is about you comes last — which is also the only one that asks for an
@@ -69,7 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 const STUDENT_LINKS = [
   { href: '/study', label: '단어' },
   { href: '/map', label: '맵' },
-  { href: '/vault', label: '보관함' },
+  { href: '/vault', label: '복습' },
 ]
 
 /**

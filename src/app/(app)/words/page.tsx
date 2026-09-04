@@ -12,7 +12,7 @@ export default async function WordsPage({
   searchParams: Promise<{ q?: string; set?: string; only?: string }>
 }) {
   const { q, set, only } = await searchParams
-  if (only === 'bookmarked') redirect('/vault')
+  if (only === 'bookmarked') redirect('/study?tab=saved')
 
   const params = new URLSearchParams()
   if (q) params.set('q', q)

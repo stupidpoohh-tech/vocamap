@@ -1,9 +1,34 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { listWordSets } from '@/lib/data/library'
+import { writeDraft } from '@/lib/data/brain-map'
 import { addToSet, createSet } from '@/lib/data/teacher'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
-import { recordRecallAnswer } from '@/lib/data/study'
+import { buildScopedQueue, recordRecallAnswer } from '@/lib/data/study'
+import type { BrainMapDraft } from '@/lib/ai/schema'
 import { createUser, hasDatabase, resetDatabase } from './helpers/db'
+
+const draft = (lemma: string): BrainMapDraft => ({
+  meaningCoreKo: `${lemma}의 중심 의미.`,
+  meaningCoreEn: null,
+  primaryTranslations: [`${lemma} 뜻`],
+  meanings: [
+    { ko: '기본 뜻', enDefinition: null, connectionNote: '중심 의미에서 나온다.', exampleChunk: null },
+  ],
+  sentences: [
+    {
+      text: `They ${lemma} the standard every year.`,
+      ko: '그들은 매년 그 기준을 지킨다.',
+      targetMeaning: '기준을 지키다',
+      highlight: lemma,
+      difficulty: 2,
+    },
+  ],
+  collocations: [
+    { expression: `${lemma} quality`, ko: '품질을 지키다', exampleSentence: null, importance: 1 },
+  ],
+  wordFamily: [],
+  similarWords: [],
+})
 
 /**
  * One set a day, then that set's test.
@@ -104,5 +129,45 @@ describe.skipIf(!hasDatabase)('studying a set', () => {
     const shelf = await listWordSets(student.id)
     expect(shelf.find((s) => s.id === week1.setId)!.studiedCount).toBe(1)
     expect(shelf.find((s) => s.id === week2.setId)!.studiedCount).toBe(0)
+  })
+
+  /**
+   * The 맵 tab's own test.
+   *
+   * A set's map test covers the words in that set that carry a *published*
+   * map — not every word in the set, which is the 단어 tab's test, and not a
+   * curator's unfinished draft.
+   */
+  it('tests only the published maps in the set it was started from', async () => {
+    const teacher = await createUser('teacher')
+    const student = await createUser('student')
+    const { setId, ids } = await aSet('1주차', ['govern', 'impulse', 'normal'], teacher.id)
+
+    await writeDraft(ids[0]!, draft('govern'), { status: 'approved', createdBy: teacher.id })
+    await writeDraft(ids[1]!, draft('impulse'), { status: 'draft_ai', createdBy: teacher.id })
+
+    const queue = await buildScopedQueue(student.id, {
+      scope: 'mapped',
+      setId,
+      directions: ['en_ko'],
+    })
+    expect(queue.map((item) => item.lemma)).toEqual(['govern'])
+  })
+
+  it('does not reach into another set for its map test', async () => {
+    const teacher = await createUser('teacher')
+    const student = await createUser('student')
+    const mine = await aSet('1주차', ['govern'], teacher.id)
+    const other = await aSet('2주차', ['impulse'], teacher.id)
+
+    await writeDraft(mine.ids[0]!, draft('govern'), { status: 'approved', createdBy: teacher.id })
+    await writeDraft(other.ids[0]!, draft('impulse'), { status: 'approved', createdBy: teacher.id })
+
+    const queue = await buildScopedQueue(student.id, {
+      scope: 'mapped',
+      setId: mine.setId,
+      directions: ['en_ko'],
+    })
+    expect(queue.map((item) => item.lemma)).toEqual(['govern'])
   })
 })

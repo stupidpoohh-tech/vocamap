@@ -4,6 +4,7 @@ import { db as defaultDb } from '@/lib/db'
 import {
   assignments,
   brainMapNodeProgress,
+  brainMaps,
   learningEvents,
   reviewEvents,
   userConfusions,
@@ -243,14 +244,20 @@ export async function buildTodayQueue(
  * Which words a test covers.
  *
  * `due` is the spaced-repetition queue and is what the student gets when they
- * just press start. The other three exist because the study book, the vault and
- * the map are lists a student looks at and then wants to be tested on — a test
- * you cannot aim at the list in front of you is a different product.
+ * just press start. The others exist because the study book, the review desk
+ * and the map are lists a student looks at and then wants to be tested on — a
+ * test you cannot aim at the list in front of you is a different product.
+ *
+ * `mapped` is the map tab's own test: the same set, narrowed to the words that
+ * carry a Brain Map. Those words are asked differently — a blank in a real
+ * sentence, a collocation, a word family — so a test over them is a different
+ * test, not the study book's test with fewer words in it.
  */
-export type QueueScope = 'due' | 'all' | 'saved' | 'wrong'
+export type QueueScope = 'due' | 'all' | 'saved' | 'wrong' | 'mapped'
 
 export function parseQueueScope(value: string | undefined): QueueScope {
-  return value === 'all' || value === 'saved' || value === 'wrong' ? value : 'due'
+  const known = ['all', 'saved', 'wrong', 'mapped'] as const
+  return known.includes(value as (typeof known)[number]) ? (value as QueueScope) : 'due'
 }
 
 export function parseDirections(value: string | undefined): Direction[] {
@@ -370,6 +377,21 @@ async function scopeIds(
       .selectDistinct({ id: reviewEvents.vocabularyId })
       .from(reviewEvents)
       .where(and(eq(reviewEvents.userId, userId), eq(reviewEvents.correct, false)))
+    return rows.map((r) => r.id)
+  }
+
+  if (scope === 'mapped') {
+    // Published maps only. A draft is a curator's working copy, and being
+    // tested on material nobody has checked is worse than not being tested.
+    const rows = await db
+      .select({ id: vocabularies.id })
+      .from(vocabularies)
+      .innerJoin(
+        brainMaps,
+        and(eq(brainMaps.vocabularyId, vocabularies.id), eq(brainMaps.status, 'approved')),
+      )
+      .where(scopeWhere(setId, unassigned, db))
+      .orderBy(asc(vocabularies.lemma))
     return rows.map((r) => r.id)
   }
 

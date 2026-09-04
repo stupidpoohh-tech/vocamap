@@ -119,10 +119,15 @@ const BookIcon = () => (
   </Svg>
 )
 
-/** A bookmark — the words you kept or got wrong. */
-const BookmarkIcon = () => (
+/**
+ * A clock turning back — the forgetting curve, and the words it brings round
+ * again. A bookmark used to sit here, from when this tab was a saved list.
+ */
+const ReviseIcon = () => (
   <Svg>
-    <path d="M6.5 4.5h11a1 1 0 0 1 1 1v14l-6.5-4-6.5 4v-14a1 1 0 0 1 1-1Z" />
+    <path d="M4.6 10.2A7.6 7.6 0 1 1 4.5 14" />
+    <path d="M4.4 5.6v4.6H9" />
+    <path d="M12 8.6V12l2.4 1.6" />
   </Svg>
 )
 
@@ -156,7 +161,7 @@ const ReviewIcon = () => (
 
 const ICON: Record<string, () => React.ReactElement> = {
   단어: BookIcon,
-  보관함: BookmarkIcon,
+  복습: ReviseIcon,
   맵: MapIcon,
   교사: TeacherIcon,
   검수: ReviewIcon,
