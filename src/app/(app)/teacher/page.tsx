@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { requireActor } from '@/lib/auth/session'
 import { listSets, listStudents } from '@/lib/data/teacher'
 import { DeleteSetButton } from '@/components/words/delete-set-button'
+import { WordbookForm } from './wordbook-form'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
 import { AddStudentForm, ImportWordsForm } from './forms'
 
@@ -76,8 +77,20 @@ export default async function TeacherPage() {
         )}
       </section>
 
+      <section className="mb-8">
+        <h2 className="mb-1 text-lg font-semibold">단어장에서 맵 만들기</h2>
+        <p className="mb-3 text-sm text-ink-3 break-keep">
+          단어장 페이지를 그대로 옮겨 적으면 뜻·예문·연어·파생어까지 담긴 Brain Map이
+          바로 만들어져요. AI를 쓰지 않으니 검수도 필요 없습니다.
+        </p>
+        <WordbookForm students={students} />
+      </section>
+
       <section>
-        <h2 className="mb-3 text-lg font-semibold">단어 가져오기</h2>
+        <h2 className="mb-1 text-lg font-semibold">단어만 가져오기</h2>
+        <p className="mb-3 text-sm text-ink-3 break-keep">
+          단어와 뜻만 있는 목록이면 이쪽이 빠릅니다. 맵은 나중에 따로 만들어요.
+        </p>
         <ImportWordsForm students={students} />
       </section>
     </div>

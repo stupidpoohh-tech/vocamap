@@ -289,7 +289,6 @@ export async function buildSemanticMap(
   }
 
   // ── collocations ───────────────────────────────────────────────────────
-  const allExpressions = master.collocations.map((c) => c.expression)
   for (const collocation of master.collocations) {
     nodes.push({
       id: collocation.id,
@@ -304,7 +303,7 @@ export async function buildSemanticMap(
       onMap: false,
       progressNode: 'collocations',
       itemId: collocation.id,
-      exercises: collocationExercises(collocation, allExpressions),
+      exercises: collocationExercises(collocation, master.collocations),
     })
   }
 
@@ -438,8 +437,42 @@ function matchingSense(target: string | null, senses: string[], fallback: string
 /**
  * A collocation is checked by putting its own example back together — blank
  * the partner word and choose among the other collocations' partners.
+ *
+ * When the source printed no sentence for it, the meaning is asked instead:
+ * given the Korean, pick the expression. A wordbook lists phrases with their
+ * glosses and no sentences, and that is exactly the question a wordbook test
+ * asks, so the fallback is not a lesser question — it is the native one for
+ * material that came from a book.
  */
 function collocationExercises(
+  collocation: MasterBrainMap['collocations'][number],
+  siblings: MasterBrainMap['collocations'],
+): Exercise[] {
+  const cloze = collocationCloze(collocation, siblings.map((c) => c.expression))
+  if (cloze.length) return cloze
+
+  const distractors = siblings
+    .filter((c) => c.id !== collocation.id && c.expression !== collocation.expression)
+    .map((c) => c.expression)
+    .slice(0, 3)
+
+  // One expression on its own has nothing to be told apart from, and a
+  // single-option question teaches nothing.
+  if (!distractors.length) return []
+
+  return [
+    {
+      kind: 'choice',
+      prompt: `'${collocation.ko}' — 알맞은 표현은?`,
+      options: shuffleStable([collocation.expression, ...distractors], collocation.id),
+      answer: collocation.expression,
+      explanation: `${collocation.expression} — ${collocation.ko}`,
+      concept: null,
+    },
+  ]
+}
+
+function collocationCloze(
   collocation: MasterBrainMap['collocations'][number],
   allExpressions: string[],
 ): Exercise[] {
@@ -476,22 +509,46 @@ function partnerWord(expression: string): string | null {
   return words.length >= 2 ? (words[words.length - 1] ?? null) : null
 }
 
+/**
+ * A derived form is checked by blanking it in its own sentence — or, when there
+ * is none, by asking which form carries the meaning. The distractors are the
+ * word's own family, so the student has to tell `legislate` from `legislative`
+ * rather than from an unrelated word.
+ */
 function wordFamilyExercises(
   member: MasterBrainMap['wordFamily'][number],
   forms: string[],
 ): Exercise[] {
+  const options = shuffleStable(forms.slice(0, 4), member.id)
+  const explanation = `${member.lemma} (${member.partOfSpeech}) — ${member.ko}`
   const sentence = member.exampleSentence
-  if (!sentence) return []
-  const pattern = new RegExp(escapeRegExp(member.lemma), 'i')
-  if (!pattern.test(sentence)) return []
+
+  if (sentence) {
+    const pattern = new RegExp(escapeRegExp(member.lemma), 'i')
+    if (pattern.test(sentence)) {
+      return [
+        {
+          kind: 'choice',
+          prompt: sentence.replace(pattern, '______'),
+          options,
+          answer: member.lemma,
+          explanation,
+          concept: null,
+        },
+      ]
+    }
+  }
+
+  // The headword is always in `forms`, so there is at least one distractor.
+  if (options.length < 2) return []
 
   return [
     {
       kind: 'choice',
-      prompt: sentence.replace(pattern, '______'),
-      options: shuffleStable(forms.slice(0, 4), member.id),
+      prompt: `'${member.ko}' — 알맞은 형태는?`,
+      options,
       answer: member.lemma,
-      explanation: `${member.lemma} (${member.partOfSpeech}) — ${member.ko}`,
+      explanation,
       concept: null,
     },
   ]

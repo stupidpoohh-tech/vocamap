@@ -16,6 +16,7 @@ import {
 import { ForbiddenError, NotFoundError } from '@/lib/data/errors'
 import { importVocabularyList } from '@/lib/data/vocabulary'
 import { markImportant } from '@/lib/data/study'
+import { importWordbook } from '@/lib/import/import-wordbook'
 
 export type ImportState = { error?: string; message?: string }
 
@@ -126,4 +127,58 @@ export async function removeWordSet(
     }
     throw error
   }
+}
+
+export type WordbookState = { error?: string; message?: string; problems?: string[] }
+
+/**
+ * Builds Brain Maps straight from a typed-out wordbook page.
+ *
+ * The other importer takes a bare list and leaves the maps to be generated;
+ * this one carries the whole entry — senses, example, collocations, derived
+ * forms — so the map is finished the moment it lands, with no model call and
+ * nothing to review.
+ */
+export async function importWordbookPage(
+  _prev: WordbookState,
+  formData: FormData,
+): Promise<WordbookState> {
+  const actor = await requireRole('teacher', 'admin')
+
+  const title = String(formData.get('title') ?? '').trim()
+  const text = String(formData.get('text') ?? '')
+  const studentId = String(formData.get('studentId') ?? '').trim()
+
+  if (!title) return { error: '세트 이름을 입력해 주세요.' }
+  if (!text.trim()) return { error: '단어장 내용을 붙여넣어 주세요.' }
+
+  const summary = await importWordbook({
+    text,
+    title,
+    actor,
+    studentId: studentId || undefined,
+  })
+
+  // Lines that could not be read are reported whether or not the rest imported:
+  // a page that came in "successfully" while quietly dropping four lines is how
+  // a set ends up missing words nobody notices until the test.
+  const problems = summary.problems.map((p) => `${p.line}행: ${p.message}`)
+
+  if (!summary.words) {
+    return { error: '읽을 수 있는 단어가 없습니다.', problems }
+  }
+
+  revalidatePath('/teacher')
+  revalidatePath('/study')
+  revalidatePath('/map')
+
+  const notes = [
+    `${summary.words}개 단어 · 새로 ${summary.created}개, 기존 ${summary.reused}개`,
+    summary.synonymsSkipped ? `유의어 ${summary.synonymsSkipped}개는 넣지 않았어요` : null,
+    summary.withoutQuestions.length
+      ? `예문 해석이 없어 문제를 못 만든 단어: ${summary.withoutQuestions.join(', ')}`
+      : null,
+  ].filter(Boolean)
+
+  return { message: notes.join(' · '), problems }
 }
