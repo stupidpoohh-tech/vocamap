@@ -30,7 +30,10 @@ export default async function SessionPage({
     return (
       <Card className="text-center">
         <p className="font-semibold">{EMPTY[scope]}</p>
-        <Link href={scope === 'due' ? '/study' : backHref(scope)} className="mt-4 inline-block">
+        <Link
+          href={scope === 'due' ? '/study' : backHref(scope, set, unassigned === '1')}
+          className="mt-4 inline-block"
+        >
           <Button variant="secondary">돌아가기</Button>
         </Link>
       </Card>
@@ -45,7 +48,7 @@ export default async function SessionPage({
       {actor.isGuest ? (
         <GuestNote next="/study">이 시험의 결과는 저장되지 않아요. 복습 일정을 남기려면</GuestNote>
       ) : null}
-      <SessionRunner questions={questions} backHref={backHref(scope)} />
+      <SessionRunner questions={questions} backHref={backHref(scope, set, unassigned === '1')} />
     </>
   )
 }
@@ -57,8 +60,21 @@ const EMPTY: Record<ReturnType<typeof parseQueueScope>, string> = {
   wrong: '틀린 단어가 없어요.',
 }
 
-function backHref(scope: ReturnType<typeof parseQueueScope>): string {
+/**
+ * Where "done" goes.
+ *
+ * Back to the set you were tested on, not to the shelf. A student working
+ * through one set a day finishes the test and wants the words again — landing
+ * on a list of every set means finding it a second time.
+ */
+function backHref(
+  scope: ReturnType<typeof parseQueueScope>,
+  set?: string,
+  unassigned?: boolean,
+): string {
   if (scope === 'saved') return '/vault'
   if (scope === 'wrong') return '/vault?tab=wrong'
+  if (set) return `/study?set=${set}`
+  if (unassigned) return '/study?set=none'
   return '/study'
 }

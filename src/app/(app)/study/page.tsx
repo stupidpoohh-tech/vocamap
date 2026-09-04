@@ -188,10 +188,19 @@ async function Shelf({ userId, role }: { userId: string; role: string }) {
               ) : null}
             </span>
 
-            {/* Counts, ranked: how many words is the fact, how many you kept is
-                the qualifier. Both are metadata, so neither is emphasised. */}
+            {/* Progress first, because the question the shelf answers is
+                "which one do I do today" — and a set already worked through
+                is not it. A set never opened says only its size. */}
             <span className="numeral shrink-0 text-right text-xs text-ink-3">
-              <span className="text-ink-2">{set.wordCount}</span>개
+              {set.studiedCount > 0 ? (
+                <span className={set.studiedCount >= set.wordCount ? 'text-good' : 'text-ink-2'}>
+                  {set.studiedCount}/{set.wordCount}
+                </span>
+              ) : (
+                <>
+                  <span className="text-ink-2">{set.wordCount}</span>개
+                </>
+              )}
               {set.savedCount > 0 ? <span className="ml-1.5">담음 {set.savedCount}</span> : null}
             </span>
           </Link>
@@ -289,6 +298,18 @@ async function WordsView({
           })
         }
       />
+
+      {/* The same test as the one beside the title, at the end of the words.
+          Studying a set is working down the list, so the moment to be tested is
+          when you reach the bottom of it — and after the pager, because every
+          page of the set is part of the set. */}
+      {words.total > 0 && !query ? (
+        <Link href={testHref} className="mt-6 block">
+          <Button size="lg" className="w-full">
+            이 세트 시험 보기
+          </Button>
+        </Link>
+      ) : null}
     </>
   )
 }

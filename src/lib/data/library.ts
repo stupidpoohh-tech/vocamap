@@ -5,6 +5,7 @@ import {
   assignments,
   brainMaps,
   reviewEvents,
+  userVocabularyCards,
   userVocabularyState,
   vocabularies,
   vocabularySetItems,
@@ -228,6 +229,8 @@ export type WordSet = {
   savedCount: number
   /** How many carry a Brain Map the student can open. */
   mappedCount: number
+  /** How many the student has answered at least once — the set's progress. */
+  studiedCount: number
   assigned: boolean
 }
 
@@ -246,7 +249,7 @@ export async function listWordSets(userId: string, db: Db = defaultDb): Promise<
   // Sets and their counts come back together. Fetching the sets and then their
   // statistics was two round trips in series, and the second could not start
   // until the first named the ids.
-  const [sets, assigned, loose] = await Promise.all([
+  const [sets, assigned, studied, loose] = await Promise.all([
     db
       .select({
         id: vocabularySets.id,
@@ -274,10 +277,28 @@ export async function listWordSets(userId: string, db: Db = defaultDb): Promise<
       .selectDistinct({ setId: assignments.setId })
       .from(assignments)
       .where(eq(assignments.studentId, userId)),
+    // Its own query rather than another join: a card exists per direction, so
+    // joining it into the counts above would double every set's word count.
+    db
+      .select({
+        setId: vocabularySetItems.setId,
+        value: sql<number>`count(distinct ${vocabularySetItems.vocabularyId})::int`,
+      })
+      .from(vocabularySetItems)
+      .innerJoin(
+        userVocabularyCards,
+        and(
+          eq(userVocabularyCards.vocabularyId, vocabularySetItems.vocabularyId),
+          eq(userVocabularyCards.userId, userId),
+          isNotNull(userVocabularyCards.lastReviewedAt),
+        ),
+      )
+      .groupBy(vocabularySetItems.setId),
     looseStats(userId, db),
   ])
 
   const assignedIds = new Set(assigned.map((a) => a.setId))
+  const studiedOf = new Map(studied.map((row) => [row.setId, row.value]))
 
   const shelf: WordSet[] = sets.map((set) => ({
     id: set.id,
@@ -286,6 +307,7 @@ export async function listWordSets(userId: string, db: Db = defaultDb): Promise<
     wordCount: set.words,
     savedCount: set.saved,
     mappedCount: set.mapped,
+    studiedCount: studiedOf.get(set.id) ?? 0,
     assigned: assignedIds.has(set.id),
   }))
 
@@ -301,6 +323,7 @@ export async function listWordSets(userId: string, db: Db = defaultDb): Promise<
       wordCount: loose.words,
       savedCount: loose.saved,
       mappedCount: loose.mapped,
+      studiedCount: loose.studied,
       assigned: false,
     })
   }
@@ -312,12 +335,20 @@ export async function listWordSets(userId: string, db: Db = defaultDb): Promise<
 async function looseStats(
   userId: string,
   db: Db,
-): Promise<{ words: number; saved: number; mapped: number }> {
+): Promise<{ words: number; saved: number; mapped: number; studied: number }> {
   const [row] = await db
     .select({
       words: sql<number>`count(*)::int`,
       saved: sql<number>`count(${userVocabularyState.bookmarkedAt})::int`,
       mapped: sql<number>`count(*) filter (where ${brainMaps.status} = 'approved')::int`,
+      studied: sql<number>`count(distinct ${vocabularies.id}) filter (
+        where exists (
+          select 1 from user_vocabulary_cards c
+          where c.vocabulary_id = ${vocabularies.id}
+            and c.user_id = ${userId}
+            and c.last_reviewed_at is not null
+        )
+      )::int`,
     })
     .from(vocabularies)
     .leftJoin(
@@ -333,7 +364,12 @@ async function looseStats(
         select 1 from ${vocabularySetItems} i where i.vocabulary_id = ${vocabularies.id}
       )`,
     )
-  return { words: row?.words ?? 0, saved: row?.saved ?? 0, mapped: row?.mapped ?? 0 }
+  return {
+    words: row?.words ?? 0,
+    saved: row?.saved ?? 0,
+    mapped: row?.mapped ?? 0,
+    studied: row?.studied ?? 0,
+  }
 }
 
 /** Title of one set, for the header of its word list. */
