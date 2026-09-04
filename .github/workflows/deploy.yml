@@ -1,0 +1,54 @@
+# Pushes the branch to Cloudflare.
+#
+# There is one branch and it is the default one, so a push here is the release.
+# Everything that can fail without a Cloudflare account runs first — install,
+# typecheck, tests, build — and the deploy step only happens if all of it passed
+# and the run is on the real branch rather than a fork's pull request.
+name: Deploy
+
+on:
+  push:
+    branches: [claude/voca-brain-map-mvp-y8xotu]
+  # So a broken build can be caught before it is pushed.
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A newer push makes an in-flight deploy pointless, and two deploys racing
+  # each other decide the live version by whichever finishes last.
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      # The database-backed tests skip themselves when there is no DATABASE_URL,
+      # so this runs the pure ones — layout geometry, the wordbook parser, the
+      # scheduler — and stays useful without putting a database in CI.
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run cf:build
+
+      - name: Deploy
+        if: github.event_name != 'pull_request'
+        run: pnpm exec wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

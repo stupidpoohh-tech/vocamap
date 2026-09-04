@@ -1,5 +1,5 @@
 /**
- * Turns a page of a printed wordbook, typed out, into Brain Map drafts.
+ * Turns a page of a printed wordbook, typed out, into Brain Map material.
  *
  * The premise is that a tutor preparing a test already has the material: the
  * senses, the example, the collocations are all printed on the page in front of
@@ -8,9 +8,21 @@
  * page is the cheaper and more faithful path, so this parser exists to make
  * typing it as close to transcription as possible.
  *
- * Deliberately line-based and prefix-driven, in the order the page itself
- * reads: headword, senses, example, collocations, derived forms. The prefixes
- * are the ones the book already uses.
+ * It reads the shape a tutor actually types rather than a shape invented for
+ * it. In that shape one marker, `*`, carries four different things — the
+ * example sentence, a synonym, a collocation, a derived form — because that is
+ * how the page reads to a person. So the marker is not what decides; the
+ * content is:
+ *
+ *   no ` / `            → the example sentence
+ *   left side has a space → a collocation   (`impulse buying / 충동 구매`)
+ *   left side is one word, sharing a stem with the headword
+ *                       → a derived form    (`impulsive / a. 충동적인`)
+ *   left side is one word, sharing nothing
+ *                       → a synonym         (`rule / v. 다스리다`)
+ *
+ * Explicit markers still win where someone writes them: `+` is always a
+ * collocation and `≒` always a synonym.
  *
  * Pure — no database, no network — so the whole format is testable.
  */
@@ -39,12 +51,7 @@ export type ParseProblem = { line: number; text: string; message: string }
 
 export type ParseResult = { entries: ParsedEntry[]; problems: ParseProblem[] }
 
-/**
- * Part-of-speech marks, as a wordbook writes them.
- *
- * A sense line is recognised by one of these followed by a full stop, which is
- * what keeps a sense apart from a headword: both are otherwise just text.
- */
+/** Part-of-speech marks, as a wordbook writes them. */
 const PART_OF_SPEECH: Record<string, string> = {
   n: 'noun',
   v: 'verb',
@@ -61,9 +68,21 @@ const PART_OF_SPEECH: Record<string, string> = {
   부: 'adverb',
 }
 
+/** `12. conversion` — how a test range is usually numbered. */
+const NUMBERED_HEADWORD = /^\d+\s*[.)]\s*(.+)$/
 const SENSE_LINE = /^([A-Za-z가-힣]{1,4})\.\s*(.+)$/
-/** `뜻:` and friends, for anyone who would rather write the label out. */
 const LABELLED_SENSE = /^(뜻|의미)\s*[:：]\s*(.+)$/
+const ITEM_MARKER = /^[*\-·+≒~⊕]/
+
+/**
+ * How much of a word has to match the headword for it to count as derived.
+ *
+ * Four letters separates `refrigerate` from `fridge` and `celebration` from
+ * `fame`, while leaving `abnormal` and `inadequate` on the synonym side — which
+ * is where the books themselves group them, since what they teach there is a
+ * contrast, not a family.
+ */
+const STEM_LENGTH = 4
 
 export function parseWordbook(input: string): ParseResult {
   const problems: ParseProblem[] = []
@@ -79,36 +98,65 @@ export function parseWordbook(input: string): ParseResult {
 
 type Line = { text: string; number: number }
 
-/** Blank lines separate words. Comments and stray whitespace never survive. */
+/**
+ * Where one word ends and the next begins.
+ *
+ * A numbered list says so outright, and then blank lines are free to separate
+ * groups *inside* a word — which is what a tutor's own notes do. Without
+ * numbering, a blank line is the only signal there is, so it becomes the
+ * separator again.
+ */
 function splitBlocks(input: string): Line[][] {
+  const lines: Line[] = input
+    .split('\n')
+    .map((raw, index) => ({ text: raw.trim(), number: index + 1 }))
+    .filter((line) => !line.text.startsWith('#'))
+
+  const numbered = lines.some((line) => isNumberedHeadword(line.text))
   const blocks: Line[][] = []
   let current: Line[] = []
 
-  input.split('\n').forEach((raw, index) => {
-    const text = raw.trim()
-    if (!text || text.startsWith('#')) {
-      if (text.startsWith('#')) return
-      if (current.length) blocks.push(current)
-      current = []
-      return
+  for (const line of lines) {
+    if (!line.text) {
+      if (!numbered && current.length) {
+        blocks.push(current)
+        current = []
+      }
+      continue
     }
-    current.push({ text, number: index + 1 })
-  })
+    if (numbered && isNumberedHeadword(line.text) && current.length) {
+      blocks.push(current)
+      current = []
+    }
+    current.push(line)
+  }
 
   if (current.length) blocks.push(current)
   return blocks
 }
 
+function isNumberedHeadword(text: string): boolean {
+  const match = NUMBERED_HEADWORD.exec(text)
+  if (!match) return false
+  // "1. 계획" is a numbered gloss, not a headword; a headword is English.
+  return !/[가-힣]/.test(match[1]!) && /[A-Za-z]/.test(match[1]!)
+}
+
 function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null {
   const head = lines[0]!
+  const withoutNumber = NUMBERED_HEADWORD.exec(head.text)?.[1] ?? head.text
+
   // A headword can carry the book's pronunciation, in brackets or slashes.
   // It is kept: "어떻게 읽는지 모르겠다" is the most common thing a student says
   // about a new word, and the book already answered it.
   const pronunciation =
-    /\[([^\]]+)\]/.exec(head.text)?.[1]?.trim() ??
-    /\/([^/]+)\//.exec(head.text)?.[1]?.trim() ??
+    /\[([^\]]+)\]/.exec(withoutNumber)?.[1]?.trim() ??
+    /\/([^/]+)\//.exec(withoutNumber)?.[1]?.trim() ??
     null
-  const lemma = head.text.replace(/\[[^\]]*\]/g, '').replace(/\/[^/]*\//g, '').trim()
+  const lemma = withoutNumber
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\/[^/]*\//g, '')
+    .trim()
 
   if (!lemma) {
     problems.push({ line: head.number, text: head.text, message: '단어를 읽을 수 없습니다.' })
@@ -118,7 +166,7 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
     problems.push({
       line: head.number,
       text: head.text,
-      message: '첫 줄은 영어 표제어여야 합니다. 빈 줄로 단어를 구분했는지 확인해 주세요.',
+      message: '단어 첫 줄은 영어 표제어여야 합니다. 번호나 빈 줄로 단어를 구분했는지 확인해 주세요.',
     })
     return null
   }
@@ -135,63 +183,23 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
 
   for (const line of lines.slice(1)) {
     const { text, number } = line
-    const marker = text[0]!
-    const rest = text.slice(1).trim()
 
-    if (marker === '-' || marker === '·') {
-      const sense = currentSense(entry)
-      if (!sense) {
-        problems.push({ line: number, text, message: '예문보다 뜻이 먼저 와야 합니다.' })
-        continue
-      }
-      if (!rest) {
-        problems.push({ line: number, text, message: '예문이 비어 있습니다.' })
-        continue
-      }
-      sense.examples.push({ en: rest, ko: null })
-      continue
-    }
-
-    if (marker === '=') {
+    if (text.startsWith('=')) {
       // Binds to the example above it — that is the whole reason `=` is its own
-      // line rather than a field on `-`: a sentence and its translation are
-      // long, and one line each is what makes a block readable.
+      // line: a sentence and its translation are long, and one line each is
+      // what makes a block readable.
       const sense = currentSense(entry)
       const example = sense?.examples[sense.examples.length - 1]
       if (!example) {
-        problems.push({ line: number, text, message: '해석 위에 예문(-)이 없습니다.' })
+        problems.push({ line: number, text, message: '해석 위에 예문이 없습니다.' })
         continue
       }
-      example.ko = rest || null
+      example.ko = text.slice(1).trim() || null
       continue
     }
 
-    if (marker === '+' || marker === '⊕') {
-      const [expression, ko] = splitFields(rest)
-      if (!expression || !ko) {
-        problems.push({ line: number, text, message: '연어는 "표현 / 뜻" 형태로 적어 주세요.' })
-        continue
-      }
-      entry.collocations.push({ expression, ko })
-      continue
-    }
-
-    if (marker === '*') {
-      const [memberLemma, a, b] = splitFields(rest)
-      // "lemma / 뜻" and "lemma / 품사 / 뜻" both read naturally, so both work.
-      const ko = b ?? a
-      const partOfSpeech = b ? normalisePos(a) : null
-      if (!memberLemma || !ko) {
-        problems.push({ line: number, text, message: '파생어는 "단어 / 뜻" 형태로 적어 주세요.' })
-        continue
-      }
-      entry.wordFamily.push({ lemma: memberLemma, partOfSpeech, ko })
-      continue
-    }
-
-    if (marker === '≒' || marker === '~') {
-      const [synLemma, ko] = splitFields(rest)
-      if (synLemma) entry.synonyms.push({ lemma: synLemma, ko: ko ?? null })
+    if (ITEM_MARKER.test(text)) {
+      readItem(entry, text[0]!, text.slice(1).trim(), { line: number, text }, problems)
       continue
     }
 
@@ -214,7 +222,7 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
     problems.push({
       line: number,
       text,
-      message: '알 수 없는 줄입니다. 뜻은 "n. 뜻", 예문은 "-", 해석은 "=" 으로 시작합니다.',
+      message: '알 수 없는 줄입니다. 뜻은 "n. 뜻", 예문과 표현은 "*", 해석은 "=" 으로 시작합니다.',
     })
   }
 
@@ -230,16 +238,86 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
   return entry
 }
 
+/** One `*` line, sorted into whichever of the four things it actually is. */
+function readItem(
+  entry: ParsedEntry,
+  marker: string,
+  rest: string,
+  at: { line: number; text: string },
+  problems: ParseProblem[],
+): void {
+  if (!rest) {
+    problems.push({ ...at, message: '내용이 비어 있습니다.' })
+    return
+  }
+
+  const fields = rest.split('/').map((part) => part.trim()).filter(Boolean)
+
+  // No separator: this is the example sentence.
+  if (fields.length < 2) {
+    if (marker === '+' || marker === '⊕' || marker === '≒' || marker === '~') {
+      problems.push({ ...at, message: '"표현 / 뜻" 형태로 적어 주세요.' })
+      return
+    }
+    const sense = currentSense(entry)
+    if (!sense) {
+      problems.push({ ...at, message: '예문보다 뜻이 먼저 와야 합니다.' })
+      return
+    }
+    sense.examples.push({ en: rest, ko: null })
+    return
+  }
+
+  const [left, ...tail] = fields as [string, ...string[]]
+  const right = tail.join(' / ')
+
+  if (marker === '≒' || marker === '~') {
+    entry.synonyms.push({ lemma: left, ko: stripPos(right).ko || null })
+    return
+  }
+  if (marker === '+' || marker === '⊕') {
+    entry.collocations.push({ expression: left, ko: stripPos(right).ko })
+    return
+  }
+
+  // A phrase is a collocation; a single word is a relative of the headword or
+  // a word that merely means the same thing.
+  if (/\s/.test(left)) {
+    entry.collocations.push({ expression: left, ko: stripPos(right).ko })
+    return
+  }
+
+  const { partOfSpeech, ko } = stripPos(right)
+  if (sharesStem(entry.lemma, left)) {
+    entry.wordFamily.push({ lemma: left, partOfSpeech, ko })
+  } else {
+    entry.synonyms.push({ lemma: left, ko: ko || null })
+  }
+}
+
+/** `a. 충동적인` → adjective + 충동적인. A gloss with no mark keeps its text. */
+function stripPos(value: string): { partOfSpeech: string | null; ko: string } {
+  const match = SENSE_LINE.exec(value)
+  const mapped = match ? PART_OF_SPEECH[match[1]!.toLowerCase()] : undefined
+  if (match && mapped) return { partOfSpeech: mapped, ko: match[2]!.trim() }
+  return { partOfSpeech: null, ko: value }
+}
+
+function sharesStem(headword: string, other: string): boolean {
+  const a = letters(headword)
+  const b = letters(other)
+  if (!a || !b) return false
+  // One of them too short to have a stem: ask for containment instead.
+  if (a.length < STEM_LENGTH || b.length < STEM_LENGTH) {
+    return a.startsWith(b) || b.startsWith(a)
+  }
+  return a.slice(0, STEM_LENGTH) === b.slice(0, STEM_LENGTH)
+}
+
+function letters(value: string): string {
+  return value.toLowerCase().replace(/[^a-z]/g, '')
+}
+
 function currentSense(entry: ParsedEntry): ParsedSense | undefined {
   return entry.senses[entry.senses.length - 1]
-}
-
-/** `/` separates fields; a Korean gloss never contains one, an expression may. */
-function splitFields(value: string): string[] {
-  return value.split('/').map((part) => part.trim()).filter(Boolean)
-}
-
-function normalisePos(value: string | undefined): string | null {
-  if (!value) return null
-  return PART_OF_SPEECH[value.replace(/\.$/, '').toLowerCase()] ?? null
 }

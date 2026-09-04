@@ -1,0 +1,227 @@
+1. govern
+    v. 통치하다, 다스리다; 지배하다
+
+* Whatever we do on earth is governed by the rules of nature.
+    = 우리가 지구상에서 하는 모든 것은 자연의 법칙에 의해 지배를 받는다.
+
+* rule / v. 다스리다
+* command / v. 지휘하다
+
+2. impulse
+    n. 충동, 자극, 충격
+
+* Our first impulse is to run away when in danger.
+    = 위험에 처하면 우리의 첫 번째 충동은 달아나는 것이다.
+
+* impulse buying / 충동 구매
+* on impulse / 충동적으로
+
+* impulsive / a. 충동적인
+
+3. normal
+    a. 보통의, 평범한, 정상의
+    n. 보통, 평균, 정상
+
+* These perspectives on social manners, when repeated, may become a normal cultural practice.
+    = 사회적 예절에 관한 이러한 관점은 그것이 반복될 때 일반적인 문화적 관습이 될 수 있다.
+
+* ordinary / 평범한
+* usual / 보통의
+* abnormal / 비정상적인
+* look normal / 정상으로 보이다
+* above normal / 비범한
+* below normal / 보통보다 떨어지는
+* go back to normal / 정상으로 돌아가다
+* normal distribution / 정규 분포
+* in[under] normal circumstances / 정상적인 상황에서
+
+* normally / ad. 보통, 정상적으로
+
+4. refrigeration
+    n. 냉장, 냉동
+
+* All foods are required to be kept under refrigeration.
+    = 모든 식품은 냉장 보관되어야 한다.
+
+* fridge / n. 냉장고
+
+* refrigerate / v. 냉장하다
+* refrigerator / n. 냉장고
+
+5. hands-on
+    a. 직접 해 보는, 실습의
+
+* We have hands-on activities for children, such as making art pieces and exploring the forest.
+    = 우리는 아이들을 위한 예술작품을 만들고 숲을 탐험하는 것과 같은 직접 체험하는 활동이 있습니다.
+
+* direct / a. 직접적인
+
+6. function
+    n. 기능, 역할; 행사
+    v. 기능하다, 작용하다
+
+* The family has the important function of socializing children.
+    = 가족은 아동을 사회화시키는 중요한 기능을 한다.
+
+* vital function / 중요한 기능
+* main function / 주요한 기능
+* charity function / 자선 행사
+* one-to-one function / 일대일 대응 함수
+* perform a function / 기능을 수행하다
+* function key / 기능 키
+
+* malfunction / n. 고장, 기능 이상
+* functional / a. 기능적인
+
+7. monetary
+    a. 통화[화폐]의, 재정적인, 금융의
+
+* Monetary donations will be appreciated at the event.
+    = 그 행사에서 금전 기부는 감사히 받겠습니다.
+
+* financial / a. 재정적인
+* currency / n. 통화
+* monetary policy / 통화 정책
+
+* money / n. 돈
+
+8. sue
+    v. 고소하다, 소송을 제기하다, (재판 등을 통해) 청구하다
+
+* The company Able Entertainment decided to sue the singer for canceling his concert.
+    = Able Entertainment 회사는 콘서트를 취소했다는 이유로 그 가수를 고소하기로 결정했다.
+
+* sue ~ for … / ~에게 …에 관한 소송을 제기하다
+
+9. adequate
+    a. 충분한, 적당한, 적절한
+
+* Photographers need to learn how to decide an adequate composition for their photos.
+    = 사진작가들은 자신의 사진에 적절한 구도를 정하는 법을 배워야 한다.
+
+* sufficient / a. 충분한
+* inadequate / a. 불충분한, 부족한, 부적합한
+
+* adequately / ad. 충분히, 적절히
+
+10. celebrity
+    n. 유명 인사, 명성
+
+* These edible pieces of art can resemble animals, nature scenes, and even celebrities and characters from popular culture.
+    = 이러한 식용 예술작품들은 동물, 자연 풍경, 그리고 대중문화의 유명 인사와 등장인물들까지 닮을 수 있다.
+
+* personality / n. 유명 인사, 성격
+* fame / n. 명성
+* literary celebrity / 문단의 유명 인사
+* local celebrity / 지방의 명사
+
+* celebrate / v. 축하하다
+* celebration / n. 축하, 기념
+
+11. magnetic
+    a. 자석의, 자기의; 매력적인
+
+* magnetic drive / 자기 드라이브
+* magnetic material / 자성 물질
+* magnetic property / 자성
+* magnetic field / 자기장
+* magnetic personality / 사람을 끄는 성격
+
+* magnet / n. 자석
+* magnetism / n. 자기, 자성
+
+12. plausible
+    a. 타당한 것 같은, 그럴듯한
+
+* Consider whether other plausible options are being ignored or overlooked.
+    = 타당해 보이는 다른 선택 사항들이 무시되거나 간과되고 있는지를 고려해 보라.
+
+* implausible / a. 타당하지 않은
+
+* plausibility / n. 그럴듯함, 타당성
+* plausibly / ad. 그럴듯하게
+
+13. disrupt
+    v. 방해하다, 지장을 주다; 분열하다, 붕괴하다
+
+* The repairman is called in when the smooth operation of our world has been disrupted.
+    = 우리 세상의 매끄러운 운영이 중단될 때 수리공을 부르게 된다.
+
+* hinder / v. 방해하다
+* split / v. 분열시키다
+
+* disruption / n. 파열, 분열, 붕괴
+
+14. legislation
+    n. 법률 제정, 입법 행위; 법률
+
+* The problem has led to calls for legislation to regulate advertising.
+    = 그 문제가 광고를 규제하는 법률 제정에 대한 요구로 이어졌다.
+
+* law / n. 법
+* lawmaking / n. 입법
+
+* legislate / v. 법률을 제정하다
+* legislative / a. 입법의
+* legislator / n. 국회의원, 입법자
+
+15. compromise
+    n. 타협
+    v. 타협하다; 위태롭게 하다
+
+* Neither party is willing to compromise on the issue.
+    = 양측 어느 쪽도 그 문제에 대해 타협하려고 하지 않는다.
+
+* reach[come to] a compromise / 타협에 이르다
+
+16. deceit
+    n. 속임수, 사기, 기만
+
+* That's because criminals have perfected the art of manipulation and deceit.
+    = 그것은 범죄자들이 조작과 사기의 기술에 통달했기 때문이다.
+
+* deception / n. 속임수
+
+* deceive / v. 속이다
+
+17. assert
+    v. 주장하다, 단언하다; 권리를 행사하다
+
+* The lawyer asserted that his client is not guilty.
+    = 변호사는 자신의 의뢰인이 유죄가 아니라고 주장했다.
+
+* assert one's rights / 자신의 권리를 주장하다
+* assert one's innocence / 자신의 무죄를 주장하다
+
+* assertion / n. 주장, 단언
+
+18. scheme
+    n. 계획, 개요; 분류표, 도표; 책략, 음모
+
+* The advantages of the scheme outweighed the disadvantages.
+    = 그 계획은 단점보다 장점이 더 많았다.
+
+* plan / n. 계획 (= project)
+* outline / n. 개요
+* pension scheme / 연금 계획
+
+19. aspire
+    v. 추구하다, 열망하다
+
+* What the sharing economy aspires to is a more sustainable way of utilizing limited resources.
+    = 공유경제가 추구하는 바는 제한된 자원을 활용하는 더 지속 가능한 방법이다.
+
+* desire / v. 원하다, 바라다
+
+* aspiration / n. 열망, 포부
+* aspiring / a. 포부가 있는
+
+20. conversion
+    n. 전환, 개조, 개종
+
+* Hunting and the loss of forest habitat due to logging and conversion to farmland threaten its survival.
+    = 사냥과 벌목, 농경지 전환으로 인한 삼림 서식지의 감소가 그것의 생존을 위협한다.
+
+* energy conversion / 에너지 변환
+
+* convert / v. 전환시키다, 개조하다
