@@ -4,10 +4,27 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { Button, Tag } from '@/components/ui'
-import type { RecallQuestion } from '@/lib/learning/questions'
+import type { QuestionKind, RecallQuestion } from '@/lib/learning/questions'
 import { submitAnswer, type AnswerResult } from './actions'
 
 type Phase = { kind: 'asking' } | { kind: 'answered'; result: AnswerResult; chosen: string }
+
+/**
+ * What the question is actually testing, said plainly.
+ *
+ * A mapped word gets asked a different way each time it comes round, so the
+ * strip that used to read "영어 → 한국어" on every card has to say which of
+ * them this one is — otherwise a sentence with a blank arrives with no
+ * explanation of what is being asked for.
+ */
+const KIND_LABEL: Partial<Record<QuestionKind, string>> = {
+  // The blank hides an inflected form while the options are dictionary forms,
+  // so the label says which is wanted rather than leaving it to be guessed.
+  context: '문맥 속 빈칸 · 원형 고르기',
+  sense: '이 문장에서의 뜻',
+  collocation: '함께 쓰는 표현',
+  family: '알맞은 형태',
+}
 
 /**
  * The recall loop. One question fills the screen; the only decision is which
@@ -138,7 +155,7 @@ export function SessionRunner({
           <span className="numeral">
             {index + 1} / {queue.length}
           </span>
-          <span>{question.direction === 'en_ko' ? '영어 → 한국어' : '한국어 → 영어'}</span>
+          <span>{KIND_LABEL[question.kind] ?? (question.direction === 'en_ko' ? '영어 → 한국어' : '한국어 → 영어')}</span>
         </div>
       </div>
 
@@ -148,7 +165,18 @@ export function SessionRunner({
         }`}
       >
         {question.isNew ? <Tag className="mb-3">새 단어</Tag> : null}
-        <p className="text-[2rem] font-semibold tracking-tight break-keep">{question.prompt}</p>
+        {/* A word is a headline; a sentence is a sentence. Setting a full
+            sentence at 2rem pushes the options off the screen and reads as
+            shouting. */}
+        <p
+          className={
+            question.prompt.length > 24
+              ? 'text-[1.125rem] leading-relaxed font-medium break-keep sm:text-[1.25rem]'
+              : 'text-[2rem] font-semibold tracking-tight break-keep'
+          }
+        >
+          {question.prompt}
+        </p>
       </div>
 
       <div className="flex flex-col gap-2.5">
@@ -183,6 +211,14 @@ export function SessionRunner({
       {phase.kind === 'answered' ? (
         <div className="mt-6 animate-rise">
           <Feedback result={phase.result} pending={pending} vocabularyId={question.vocabularyId} />
+          {/* The sentence the blank came out of, whole. Without it a student
+              who guessed right learns nothing and one who guessed wrong does
+              not find out why. */}
+          {question.note ? (
+            <p className="mt-3 rounded-control bg-sunken px-3.5 py-2.5 text-[0.8125rem] leading-relaxed break-keep">
+              {question.note}
+            </p>
+          ) : null}
           <Button size="lg" className="mt-3 w-full" onClick={advance}>
             다음
           </Button>

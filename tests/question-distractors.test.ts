@@ -47,7 +47,7 @@ describe.skipIf(!hasDatabase)('question distractors', () => {
     const { student, examSet, examWords, otherWords } = await twoSets()
 
     const queue = await buildScopedQueue(student.id, {
-      scope: 'set',
+      scope: 'all',
       setId: examSet,
       directions: ['en_ko'],
     })
@@ -81,7 +81,7 @@ describe.skipIf(!hasDatabase)('question distractors', () => {
     }
 
     const queue = await buildScopedQueue(student.id, {
-      scope: 'set',
+      scope: 'all',
       unassigned: true,
       directions: ['en_ko'],
     })
@@ -98,7 +98,7 @@ describe.skipIf(!hasDatabase)('question distractors', () => {
   it('never repeats an option or gives the answer away twice', async () => {
     const { student, examSet } = await twoSets()
     const queue = await buildScopedQueue(student.id, {
-      scope: 'set',
+      scope: 'all',
       setId: examSet,
       directions: ['en_ko', 'ko_en'],
     })
