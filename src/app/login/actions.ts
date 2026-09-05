@@ -45,7 +45,7 @@ export async function signIn(_prev: AuthFormState, formData: FormData): Promise<
       return { error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
     }
 
-    await createSession(user.id)
+    await createSession(user.id, user.role)
     destination = destinationFrom(formData, user.role)
   } catch (error) {
     return { error: describeFailure(error, 'signIn') }
@@ -85,7 +85,7 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
       .returning({ id: users.id, role: users.role })
     if (!created) return { error: '가입에 실패했습니다. 다시 시도해 주세요.' }
 
-    await createSession(created.id)
+    await createSession(created.id, created.role)
     destination = destinationFrom(formData, created.role)
   } catch (error) {
     return { error: describeFailure(error, 'signUp') }

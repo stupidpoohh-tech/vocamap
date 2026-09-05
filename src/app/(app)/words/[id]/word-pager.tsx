@@ -77,6 +77,10 @@ export function WordPager({
       {prev ? (
         <Link
           href={`/words/${prev.id}${query}`}
+          // The two words most likely to be opened next, fetched in full when
+          // the pager scrolls into view — which is when the student has reached
+          // the bottom of this one and is about to move on.
+          prefetch
           className="group min-w-0 flex-1 text-left text-ink-3 transition hover:text-ink-2"
         >
           <span className="block text-xs text-ink-3">← 이전</span>
@@ -90,6 +94,7 @@ export function WordPager({
       {next ? (
         <Link
           href={`/words/${next.id}${query}`}
+          prefetch
           className="group min-w-0 flex-1 text-right text-ink-3 transition hover:text-ink-2"
         >
           <span className="block text-xs text-ink-3">다음 →</span>

@@ -1,6 +1,7 @@
 import 'server-only'
 import { cache } from 'react'
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { SignJWT, jwtVerify } from 'jose'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
@@ -30,16 +31,20 @@ function secret(): Uint8Array {
 }
 
 /**
- * The cookie carries a signed reference to a `sessions` row, not the user's
- * claims. That costs one indexed lookup per request but makes revocation
- * ("log this student out everywhere") a single DELETE.
+ * The cookie carries a signed reference to a `sessions` row *and* the two
+ * claims a page needs to start reading: who you are and what you may see.
+ *
+ * The reference is what makes revocation ("log this student out everywhere") a
+ * single DELETE, and it is still checked on every request. The claims are what
+ * stop that check from standing in front of everything else — see
+ * `readerFromCookie`. Both are signed, so neither can be edited by the holder.
  */
-export async function createSession(userId: string): Promise<void> {
+export async function createSession(userId: string, role: Role): Promise<void> {
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000)
   const [row] = await db.insert(sessions).values({ userId, expiresAt }).returning()
   if (!row) throw new Error('Failed to create session')
 
-  const token = await new SignJWT({ sid: row.id })
+  const token = await new SignJWT({ sid: row.id, uid: userId, role })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(expiresAt)
@@ -131,6 +136,69 @@ export async function getViewer(): Promise<Viewer> {
   const actor = await getActor()
   return actor ? { ...actor, isGuest: false } : GUEST
 }
+
+/* ─────────────────── reading the cookie without the database ─────────────────── */
+
+/**
+ * Whoever is reading, as the cookie states it — plus the proof, still running.
+ *
+ * The session row is the authority and is still checked on every request; what
+ * changes here is *when*. Awaiting it first put one round trip in front of
+ * everything a page reads, and against a database several hops away that round
+ * trip is a large share of what a screen costs. So the page starts its reads on
+ * the cookie's own claims and awaits `confirm` alongside them: a cookie whose
+ * session has been revoked sends the reader to the sign-in page before a single
+ * row of it reaches the screen.
+ *
+ * A cookie issued before the claims existed simply takes the old path.
+ */
+export type Reader = { id: string; role: Role; isGuest: boolean }
+
+export async function readerFromCookie(): Promise<{
+  reader: Reader
+  /** Must be awaited before anything read as this reader is rendered. */
+  confirm: Promise<void>
+}> {
+  const claims = await sessionClaims()
+  if (!claims) {
+    // No cookie, or one from before the claims were embedded in it. Either way
+    // the only way to know who this is, is to ask.
+    const viewer = await getViewer()
+    return {
+      reader: { id: viewer.id, role: viewer.role, isGuest: viewer.isGuest },
+      confirm: Promise.resolve(),
+    }
+  }
+
+  const reader: Reader = { id: claims.userId, role: claims.role, isGuest: false }
+  const confirm = getActor().then((actual) => {
+    // The role is compared too: a cookie signed when this account was a
+    // teacher must not keep showing unreviewed drafts after a demotion.
+    if (actual?.id !== reader.id || actual.role !== reader.role) redirect('/login')
+  })
+  return { reader, confirm }
+}
+
+/** What the cookie itself says. Signature-checked, but no database read. */
+const sessionClaims = cache(async function sessionClaims(): Promise<{
+  sid: string
+  userId: string
+  role: Role
+} | null> {
+  const store = await cookies()
+  const token = store.get(SESSION_COOKIE)?.value
+  if (!token) return null
+
+  try {
+    const { payload } = await jwtVerify(token, secret())
+    const { sid, uid, role } = payload
+    if (typeof sid !== 'string' || typeof uid !== 'string') return null
+    if (role !== 'student' && role !== 'teacher' && role !== 'admin') return null
+    return { sid, userId: uid, role }
+  } catch {
+    return null
+  }
+})
 
 export async function requireActor(): Promise<Actor> {
   const actor = await getActor()

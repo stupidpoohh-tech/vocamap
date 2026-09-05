@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getViewer } from '@/lib/auth/session'
+import { readerFromCookie } from '@/lib/auth/session'
 import { getPersonalBrainMap, listTranslations } from '@/lib/data/personal'
 import { wordNeighbours } from '@/lib/data/library'
 import { buildSemanticMap } from '@/lib/data/semantic-map'
@@ -35,10 +35,13 @@ export default async function WordPage({
   const translationsPromise = listTranslations(id)
   const neighboursPromise = wordNeighbours({ id, setId, unassigned, mapsOnly })
 
-  const actor = await getViewer()
+  // Who is reading comes from the cookie, not from a query. The session row is
+  // still checked — `confirm` is awaited below, next to everything else — but
+  // it no longer stands in front of the page's own reads. See `readerFromCookie`.
+  const { reader, confirm } = await readerFromCookie()
 
   // Curators see drafts so they can review them in situ; students never do.
-  const isCurator = actor.role === 'teacher' || actor.role === 'admin'
+  const isCurator = reader.role === 'teacher' || reader.role === 'admin'
 
   // Both views below want this student's state and this word's glosses, and
   // running in parallel neither can hand them to the other — so they are read
@@ -46,20 +49,23 @@ export default async function WordPage({
   // them first would have been a round trip of its own in front of every other
   // read on the page, which over a pooled connection is most of what the wait
   // is made of. The bookmark rides along on a row this read already carries.
-  const statePromise = collectWordState(actor.id, id)
+  const statePromise = collectWordState(reader.id, id)
 
   const [state, personal, map, neighbours] = await Promise.all([
     statePromise,
-    getPersonalBrainMap(actor.id, id, {
+    getPersonalBrainMap(reader.id, id, {
       state: statePromise,
       translations: translationsPromise,
     }),
-    buildSemanticMap(actor.id, id, {
+    buildSemanticMap(reader.id, id, {
       approvedOnly: !isCurator,
       state: statePromise,
       translations: translationsPromise,
     }),
     neighboursPromise,
+    // Nothing above is rendered until the cookie's session has been proved
+    // real; a revoked one redirects instead.
+    confirm,
   ])
   if (!personal) notFound()
   const bookmarked = state.state?.bookmarkedAt != null
