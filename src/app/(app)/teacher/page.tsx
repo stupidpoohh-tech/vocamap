@@ -7,6 +7,7 @@ import { WordbookForm } from './wordbook-form'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
 import { AddStudentForm, FillPronunciationForm, ImportWordsForm } from './forms'
 import { countMissingPronunciation, PRONUNCIATION_BATCH } from '@/lib/data/pronunciation'
+import { agoKo, lastStudiedByStudent } from '@/lib/data/study-log'
 
 export default async function TeacherPage() {
   const actor = await requireActor()
@@ -17,6 +18,7 @@ export default async function TeacherPage() {
     listSets(actor.id),
     countMissingPronunciation(),
   ])
+  const lastStudied = await lastStudiedByStudent(students.map((student) => student.id))
 
   return (
     <div className="animate-rise">
@@ -41,7 +43,11 @@ export default async function TeacherPage() {
                     <p className="font-semibold">{student.displayName}</p>
                     <p className="truncate text-sm text-ink-3">{student.email}</p>
                   </div>
-                  <span className="text-sm text-brand">보기 →</span>
+                  {/* When they last answered anything — the whole reason to
+                      open this row, said before it is opened. */}
+                  <span className="shrink-0 text-right text-xs text-ink-3">
+                    {agoKo(lastStudied.get(student.id) ?? null)}
+                  </span>
                 </Link>
               </li>
             ))}

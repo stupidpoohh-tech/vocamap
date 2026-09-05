@@ -10,8 +10,10 @@ import {
   listWeakWords,
   studentProgressSummary,
 } from '@/lib/data/teacher'
+import { studyLog } from '@/lib/data/study-log'
 import { Badge, Card, EmptyState, PageHeader } from '@/components/ui'
 import { FlagButton } from './flag-button'
+import { StudyLogView } from './study-log'
 
 export default async function StudentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -23,10 +25,11 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
   const [student] = await db.select().from(users).where(eq(users.id, id)).limit(1)
   if (!student) notFound()
 
-  const [weak, confusions, summary] = await Promise.all([
+  const [weak, confusions, summary, log] = await Promise.all([
     listWeakWords(id, 15),
     listConfusions(id, 8),
     studentProgressSummary(id),
+    studyLog(id),
   ])
 
   return (
@@ -50,6 +53,14 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           <p className="mt-1 text-2xl font-semibold tabular-nums text-warn">{summary.lapses}</p>
         </Card>
       </div>
+
+      {/* First, because it is the question a tutor opens this screen with:
+          did they sit down, and when. The word-level lists below are what to
+          do about it. */}
+      <section className="mb-8">
+        <h2 className="mb-3 text-lg font-semibold">학습 기록</h2>
+        <StudyLogView log={log} />
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">자주 틀리는 단어</h2>
