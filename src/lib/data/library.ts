@@ -439,6 +439,37 @@ export async function mapCounts(userId: string, db: Db = defaultDb): Promise<Map
   }
 }
 
+export type WordNeighbour = { id: string; lemma: string }
+
+/**
+ * The words either side of this one, in the list it was opened from.
+ *
+ * A word page reached from a set belongs to that set's order, so "next" has to
+ * mean the next word in the list the student was reading — not the next word in
+ * the library. The list's own order is alphabetical, so this is too.
+ *
+ * Two columns for every word in the set, which is the size of a lesson. If sets
+ * ever grow to thousands this becomes a `lag`/`lead` window instead.
+ */
+export async function wordNeighbours(
+  opts: { id: string; setId?: string; unassigned?: boolean; mapsOnly?: boolean },
+  db: Db = defaultDb,
+): Promise<{ prev: WordNeighbour | null; next: WordNeighbour | null }> {
+  const filters = placeFilters(opts, db)
+  if (opts.mapsOnly) filters.push(eq(brainMaps.status, 'approved'))
+
+  const rows = await db
+    .select({ id: vocabularies.id, lemma: vocabularies.lemma })
+    .from(vocabularies)
+    .leftJoin(brainMaps, eq(brainMaps.vocabularyId, vocabularies.id))
+    .where(filters.length ? and(...filters) : undefined)
+    .orderBy(asc(vocabularies.lemma))
+
+  const at = rows.findIndex((row) => row.id === opts.id)
+  if (at === -1) return { prev: null, next: null }
+  return { prev: rows[at - 1] ?? null, next: rows[at + 1] ?? null }
+}
+
 /**
  * How many words a set holds, and how many of them carry a published map.
  *

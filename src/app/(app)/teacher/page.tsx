@@ -5,13 +5,18 @@ import { listSets, listStudents } from '@/lib/data/teacher'
 import { DeleteSetButton } from '@/components/words/delete-set-button'
 import { WordbookForm } from './wordbook-form'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
-import { AddStudentForm, ImportWordsForm } from './forms'
+import { AddStudentForm, FillPronunciationForm, ImportWordsForm } from './forms'
+import { countMissingPronunciation, PRONUNCIATION_BATCH } from '@/lib/data/pronunciation'
 
 export default async function TeacherPage() {
   const actor = await requireActor()
   if (actor.role === 'student') redirect('/study')
 
-  const [students, sets] = await Promise.all([listStudents(actor.id), listSets(actor.id)])
+  const [students, sets, missingPronunciation] = await Promise.all([
+    listStudents(actor.id),
+    listSets(actor.id),
+    countMissingPronunciation(),
+  ])
 
   return (
     <div className="animate-rise">
@@ -43,6 +48,11 @@ export default async function TeacherPage() {
           </ul>
         )}
         <AddStudentForm />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-lg font-semibold">발음기호</h2>
+        <FillPronunciationForm missing={missingPronunciation} batch={PRONUNCIATION_BATCH} />
       </section>
 
       <section className="mb-8">

@@ -468,8 +468,11 @@ async function WordsView({
         items={words.words}
         direction={direction}
         // Every row on the 맵 tab has one, so the badge would be saying the
-        // heading's job twenty times over.
+        // heading's job twenty times over — there the word itself is the way
+        // in, and the badge would be a second door beside an open one.
         showMap={!mapsOnly}
+        openMap={mapsOnly}
+        wordQuery={buildHref('', { set: setParam, view: viewParam })}
         emptyHint={
           query
             ? '다른 표현으로 찾아보세요.'

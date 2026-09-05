@@ -206,6 +206,23 @@ export class TemplateProvider implements LLMProvider {
   readonly model = 'template-dev'
 
   async generateStructured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
+    // The pronunciation batch is a different shape and a different job, so it
+    // gets its own placeholder rather than a Brain Map that cannot parse.
+    if (req.schemaName === 'pronunciation_batch') {
+      const entries = [...req.prompt.matchAll(/^- (.+)$/gm)].map((match) => ({
+        lemma: match[1]!.trim(),
+        ipa: `ˈ${match[1]!.trim().toLowerCase().replace(/[^a-z ]/g, '')}`,
+      }))
+      const value = { entries: entries.length ? entries : [{ lemma: 'word', ipa: 'wɜːrd' }] }
+      const raw = JSON.stringify(value)
+      return {
+        data: parseOrThrow(req.schema, value, raw),
+        raw,
+        provider: this.name,
+        model: this.model,
+      }
+    }
+
     const lemma = /Target word:\s*(\S+)/.exec(req.prompt)?.[1] ?? 'word'
     const value = {
       meaningCoreKo: `[예시 데이터] ${lemma}의 중심 의미가 여기에 들어갑니다.`,

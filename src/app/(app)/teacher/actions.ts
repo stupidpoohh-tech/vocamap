@@ -17,6 +17,7 @@ import { ForbiddenError, NotFoundError } from '@/lib/data/errors'
 import { importVocabularyList } from '@/lib/data/vocabulary'
 import { markImportant } from '@/lib/data/study'
 import { importWordbook } from '@/lib/import/import-wordbook'
+import { fillPronunciations } from '@/lib/data/pronunciation'
 
 export type ImportState = { error?: string; message?: string }
 
@@ -181,4 +182,34 @@ export async function importWordbookPage(
   ].filter(Boolean)
 
   return { message: notes.join(' · '), problems }
+}
+
+/* ───────────────────────────── pronunciation ───────────────────────────── */
+
+export type PronunciationState = { error?: string; message?: string }
+
+/**
+ * Fills in the phonetics for a batch of words that have none.
+ *
+ * One model call for forty words, on the tutor's say-so. The import path stays
+ * free of model calls — this is the one place that spends anything, and only
+ * for words that have never been transcribed.
+ */
+export async function fillPronunciationBatch(): Promise<PronunciationState> {
+  await requireRole('teacher', 'admin')
+  try {
+    const result = await fillPronunciations()
+    if (result.attempted === 0) return { message: '발음기호가 없는 단어가 없어요.' }
+
+    revalidatePath('/teacher')
+    revalidatePath('/study')
+    return {
+      message:
+        result.remaining > 0
+          ? `${result.filled}개 채웠어요. ${result.remaining}개 남았어요 — 한 번 더 누르면 이어서 채워요.`
+          : `${result.filled}개 채웠어요. 남은 단어가 없어요.`,
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : '발음기호를 가져오지 못했어요.' }
+  }
 }

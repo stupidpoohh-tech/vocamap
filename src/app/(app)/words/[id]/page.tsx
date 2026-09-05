@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getViewer } from '@/lib/auth/session'
 import { getPersonalBrainMap, listTranslations } from '@/lib/data/personal'
+import { wordNeighbours } from '@/lib/data/library'
 import { buildSemanticMap } from '@/lib/data/semantic-map'
 import { Tag } from '@/components/ui'
 import { collectWordState } from '@/lib/data/study'
@@ -10,10 +11,25 @@ import { SpeakButton } from '@/components/words/speak-button'
 import { BrainMapExplorer } from './brain-map-explorer'
 import { GenerateButton } from './generate-button'
 import { DeleteWord } from './delete-word'
+import { WordPager } from './word-pager'
 
-export default async function WordPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function WordPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  // Which list this page was opened from. It decides what "next" means and
+  // where "← 단어" goes back to.
+  searchParams: Promise<{ set?: string; view?: string }>
+}) {
   const { id } = await params
+  const { set, view } = await searchParams
   const actor = await getViewer()
+
+  const unassigned = set === 'none'
+  const setId = unassigned ? undefined : set
+  const mapsOnly = view === 'map'
+  const listQuery = listSearch(set, view)
 
   // Curators see drafts so they can review them in situ; students never do.
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'
@@ -30,16 +46,20 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
   ])
   const bookmarked = state.state?.bookmarkedAt != null
 
-  const [personal, map] = await Promise.all([
+  const [personal, map, neighbours] = await Promise.all([
     getPersonalBrainMap(actor.id, id, { state, translations }),
     buildSemanticMap(actor.id, id, { approvedOnly: !isCurator, state, translations }),
+    wordNeighbours({ id, setId, unassigned, mapsOnly }),
   ])
   if (!personal) notFound()
 
   return (
     <div className="animate-rise" data-wide>
       <div className="flex items-baseline justify-between gap-3">
-        <Link href="/study" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
+        <Link
+          href={`/study${listQuery}`}
+          className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2"
+        >
           ← 단어
         </Link>
         {/* The only route from a published word to its review screen, so it
@@ -100,14 +120,29 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
               ? 'AI 초안을 생성한 뒤 검수하면 학생에게 공개돼요.'
               : '지금은 반복 학습으로 충분한 단어예요.'}
           </p>
-          {isCurator ? (
-            <>
-              <GenerateButton vocabularyId={id} />
-              <DeleteWord vocabularyId={id} lemma={personal.lemma} />
-            </>
-          ) : null}
+          {isCurator ? <GenerateButton vocabularyId={id} /> : null}
         </div>
       )}
+
+      <WordPager prev={neighbours.prev} next={neighbours.next} query={listQuery} />
+
+      {/* Throwing a word away is a curator's job and this is the one screen
+          that can reach every word, mapped or not — so it is the one screen
+          that can offer it. Quiet, at the very bottom, two steps. */}
+      {isCurator ? (
+        <div className="mt-8 text-center">
+          <DeleteWord vocabularyId={id} lemma={personal.lemma} hasMap={map !== null} />
+        </div>
+      ) : null}
     </div>
   )
+}
+
+/** The list this page belongs to, as a query string to carry around. */
+function listSearch(set: string | undefined, view: string | undefined): string {
+  const params = new URLSearchParams()
+  if (set) params.set('set', set)
+  if (view === 'map') params.set('view', 'map')
+  const rest = params.toString()
+  return rest ? `?${rest}` : ''
 }

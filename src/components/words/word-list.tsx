@@ -36,6 +36,8 @@ export function WordList({
   direction,
   emptyHint,
   showMap = true,
+  openMap = false,
+  wordQuery = '',
 }: {
   items: WordListItem[]
   direction: ListDirection
@@ -43,6 +45,14 @@ export function WordList({
   /** Off when the list is already only mapped words — a badge on every row
    *  says nothing the heading has not said once. */
   showMap?: boolean
+  /**
+   * On a list of nothing but mapped words, the word itself opens its map.
+   * Tapping a row on that list and having it merely uncover the meaning is the
+   * wrong answer to the question the list is answering.
+   */
+  openMap?: boolean
+  /** Carried into the word page so it knows which list it was opened from. */
+  wordQuery?: string
 }) {
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
   const [showAll, setShowAll] = useState(false)
@@ -101,33 +111,55 @@ export function WordList({
           const back = direction === 'en_ko' ? (item.translation ?? '—') : item.lemma
           const open = showAll || revealed.has(item.id)
 
+          const toMap = openMap && item.mapStatus === 'approved'
+
           return (
             <li key={item.id} className="flex items-center gap-2 py-2.5">
-              <button
-                type="button"
-                onClick={() => toggle(item.id)}
-                aria-expanded={open}
-                className="flex min-w-0 flex-1 items-baseline gap-3 text-left"
-              >
-                <span className="min-w-0 flex-1 truncate text-[0.9375rem] text-ink break-keep">
-                  {front}
-                </span>
-                {/* The covered half is drawn, not left blank: a bar the width of
-                    the answer says "there is something here" and keeps the row
-                    from changing height when it opens. */}
-                {open ? (
-                  <span className="min-w-0 flex-1 truncate text-sm text-ink-2 break-keep">
-                    {back}
-                  </span>
+              <span className="flex min-w-0 flex-1 items-baseline gap-3">
+                {/* Two targets, not one. The word opens its map where there is
+                    a map to open; the covered half always uncovers. One button
+                    doing both meant a list of maps you could not get into. */}
+                {toMap ? (
+                  <Link
+                    href={`/words/${item.id}${wordQuery}`}
+                    className="min-w-0 flex-1 truncate text-[0.9375rem] text-ink underline decoration-line underline-offset-4 transition hover:text-brand hover:decoration-brand break-keep"
+                  >
+                    {front}
+                  </Link>
                 ) : (
-                  <span className="flex flex-1 items-center">
-                    <span aria-hidden className="h-1.5 w-16 rounded-full bg-line" />
-                    <span className="sr-only">
-                      {direction === 'en_ko' ? '뜻 가려짐' : '단어 가려짐'}
-                    </span>
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggle(item.id)}
+                    aria-expanded={open}
+                    className="min-w-0 flex-1 truncate text-left text-[0.9375rem] text-ink break-keep"
+                  >
+                    {front}
+                  </button>
                 )}
-              </button>
+
+                <button
+                  type="button"
+                  onClick={() => toggle(item.id)}
+                  aria-expanded={open}
+                  className="flex min-w-0 flex-1 items-center text-left"
+                >
+                  {/* The covered half is drawn, not left blank: a bar the width
+                      of the answer says "there is something here" and keeps the
+                      row from changing height when it opens. */}
+                  {open ? (
+                    <span className="min-w-0 flex-1 truncate text-sm text-ink-2 break-keep">
+                      {back}
+                    </span>
+                  ) : (
+                    <>
+                      <span aria-hidden className="h-1.5 w-16 rounded-full bg-line" />
+                      <span className="sr-only">
+                        {direction === 'en_ko' ? '뜻 가려짐' : '단어 가려짐'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </span>
 
               {item.wrongCount > 0 ? (
                 <span
@@ -151,7 +183,7 @@ export function WordList({
                       and the 검수 screen is where they see it. */}
                   {item.mapStatus === 'approved' ? (
                     <Link
-                      href={`/words/${item.id}`}
+                      href={`/words/${item.id}${wordQuery}`}
                       onClick={(event) => event.stopPropagation()}
                       className="rounded-chip px-1 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
                     >

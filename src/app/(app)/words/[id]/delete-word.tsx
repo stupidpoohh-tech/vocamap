@@ -6,13 +6,22 @@ import { Button } from '@/components/ui'
 import { removeWord } from '@/app/(app)/admin/[id]/edit-actions'
 
 /**
- * Removing a word that never got a map.
+ * Removing a word from the shared library.
  *
- * The review screen only exists once a map does, so without this a mistyped
- * import would sit in the library forever. Same confirmation and same warning
- * as the one there: this takes every student's history for the word with it.
+ * The word page is the one screen that can reach every word, mapped or not, so
+ * it is the one screen that can offer this. Deliberately two steps and
+ * deliberately quiet: it is unrecoverable, and it takes every student's history
+ * for the word — and the map, where there is one — with it.
  */
-export function DeleteWord({ vocabularyId, lemma }: { vocabularyId: string; lemma: string }) {
+export function DeleteWord({
+  vocabularyId,
+  lemma,
+  hasMap = false,
+}: {
+  vocabularyId: string
+  lemma: string
+  hasMap?: boolean
+}) {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -34,7 +43,8 @@ export function DeleteWord({ vocabularyId, lemma }: { vocabularyId: string; lemm
     <div className="mt-6 rounded-card border border-bad/25 px-4 py-3 text-left">
       <p className="text-[0.8125rem] text-bad">{lemma}를 단어장에서 지울까요?</p>
       <p className="mt-1 text-xs leading-relaxed text-ink-3 break-keep">
-        모든 학생의 암기 카드와 정답·오답 기록까지 함께 사라지고, 되돌릴 수 없어요.
+        {hasMap ? 'Brain Map과 ' : ''}모든 학생의 암기 카드와 정답·오답 기록까지 함께 사라지고,
+        되돌릴 수 없어요.
       </p>
       <div className="mt-3 flex gap-2">
         <Button

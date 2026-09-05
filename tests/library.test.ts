@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '@/lib/db'
 import { brainMaps } from '@/lib/db/schema'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
-import { listStudyWords, listWordSets, wordSetName } from '@/lib/data/library'
+import { listStudyWords, listWordSets, wordNeighbours, wordSetName } from '@/lib/data/library'
 import {
   buildScopedQueue,
   buildTodayQueue,
@@ -314,5 +314,78 @@ describe.skipIf(!hasDatabase)('the set shelf', () => {
     const queue = await buildScopedQueue(student.id, { scope: 'saved' })
     expect(new Set(queue.map((q) => q.vocabularyId))).toEqual(new Set([ids[1], ids[3]]))
     expect(queue).toHaveLength(4) // two words, both directions
+  })
+})
+
+/**
+ * Moving from one word to the next without going back to the list.
+ *
+ * "Next" has to mean the next word in the list the student was reading, so the
+ * neighbours are computed in that list's own order and inside its own filter —
+ * not across the whole library.
+ */
+describe.skipIf(!hasDatabase)('the word either side', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  async function aSet(lemmas: string[]) {
+    const teacher = await createUser('teacher')
+    const ids: Record<string, string> = {}
+    for (const lemma of lemmas) {
+      const { id } = await findOrCreateVocabulary({
+        lemma,
+        translations: [`${lemma} 뜻`],
+        createdBy: teacher.id,
+      })
+      ids[lemma] = id
+    }
+    const setId = await createSet({ ownerId: teacher.id, title: '1주차' })
+    await addToSet(setId, Object.values(ids))
+    return { setId, ids, teacher }
+  }
+
+  it('walks the set in the order the list shows it', async () => {
+    const { setId, ids } = await aSet(['gamma', 'alpha', 'beta'])
+
+    const middle = await wordNeighbours({ id: ids.beta!, setId })
+    expect(middle.prev?.lemma).toBe('alpha')
+    expect(middle.next?.lemma).toBe('gamma')
+  })
+
+  it('stops at both ends', async () => {
+    const { setId, ids } = await aSet(['alpha', 'beta'])
+
+    expect((await wordNeighbours({ id: ids.alpha!, setId })).prev).toBeNull()
+    expect((await wordNeighbours({ id: ids.beta!, setId })).next).toBeNull()
+  })
+
+  it('skips the unmapped words when the list was the 맵 filter', async () => {
+    const { setId, ids } = await aSet(['alpha', 'beta', 'gamma'])
+    for (const lemma of ['alpha', 'gamma']) {
+      await db.insert(brainMaps).values({
+        vocabularyId: ids[lemma]!,
+        status: 'approved',
+        meaningCoreKo: '중심 의미',
+      })
+    }
+
+    const onMap = await wordNeighbours({ id: ids.alpha!, setId, mapsOnly: true })
+    expect(onMap.next?.lemma).toBe('gamma')
+
+    const everything = await wordNeighbours({ id: ids.alpha!, setId })
+    expect(everything.next?.lemma).toBe('beta')
+  })
+
+  it('does not wander into another set', async () => {
+    const mine = await aSet(['alpha'])
+    await findOrCreateVocabulary({
+      lemma: 'zulu',
+      translations: ['줄루'],
+      createdBy: mine.teacher.id,
+    })
+
+    const only = await wordNeighbours({ id: mine.ids.alpha!, setId: mine.setId })
+    expect(only).toEqual({ prev: null, next: null })
   })
 })
