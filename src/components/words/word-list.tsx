@@ -125,13 +125,6 @@ export function WordList({
                 )}
               </button>
 
-              {/* Only once the English is on screen. In 한영 the word is the
-                  answer the student is trying to recall, and a speaker that
-                  reads it out is a button that gives it away. */}
-              {direction === 'en_ko' || open ? (
-                <SpeakButton text={item.lemma} />
-              ) : null}
-
               {item.wrongCount > 0 ? (
                 <span
                   className="numeral shrink-0 text-[0.6875rem] text-data-weak"
@@ -141,17 +134,33 @@ export function WordList({
                 </span>
               ) : null}
 
-              {/* Published maps only. A draft is a curator's business and the
-                  맵 tab is where they see it. */}
-              {item.mapStatus === 'approved' ? (
-                <Link
-                  href={`/words/${item.id}`}
-                  onClick={(event) => event.stopPropagation()}
-                  className="shrink-0 rounded-chip px-1.5 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
-                >
-                  맵
-                </Link>
-              ) : null}
+              {/* The last three are columns, not a queue of whatever this row
+                  happens to have. Only some words carry a map and the speaker
+                  is hidden while the English is, so anything laid out in
+                  sequence made every row's icons land somewhere different. The
+                  optional one goes first and each keeps a slot of its own
+                  width, so the speaker and the star stay in the same place all
+                  the way down the list. */}
+              <span className="flex w-7 shrink-0 items-center justify-center">
+                {/* Published maps only. A draft is a curator's business and the
+                    맵 tab is where they see it. */}
+                {item.mapStatus === 'approved' ? (
+                  <Link
+                    href={`/words/${item.id}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="rounded-chip px-1 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
+                  >
+                    맵
+                  </Link>
+                ) : null}
+              </span>
+
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center">
+                {/* Only once the English is on screen. In 한영 the word is the
+                    answer the student is trying to recall, and a speaker that
+                    reads it out is a button that gives it away. */}
+                {direction === 'en_ko' || open ? <SpeakButton text={item.lemma} /> : null}
+              </span>
 
               <BookmarkButton vocabularyId={item.id} bookmarked={item.bookmarked} />
             </li>

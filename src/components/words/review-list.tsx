@@ -54,9 +54,10 @@ export function ReviewList({
             </span>
           </Link>
 
-          <SpeakButton text={word.lemma} />
-
-          <span className="shrink-0 text-right">
+          {/* Columns, in the same order as the study book's rows: what only
+              some words have first, then the two that every row keeps a place
+              for. */}
+          <span className="w-16 shrink-0 text-right">
             <span className="numeral block text-xs text-ink-2">{dueLabel(word.dueAt, now)}</span>
             {showWrongCount && word.wrongCount > 0 ? (
               <span className="numeral mt-0.5 block text-[0.6875rem] text-data-weak">
@@ -77,14 +78,20 @@ export function ReviewList({
             ) : null}
           </span>
 
-          {word.mapStatus === 'approved' ? (
-            <Link
-              href={`/words/${word.id}`}
-              className="shrink-0 rounded-chip px-1.5 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
-            >
-              맵
-            </Link>
-          ) : null}
+          <span className="flex w-7 shrink-0 items-center justify-center">
+            {word.mapStatus === 'approved' ? (
+              <Link
+                href={`/words/${word.id}`}
+                className="rounded-chip px-1 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
+              >
+                맵
+              </Link>
+            ) : null}
+          </span>
+
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center">
+            <SpeakButton text={word.lemma} />
+          </span>
 
           <BookmarkButton vocabularyId={word.id} bookmarked={word.bookmarked} />
         </li>
