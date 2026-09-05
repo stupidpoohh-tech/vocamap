@@ -1,11 +1,16 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
-import { reviewEvents, userConfusions, vocabularyTranslations } from '@/lib/db/schema'
+import {
+  brainMaps,
+  brainMapSimilarWords,
+  userConfusions,
+  vocabularyTranslations,
+} from '@/lib/db/schema'
 import type { NodeType } from '@/lib/learning/nodes'
 import { MAP_NODE_BUDGET, MAP_NODE_TARGET } from '@/lib/ai'
 import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
-import { collectWordState, type WordStateRead } from './study'
+import { collectWordState, type Awaitable, type WordAnswer, type WordStateRead } from './study'
 import { listTranslations } from './personal'
 
 /**
@@ -112,34 +117,17 @@ export function nodeEyebrow(kind: NodeKind): string {
 type ItemTally = { attempts: number; correct: number }
 
 /**
- * Attempts per individual item, read back out of `review_events.payload`.
+ * Attempts per individual item, counted off the answers already in hand.
  *
  * Per-item progress has no table of its own — `brain_map_node_progress` counts
  * whole categories. The event log is append-only and already carries the item
- * id, so the finer picture is derived rather than migrated for.
+ * id, so the finer picture is derived rather than migrated for. It used to be
+ * derived from a second read of the same rows `collectWordState` had just
+ * loaded; now that read carries the item id and this only counts.
  */
-async function itemTallies(
-  userId: string,
-  vocabularyId: string,
-  db: Db,
-): Promise<Map<string, ItemTally>> {
-  const rows = await db
-    .select({
-      itemId: sql<string>`coalesce(
-        ${reviewEvents.payload} ->> 'itemId',
-        ${reviewEvents.payload} ->> 'pairId',
-        ${reviewEvents.payload} ->> 'collocationId',
-        ${reviewEvents.payload} ->> 'sentenceId'
-      )`,
-      correct: reviewEvents.correct,
-    })
-    .from(reviewEvents)
-    .where(and(eq(reviewEvents.userId, userId), eq(reviewEvents.vocabularyId, vocabularyId)))
-    .orderBy(desc(reviewEvents.reviewedAt))
-    .limit(300)
-
+function itemTallies(events: WordAnswer[]): Map<string, ItemTally> {
   const tallies = new Map<string, ItemTally>()
-  for (const row of rows) {
+  for (const row of events) {
     if (!row.itemId) continue
     const tally = tallies.get(row.itemId) ?? { attempts: 0, correct: 0 }
     tally.attempts += 1
@@ -171,39 +159,42 @@ export async function buildSemanticMap(
    */
   opts: {
     approvedOnly?: boolean
-    state?: WordStateRead
+    /**
+     * A promise is fine, and is what the word page hands over: passing the
+     * value would mean the caller had to await it first, and that await is a
+     * round trip this page cannot spare.
+     */
+    state?: Awaitable<WordStateRead>
     /** The same glosses the personal view reads. See `listTranslations`. */
-    translations?: Array<{ text: string; isPrimary: boolean }>
+    translations?: Awaitable<Array<{ text: string; isPrimary: boolean }>>
   } = {},
   db: Db = defaultDb,
 ): Promise<SemanticMap | null> {
-  const master = await getMasterBrainMap(
-    vocabularyId,
-    { approvedOnly: opts.approvedOnly ?? true },
-    db,
-  )
-  if (!master) return null
-
-  const [tallies, translations, confusions, wordState] = await Promise.all([
-    itemTallies(userId, vocabularyId, db),
+  // Everything that depends only on the student and the word starts now,
+  // alongside the map itself. Waiting for the map first turned four reads that
+  // could have travelled with it into a round trip of their own — and over a
+  // pooled connection to a database three hops away, round trips are what this
+  // page costs.
+  const [master, translations, confusions, wordState] = await Promise.all([
+    getMasterBrainMap(vocabularyId, { approvedOnly: opts.approvedOnly ?? true }, db),
     opts.translations ?? listTranslations(vocabularyId, db),
-    master.similarWords.length
-      ? db
-          .select({
-            pairId: userConfusions.pairId,
-            wrongCount: userConfusions.wrongCount,
-            rightCount: userConfusions.rightCount,
-          })
-          .from(userConfusions)
-          .where(
-            and(
-              eq(userConfusions.userId, userId),
-              inArray(userConfusions.pairId, master.similarWords.map((p) => p.pairId)),
-            ),
-          )
-      : Promise.resolve([]),
+    // Reached through the word rather than through the pair ids, which are
+    // only known once the map has landed.
+    db
+      .select({
+        pairId: userConfusions.pairId,
+        wrongCount: userConfusions.wrongCount,
+        rightCount: userConfusions.rightCount,
+      })
+      .from(userConfusions)
+      .innerJoin(brainMapSimilarWords, eq(brainMapSimilarWords.pairId, userConfusions.pairId))
+      .innerJoin(brainMaps, eq(brainMaps.id, brainMapSimilarWords.brainMapId))
+      .where(and(eq(userConfusions.userId, userId), eq(brainMaps.vocabularyId, vocabularyId))),
     opts.state ?? collectWordState(userId, vocabularyId, db),
   ])
+  if (!master) return null
+
+  const tallies = itemTallies(wordState.events)
 
   const nodes: SemanticNode[] = []
 

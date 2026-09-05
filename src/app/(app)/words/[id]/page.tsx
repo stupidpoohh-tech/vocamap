@@ -24,34 +24,45 @@ export default async function WordPage({
 }) {
   const { id } = await params
   const { set, view } = await searchParams
-  const actor = await getViewer()
 
   const unassigned = set === 'none'
   const setId = unassigned ? undefined : set
   const mapsOnly = view === 'map'
   const listQuery = listSearch(set, view)
 
+  // These two are about the word, not the reader, so they leave before the
+  // session comes back rather than queueing behind it.
+  const translationsPromise = listTranslations(id)
+  const neighboursPromise = wordNeighbours({ id, setId, unassigned, mapsOnly })
+
+  const actor = await getViewer()
+
   // Curators see drafts so they can review them in situ; students never do.
   const isCurator = actor.role === 'teacher' || actor.role === 'admin'
-  // One read of this student's state for the word, shared by both views below.
-  // They used to collect it separately, which doubled the page's round trips
-  // for one set of numbers.
-  // Both reads below want this student's state and this word's glosses, and
-  // running in parallel neither can hand them to the other — so they are read
-  // once here. The bookmark used to be a third query for a column this row
-  // already carries.
-  const [state, translations] = await Promise.all([
-    collectWordState(actor.id, id),
-    listTranslations(id),
-  ])
-  const bookmarked = state.state?.bookmarkedAt != null
 
-  const [personal, map, neighbours] = await Promise.all([
-    getPersonalBrainMap(actor.id, id, { state, translations }),
-    buildSemanticMap(actor.id, id, { approvedOnly: !isCurator, state, translations }),
-    wordNeighbours({ id, setId, unassigned, mapsOnly }),
+  // Both views below want this student's state and this word's glosses, and
+  // running in parallel neither can hand them to the other — so they are read
+  // once here and the *promises* are handed over, not the values. Awaiting
+  // them first would have been a round trip of its own in front of every other
+  // read on the page, which over a pooled connection is most of what the wait
+  // is made of. The bookmark rides along on a row this read already carries.
+  const statePromise = collectWordState(actor.id, id)
+
+  const [state, personal, map, neighbours] = await Promise.all([
+    statePromise,
+    getPersonalBrainMap(actor.id, id, {
+      state: statePromise,
+      translations: translationsPromise,
+    }),
+    buildSemanticMap(actor.id, id, {
+      approvedOnly: !isCurator,
+      state: statePromise,
+      translations: translationsPromise,
+    }),
+    neighboursPromise,
   ])
   if (!personal) notFound()
+  const bookmarked = state.state?.bookmarkedAt != null
 
   return (
     <div className="animate-rise" data-wide>

@@ -777,6 +777,31 @@ export type WordStateRead = {
   signals: WordSignals
   cards: Array<typeof userVocabularyCards.$inferSelect>
   state: (typeof userVocabularyState.$inferSelect) | null
+  /**
+   * The answers themselves, not just what was derived from them.
+   *
+   * The semantic map used to read the very same rows a second time to count
+   * attempts per item — same user, same word, same window, different two
+   * columns. One read, handed on.
+   */
+  events: WordAnswer[]
+}
+
+/**
+ * A value, or the promise of one.
+ *
+ * The word page starts its shared reads and hands the promises to both views
+ * rather than awaiting them first — awaiting would put a round trip in front
+ * of everything else the page needs.
+ */
+export type Awaitable<T> = T | Promise<T>
+
+/** One answered question, as the two screens that read them need it. */
+export type WordAnswer = {
+  questionType: string
+  correct: boolean
+  /** Which node or item it was about, where the answer recorded one. */
+  itemId: string | null
 }
 
 /** Alias kept for callers that only care about the derived signals. */
@@ -817,6 +842,14 @@ export async function collectWordState(
       .select({
         questionType: reviewEvents.questionType,
         correct: reviewEvents.correct,
+        // Which item the answer was about, for the per-node tallies. Reading
+        // it here costs nothing; reading it separately cost a round trip.
+        itemId: sql<string | null>`coalesce(
+          ${reviewEvents.payload} ->> 'itemId',
+          ${reviewEvents.payload} ->> 'pairId',
+          ${reviewEvents.payload} ->> 'collocationId',
+          ${reviewEvents.payload} ->> 'sentenceId'
+        )`,
       })
       .from(reviewEvents)
       .where(
@@ -879,6 +912,7 @@ export async function collectWordState(
     },
     cards,
     state: state[0] ?? null,
+    events,
   }
 }
 

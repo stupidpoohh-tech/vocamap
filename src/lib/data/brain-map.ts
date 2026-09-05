@@ -36,10 +36,35 @@ export type MasterBrainMap = {
   version: number
   meaningCoreKo: string | null
   meaningCoreEn: string | null
-  meanings: Array<{ id: string; ko: string; enDefinition: string | null; connectionNote: string | null; exampleChunk: string | null }>
-  sentences: Array<{ id: string; text: string; ko: string; targetMeaning: string | null; highlight: string | null; difficulty: number | null }>
-  collocations: Array<{ id: string; expression: string; ko: string; exampleSentence: string | null; importance: number }>
-  wordFamily: Array<{ id: string; lemma: string; partOfSpeech: string; ko: string; exampleSentence: string | null }>
+  meanings: Array<{
+    id: string
+    ko: string
+    enDefinition: string | null
+    connectionNote: string | null
+    exampleChunk: string | null
+  }>
+  sentences: Array<{
+    id: string
+    text: string
+    ko: string
+    targetMeaning: string | null
+    highlight: string | null
+    difficulty: number | null
+  }>
+  collocations: Array<{
+    id: string
+    expression: string
+    ko: string
+    exampleSentence: string | null
+    importance: number
+  }>
+  wordFamily: Array<{
+    id: string
+    lemma: string
+    partOfSpeech: string
+    ko: string
+    exampleSentence: string | null
+  }>
   similarWords: Array<{
     pairId: string
     otherLemma: string
@@ -58,57 +83,91 @@ export async function getMasterBrainMap(
   opts: { approvedOnly?: boolean } = {},
   db: Db = defaultDb,
 ): Promise<MasterBrainMap | null> {
-  const [head] = await db
-    .select({
-      id: brainMaps.id,
-      vocabularyId: brainMaps.vocabularyId,
-      lemma: vocabularies.lemma,
-      partOfSpeech: vocabularies.partOfSpeech,
-      status: brainMaps.status,
-      version: brainMaps.version,
-      meaningCoreKo: brainMaps.meaningCoreKo,
-      meaningCoreEn: brainMaps.meaningCoreEn,
-    })
-    .from(brainMaps)
-    .innerJoin(vocabularies, eq(vocabularies.id, brainMaps.vocabularyId))
-    .where(eq(brainMaps.vocabularyId, vocabularyId))
-    .limit(1)
+  // Every read here is keyed on the word, not on the map's id, so they all
+  // leave together. Waiting for the head first and then asking for its parts
+  // was a second round trip for a fact the unique index already fixes: a
+  // vocabulary has at most one map.
+  const ofThisWord = () =>
+    db.select({ id: brainMaps.id }).from(brainMaps).where(eq(brainMaps.vocabularyId, vocabularyId))
 
+  const [heads, meanings, sentences, collocations, family, similarLinks, allQuestions] =
+    await Promise.all([
+      db
+        .select({
+          id: brainMaps.id,
+          vocabularyId: brainMaps.vocabularyId,
+          lemma: vocabularies.lemma,
+          partOfSpeech: vocabularies.partOfSpeech,
+          status: brainMaps.status,
+          version: brainMaps.version,
+          meaningCoreKo: brainMaps.meaningCoreKo,
+          meaningCoreEn: brainMaps.meaningCoreEn,
+        })
+        .from(brainMaps)
+        .innerJoin(vocabularies, eq(vocabularies.id, brainMaps.vocabularyId))
+        .where(eq(brainMaps.vocabularyId, vocabularyId))
+        .limit(1),
+      db
+        .select()
+        .from(brainMapMeanings)
+        .where(inArray(brainMapMeanings.brainMapId, ofThisWord()))
+        .orderBy(asc(brainMapMeanings.sortOrder)),
+      db
+        .select()
+        .from(brainMapSentences)
+        .where(inArray(brainMapSentences.brainMapId, ofThisWord()))
+        .orderBy(asc(brainMapSentences.sortOrder)),
+      db
+        .select()
+        .from(brainMapCollocations)
+        .where(inArray(brainMapCollocations.brainMapId, ofThisWord()))
+        .orderBy(asc(brainMapCollocations.importance), asc(brainMapCollocations.sortOrder)),
+      db
+        .select()
+        .from(brainMapWordFamily)
+        .where(inArray(brainMapWordFamily.brainMapId, ofThisWord()))
+        .orderBy(asc(brainMapWordFamily.sortOrder)),
+      db
+        .select({
+          pairId: wordPairs.id,
+          lemmaA: wordPairs.lemmaA,
+          lemmaB: wordPairs.lemmaB,
+          coreDifference: wordPairs.coreDifference,
+          usageRule: wordPairs.usageRule,
+          status: wordPairs.status,
+          sortOrder: brainMapSimilarWords.sortOrder,
+        })
+        .from(brainMapSimilarWords)
+        .innerJoin(wordPairs, eq(wordPairs.id, brainMapSimilarWords.pairId))
+        .where(inArray(brainMapSimilarWords.brainMapId, ofThisWord()))
+        .orderBy(asc(brainMapSimilarWords.sortOrder)),
+      // Reached through the map rather than through the pair ids, so it travels
+      // with the rest instead of waiting a round trip for them to be named.
+      db
+        .select({
+          id: wordPairQuestions.id,
+          pairId: wordPairQuestions.pairId,
+          prompt: wordPairQuestions.prompt,
+          answer: wordPairQuestions.answer,
+          explanation: wordPairQuestions.explanation,
+          sortOrder: wordPairQuestions.sortOrder,
+        })
+        .from(wordPairQuestions)
+        .innerJoin(brainMapSimilarWords, eq(brainMapSimilarWords.pairId, wordPairQuestions.pairId))
+        .where(inArray(brainMapSimilarWords.brainMapId, ofThisWord()))
+        .orderBy(asc(wordPairQuestions.sortOrder)),
+    ])
+
+  const head = heads[0]
   if (!head) return null
   if (opts.approvedOnly && head.status !== 'approved') return null
-
-  const [meanings, sentences, collocations, family, similarLinks] = await Promise.all([
-    db.select().from(brainMapMeanings).where(eq(brainMapMeanings.brainMapId, head.id)).orderBy(asc(brainMapMeanings.sortOrder)),
-    db.select().from(brainMapSentences).where(eq(brainMapSentences.brainMapId, head.id)).orderBy(asc(brainMapSentences.sortOrder)),
-    db.select().from(brainMapCollocations).where(eq(brainMapCollocations.brainMapId, head.id)).orderBy(asc(brainMapCollocations.importance), asc(brainMapCollocations.sortOrder)),
-    db.select().from(brainMapWordFamily).where(eq(brainMapWordFamily.brainMapId, head.id)).orderBy(asc(brainMapWordFamily.sortOrder)),
-    db
-      .select({
-        pairId: wordPairs.id,
-        lemmaA: wordPairs.lemmaA,
-        lemmaB: wordPairs.lemmaB,
-        coreDifference: wordPairs.coreDifference,
-        usageRule: wordPairs.usageRule,
-        status: wordPairs.status,
-        sortOrder: brainMapSimilarWords.sortOrder,
-      })
-      .from(brainMapSimilarWords)
-      .innerJoin(wordPairs, eq(wordPairs.id, brainMapSimilarWords.pairId))
-      .where(eq(brainMapSimilarWords.brainMapId, head.id))
-      .orderBy(asc(brainMapSimilarWords.sortOrder)),
-  ])
 
   const visiblePairs = opts.approvedOnly
     ? similarLinks.filter((p) => p.status === 'approved')
     : similarLinks
 
-  const questions = visiblePairs.length
-    ? await db
-        .select()
-        .from(wordPairQuestions)
-        .where(inArray(wordPairQuestions.pairId, visiblePairs.map((p) => p.pairId)))
-        .orderBy(asc(wordPairQuestions.sortOrder))
-    : []
+  const visibleIds = new Set(visiblePairs.map((p) => p.pairId))
+  const questions = allQuestions.filter((q) => visibleIds.has(q.pairId))
 
   const target = normaliseLemma(head.lemma)
 
@@ -264,13 +323,18 @@ export async function ensureBrainMap(
       throw new Error(`Draft failed consistency checks: ${problems.join('; ')}`)
     }
 
-    const brainMapId = await writeDraft(vocabularyId, result.data, {
-      model: result.model,
-      createdBy: opts.requestedBy ?? null,
-      // Quality notes ride along for the curator rather than rejecting a draft
-      // that already cost money to produce.
-      reviewNote: draftQualityNotes(result.data).join('\n') || null,
-    }, db)
+    const brainMapId = await writeDraft(
+      vocabularyId,
+      result.data,
+      {
+        model: result.model,
+        createdBy: opts.requestedBy ?? null,
+        // Quality notes ride along for the curator rather than rejecting a draft
+        // that already cost money to produce.
+        reviewNote: draftQualityNotes(result.data).join('\n') || null,
+      },
+      db,
+    )
 
     await db
       .update(aiGenerationJobs)
@@ -313,7 +377,11 @@ export async function writeDraft(
   } = {},
   db: Db = defaultDb,
 ): Promise<string> {
-  const [vocab] = await db.select().from(vocabularies).where(eq(vocabularies.id, vocabularyId)).limit(1)
+  const [vocab] = await db
+    .select()
+    .from(vocabularies)
+    .where(eq(vocabularies.id, vocabularyId))
+    .limit(1)
   if (!vocab) throw new NotFoundError(`Vocabulary ${vocabularyId} not found`)
 
   return db.transaction(async (tx) => {
@@ -457,7 +525,10 @@ export async function upsertWordPair(
   },
   db: Db = defaultDb,
 ): Promise<string> {
-  const [a, b] = [normaliseLemma(input.lemmaA), normaliseLemma(input.lemmaB)].sort() as [string, string]
+  const [a, b] = [normaliseLemma(input.lemmaA), normaliseLemma(input.lemmaB)].sort() as [
+    string,
+    string,
+  ]
 
   const [pair] = await db
     .insert(wordPairs)
@@ -533,7 +604,11 @@ export async function setBrainMapStatus(
       updatedAt: new Date(),
     })
     .where(eq(brainMaps.id, brainMapId))
-    .returning({ id: brainMaps.id, version: brainMaps.version, vocabularyId: brainMaps.vocabularyId })
+    .returning({
+      id: brainMaps.id,
+      version: brainMaps.version,
+      vocabularyId: brainMaps.vocabularyId,
+    })
 
   if (!row) throw new NotFoundError('Brain map not found')
 
@@ -548,15 +623,23 @@ export async function setBrainMapStatus(
       await db
         .update(wordPairs)
         .set({ status: 'approved', approvedBy: actorId, approvedAt: new Date() })
-        .where(inArray(wordPairs.id, links.map((l) => l.pairId)))
+        .where(
+          inArray(
+            wordPairs.id,
+            links.map((l) => l.pairId),
+          ),
+        )
     }
   }
 
-  await db.insert(brainMapRevisions).values({
-    brainMapId,
-    version: row.version,
-    changeKind: `status:${status}`,
-    changedBy: actorId,
-    snapshot: { status, note },
-  }).onConflictDoNothing()
+  await db
+    .insert(brainMapRevisions)
+    .values({
+      brainMapId,
+      version: row.version,
+      changeKind: `status:${status}`,
+      changedBy: actorId,
+      snapshot: { status, note },
+    })
+    .onConflictDoNothing()
 }

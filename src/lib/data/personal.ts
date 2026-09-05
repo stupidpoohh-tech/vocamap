@@ -22,7 +22,12 @@ import {
   type RetentionBand,
 } from '@/lib/learning/scheduler'
 import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
-import { collectWordState, isOutstandingRecommendation, type WordStateRead } from './study'
+import {
+  collectWordState,
+  isOutstandingRecommendation,
+  type Awaitable,
+  type WordStateRead,
+} from './study'
 
 export type DirectionState = {
   direction: Direction
@@ -56,24 +61,31 @@ export type PersonalBrainMap = {
 export async function getPersonalBrainMap(
   userId: string,
   vocabularyId: string,
-  opts: { state?: WordStateRead; translations?: Array<{ text: string; isPrimary: boolean }> } = {},
+  opts: {
+    /** Already in flight is fine, and preferred — see the note in the page. */
+    state?: Awaitable<WordStateRead>
+    translations?: Awaitable<Array<{ text: string; isPrimary: boolean }>>
+  } = {},
   db: Db = defaultDb,
 ): Promise<PersonalBrainMap | null> {
-  const [vocab] = await db
-    .select({
-      id: vocabularies.id,
-      lemma: vocabularies.lemma,
-      pronunciation: vocabularies.pronunciation,
-    })
-    .from(vocabularies)
-    .where(eq(vocabularies.id, vocabularyId))
-    .limit(1)
-  if (!vocab) return null
-
   // Cards and per-word state come from the shared read rather than being
   // fetched again here: they are the same rows `collectWordState` already
   // loaded, and reading them twice is what made this page's round trips double.
-  const [translations, progress, wordState] = await Promise.all([
+  //
+  // The word row goes in the same batch rather than ahead of it. Nothing here
+  // depends on it — it was only read first so a missing word could return
+  // early, and buying that with a round trip is the wrong trade on the one
+  // screen a student opens most.
+  const [rows, translations, progress, wordState] = await Promise.all([
+    db
+      .select({
+        id: vocabularies.id,
+        lemma: vocabularies.lemma,
+        pronunciation: vocabularies.pronunciation,
+      })
+      .from(vocabularies)
+      .where(eq(vocabularies.id, vocabularyId))
+      .limit(1),
     opts.translations ?? listTranslations(vocabularyId, db),
     db
       .select()
@@ -86,6 +98,9 @@ export async function getPersonalBrainMap(
       ),
     opts.state ?? collectWordState(userId, vocabularyId, db),
   ])
+
+  const vocab = rows[0]
+  if (!vocab) return null
 
   const cards = wordState.cards
   const state = wordState.state ? [wordState.state] : []
