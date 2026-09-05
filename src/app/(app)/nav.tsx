@@ -131,18 +131,6 @@ const ReviseIcon = () => (
   </Svg>
 )
 
-/** A word with branches — the map. */
-const MapIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="2.6" />
-    <circle cx="5" cy="5.5" r="2" />
-    <circle cx="19" cy="5.5" r="2" />
-    <circle cx="5" cy="18.5" r="2" />
-    <circle cx="19" cy="18.5" r="2" />
-    <path d="m10.2 10.2-3.6-3.3M13.8 10.2l3.6-3.3M10.2 13.8l-3.6 3.3M13.8 13.8l3.6 3.3" />
-  </Svg>
-)
-
 /** A mortarboard — the teacher's own screens. */
 const TeacherIcon = () => (
   <Svg>
@@ -162,7 +150,6 @@ const ReviewIcon = () => (
 const ICON: Record<string, () => React.ReactElement> = {
   단어: BookIcon,
   복습: ReviseIcon,
-  맵: MapIcon,
   교사: TeacherIcon,
   검수: ReviewIcon,
 }

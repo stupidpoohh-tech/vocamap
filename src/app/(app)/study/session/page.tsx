@@ -89,9 +89,9 @@ function backHref(
   if (scope === 'saved') return '/study?tab=saved'
   if (scope === 'wrong') return '/vault?tab=wrong'
   if (scope === 'mapped') {
-    if (set) return `/map?set=${set}`
-    if (unassigned) return '/map?set=none'
-    return '/map'
+    if (set) return `/study?set=${set}&view=map`
+    if (unassigned) return '/study?set=none&view=map'
+    return '/study'
   }
   if (scope === 'due') return from === 'vault' ? '/vault' : '/study'
   if (set) return `/study?set=${set}`

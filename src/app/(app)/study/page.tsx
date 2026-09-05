@@ -2,7 +2,14 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { getViewer } from '@/lib/auth/session'
 import { getTodaySummary } from '@/lib/data/study'
-import { listStudyWords, listWordSets, vaultCounts, wordSetName } from '@/lib/data/library'
+import {
+  listStudyWords,
+  listWordSets,
+  setScopeCounts,
+  vaultCounts,
+  wordSetName,
+} from '@/lib/data/library'
+import { listRecommendedWords } from '@/lib/data/personal'
 import { Button, EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
 import { SkeletonLine } from '@/components/ui/skeleton'
@@ -21,15 +28,27 @@ import { GuestNote } from '@/components/guest-note'
  * words it was put on, in the same list with the same covering, rather than in
  * a screen about dates.
  *
+ * The maps live here too, as a filter inside the set rather than a tab of their
+ * own. A map is a property of a word, and the row already says which words have
+ * one; a second screen listing the same sets and the same words, minus the ones
+ * without a map, was a copy of this one wearing a different name.
+ *
  * Search is the exception. Someone hunting one word does not know which set it
  * is in, so a query skips the shelf and answers across everything.
  */
 export default async function StudyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; set?: string; dir?: string; page?: string; tab?: string }>
+  searchParams: Promise<{
+    q?: string
+    set?: string
+    dir?: string
+    page?: string
+    tab?: string
+    view?: string
+  }>
 }) {
-  const { q, set, dir, page, tab } = await searchParams
+  const { q, set, dir, page, tab, view } = await searchParams
   const actor = await getViewer()
   const query = q?.trim() ?? ''
   const direction: ListDirection = dir === 'ko_en' ? 'ko_en' : 'en_ko'
@@ -42,6 +61,7 @@ export default async function StudyPage({
   const insideSet = Boolean(set)
   const browsing = !insideSet && !query
   const saved = browsing && tab === 'saved'
+  const mapsOnly = view === 'map'
   const pageIndex = Math.max(0, Number(page ?? 0) || 0)
 
   // One focal point per view. On the shelf that is today's session; inside a
@@ -71,6 +91,16 @@ export default async function StudyPage({
                counts and the words are independent questions. */
             <Suspense fallback={<DueStripSkeleton />}>
               <DueStrip userId={actor.id} direction={direction} />
+            </Suspense>
+          )}
+
+          {/* The words that keep going wrong, and so are the ones worth
+              opening a map on. This used to be the first thing on the 맵 tab;
+              with that tab gone it belongs on the shelf, where a student
+              decides what to do next. */}
+          {saved ? null : (
+            <Suspense fallback={null}>
+              <Recommended userId={actor.id} />
             </Suspense>
           )}
 
@@ -110,6 +140,7 @@ export default async function StudyPage({
             unassigned={unassigned}
             direction={direction}
             page={pageIndex}
+            mapsOnly={mapsOnly}
           />
         </>
       )}
@@ -326,6 +357,10 @@ async function Shelf({ userId, role }: { userId: string; role: string }) {
                 </>
               )}
               {set.savedCount > 0 ? <span className="ml-1.5">담음 {set.savedCount}</span> : null}
+              {/* Which sets have maps to open. The 맵 tab's shelf used to be
+                  the only place that said so; now the count says it here and
+                  the 맵 filter inside the set is one tap away. */}
+              {set.mappedCount > 0 ? <span className="ml-1.5">맵 {set.mappedCount}</span> : null}
             </span>
           </Link>
         </li>
@@ -344,6 +379,7 @@ async function WordsView({
   unassigned,
   direction,
   page,
+  mapsOnly,
 }: {
   userId: string
   role: string
@@ -352,60 +388,96 @@ async function WordsView({
   unassigned: boolean
   direction: ListDirection
   page: number
+  /** The 맵 filter: the same set, narrowed to the words that carry a map. */
+  mapsOnly: boolean
 }) {
-  const [words, title] = await Promise.all([
-    listStudyWords({ userId, scope: 'all', setId, unassigned, query, page }),
+  const [words, counts, title] = await Promise.all([
+    listStudyWords({
+      userId,
+      scope: mapsOnly ? 'mapped' : 'all',
+      setId,
+      unassigned,
+      query,
+      page,
+    }),
+    setScopeCounts({ setId, unassigned, query }),
     setId ? wordSetName(setId) : Promise.resolve(unassigned ? '세트에 없는 단어' : null),
   ])
 
   const setParam = setId ?? (unassigned ? 'none' : undefined)
+  const viewParam = mapsOnly ? 'map' : undefined
+  // Two different tests over the same set. The map test asks the way mapped
+  // words can be asked — a blank in a real sentence, a collocation, a word
+  // family — so it is not the whole-set test with fewer words in it.
   const testHref = buildHref('/study/session', {
-    scope: 'all',
+    scope: mapsOnly ? 'mapped' : 'all',
     dir: direction,
     set: setId,
     unassigned: unassigned ? '1' : undefined,
   })
+  const listHref = (params: Record<string, string | undefined>) =>
+    buildHref('/study', { q: query, set: setParam, view: viewParam, dir: direction, ...params })
 
   return (
     <>
       <PageHeader
         title={query ? `"${query}" 검색 결과` : (title ?? '단어')}
-        subtitle={query ? undefined : '모르는 단어는 ☆ 을 눌러 보관함에 담아요'}
+        subtitle={
+          query
+            ? undefined
+            : mapsOnly
+              ? '이 세트에서 맵이 있는 단어예요'
+              : '모르는 단어는 ☆ 을 눌러 보관함에 담아요'
+        }
         // The set's own test is this view's single action, so it sits with the
         // title rather than as a second full-width button under the tabs.
         action={
           words.total > 0 && !query ? (
             <Link href={testHref}>
-              <Button>시험 보기</Button>
+              <Button>{mapsOnly ? '맵 시험 보기' : '시험 보기'}</Button>
             </Link>
           ) : null
         }
       />
 
-      <TabBar>
-        <TabLink
-          href={buildHref('/study', { q: query, set: setParam, dir: 'en_ko' })}
-          active={direction === 'en_ko'}
-        >
-          영어 → 한국어
-        </TabLink>
-        <TabLink
-          href={buildHref('/study', { q: query, set: setParam, dir: 'ko_en' })}
-          active={direction === 'ko_en'}
-        >
-          한국어 → 영어
-        </TabLink>
-      </TabBar>
+      {/* What the list is of — the tabs. Which way round it is covered is a
+          display option and reads as two words, not as a second tab bar; it
+          used to have the tabs to itself, which said the direction was the
+          bigger choice on this screen. It is not. */}
+      {counts.mapped > 0 ? (
+        <TabBar>
+          <TabLink href={listHref({ view: undefined })} active={!mapsOnly} count={counts.all}>
+            전체
+          </TabLink>
+          <TabLink href={listHref({ view: 'map' })} active={mapsOnly} count={counts.mapped}>
+            맵
+          </TabLink>
+        </TabBar>
+      ) : null}
+
+      <div className="mb-1 flex justify-end gap-3 text-xs">
+        <DirectionLink href={listHref({ dir: 'en_ko' })} active={direction === 'en_ko'}>
+          영 → 한
+        </DirectionLink>
+        <DirectionLink href={listHref({ dir: 'ko_en' })} active={direction === 'ko_en'}>
+          한 → 영
+        </DirectionLink>
+      </div>
 
       <WordList
         items={words.words}
         direction={direction}
+        // Every row on the 맵 tab has one, so the badge would be saying the
+        // heading's job twenty times over.
+        showMap={!mapsOnly}
         emptyHint={
           query
             ? '다른 표현으로 찾아보세요.'
-            : role === 'student'
-              ? '이 세트에는 아직 단어가 없어요.'
-              : '교사 탭에서 이 세트에 단어를 담아 주세요.'
+            : mapsOnly
+              ? '이 세트에는 아직 맵이 있는 단어가 없어요.'
+              : role === 'student'
+                ? '이 세트에는 아직 단어가 없어요.'
+                : '교사 탭에서 이 세트에 단어를 담아 주세요.'
         }
       />
 
@@ -413,14 +485,7 @@ async function WordsView({
         page={words.page}
         pageCount={words.pageCount}
         total={words.total}
-        href={(next) =>
-          buildHref('/study', {
-            q: query,
-            set: setParam,
-            dir: direction,
-            page: next ? String(next) : undefined,
-          })
-        }
+        href={(next) => listHref({ page: next ? String(next) : undefined })}
       />
 
       {/* The same test as the one beside the title, at the end of the words.
@@ -430,11 +495,40 @@ async function WordsView({
       {words.total > 0 && !query ? (
         <Link href={testHref} className="mt-6 block">
           <Button size="lg" className="w-full">
-            이 세트 시험 보기
+            {mapsOnly ? '이 세트 맵 시험 보기' : '이 세트 시험 보기'}
           </Button>
         </Link>
       ) : null}
     </>
+  )
+}
+
+/**
+ * The words that keep beating this student, straight to their maps.
+ *
+ * A line of links rather than a card: it is a suggestion, and the shelf below
+ * it is what the screen is for.
+ */
+async function Recommended({ userId }: { userId: string }) {
+  const words = await listRecommendedWords(userId, 5)
+  if (!words.length) return null
+
+  return (
+    <section className="mb-5">
+      <p className="text-xs text-ink-3">자주 틀려서 깊이 볼 만한 단어</p>
+      <ul className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        {words.map((word) => (
+          <li key={word.vocabularyId}>
+            <Link
+              href={`/words/${word.vocabularyId}`}
+              className="text-[0.9375rem] text-ink underline decoration-line underline-offset-4 transition hover:decoration-brand"
+            >
+              {word.lemma}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

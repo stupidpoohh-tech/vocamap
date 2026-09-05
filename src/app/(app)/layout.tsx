@@ -58,17 +58,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Three destinations for a student, and they are the three things this app is:
- * the word list, the handful of words that have a Brain Map, and the schedule
- * that brings both of them back before they are forgotten.
+ * Two destinations for a student: the material, and the schedule that brings it
+ * back before it is forgotten.
  *
- * In that order: the two that are about the material come first, and the one
- * that is about you comes last — which is also the only one that asks for an
- * account.
+ * The maps had a tab of their own until the word rows started marking which
+ * words have one. At that point the 맵 tab was this same shelf and these same
+ * words with the unmapped ones hidden — a filter, not a place — so it became
+ * one, inside the set where the words already are.
+ *
+ * The material comes first and the one that is about you comes last, which is
+ * also the only one that asks for an account.
  */
 const STUDENT_LINKS = [
   { href: '/study', label: '단어' },
-  { href: '/map', label: '맵' },
   { href: '/vault', label: '복습' },
 ]
 
@@ -101,10 +103,9 @@ async function Account() {
 
 async function Navigation() {
   const actor = await getActor()
-  // A guest gets the student's three destinations. Two of them read without an
-  // account; the third, the vault, is their own saved words and asks for a
-  // sign-in when they open it — which is the point at which the account
-  // actually means something.
+  // A guest gets the student's two destinations. The words read without an
+  // account; 복습 is their own schedule and asks for a sign-in when they open
+  // it — which is the point at which the account actually means something.
   if (!actor) return <BottomNav links={STUDENT_LINKS} />
 
   // Curation is a teacher's job as much as an admin's — the review page and

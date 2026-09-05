@@ -39,8 +39,8 @@ export default async function WordPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="animate-rise" data-wide>
       <div className="flex items-baseline justify-between gap-3">
-        <Link href="/map" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
-          ← 맵
+        <Link href="/study" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
+          ← 단어
         </Link>
         {/* The only route from a published word to its review screen, so it
             survives here rather than in the band of state that used to run

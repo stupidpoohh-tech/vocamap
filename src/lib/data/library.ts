@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, sql, type SQL } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import {
@@ -98,26 +98,8 @@ export async function listStudyWords(
       .groupBy(reviewEvents.vocabularyId),
   )
 
-  const filters = [scopeFilter(opts.scope, wrong)]
+  const filters = [scopeFilter(opts.scope, wrong), ...placeFilters(opts, db)]
   if (opts.savedOnly) filters.push(isNotNull(userVocabularyState.bookmarkedAt))
-  if (opts.setId) {
-    filters.push(
-      inArray(
-        vocabularies.id,
-        db
-          .select({ id: vocabularySetItems.vocabularyId })
-          .from(vocabularySetItems)
-          .where(eq(vocabularySetItems.setId, opts.setId)),
-      ),
-    )
-  }
-  if (opts.unassigned) {
-    filters.push(sql`not exists (
-      select 1 from ${vocabularySetItems} i where i.vocabulary_id = ${vocabularies.id}
-    )`)
-  }
-  const search = opts.query?.trim()
-  if (search) filters.push(searchFilter(search))
 
   const pageSize = opts.pageSize ?? opts.limit ?? WORD_PAGE_SIZE
   const page = Math.max(0, opts.page ?? 0)
@@ -173,6 +155,37 @@ export async function listStudyWords(
     page,
     pageCount: Math.max(1, Math.ceil(total / pageSize)),
   }
+}
+
+/**
+ * Where the word is, rather than what state it is in: the set it belongs to (or
+ * the bucket of words in none), and the search box. Shared, because the tab
+ * counts have to be counting the same words the list is listing.
+ */
+function placeFilters(
+  opts: { setId?: string; unassigned?: boolean; query?: string },
+  db: Db,
+): SQL[] {
+  const filters: SQL[] = []
+  if (opts.setId) {
+    filters.push(
+      inArray(
+        vocabularies.id,
+        db
+          .select({ id: vocabularySetItems.vocabularyId })
+          .from(vocabularySetItems)
+          .where(eq(vocabularySetItems.setId, opts.setId)),
+      ),
+    )
+  }
+  if (opts.unassigned) {
+    filters.push(sql`not exists (
+      select 1 from ${vocabularySetItems} i where i.vocabulary_id = ${vocabularies.id}
+    )`)
+  }
+  const search = opts.query?.trim()
+  if (search) filters.push(searchFilter(search))
+  return filters
 }
 
 function scopeFilter(scope: WordScope, wrong: { wrongCount: unknown }) {
@@ -388,11 +401,13 @@ export type MapCounts = { published: number; saved: number; pending: number; mis
 export type VaultCounts = { saved: number; wrong: number }
 
 /**
- * Every count the 맵 tabs need, in one query.
+ * Every count the map pipeline needs, in one query.
  *
  * They used to come from running the list query once per tab and taking its
  * length — four full scans to render one list. Counting is what the tabs
- * actually want, and counting is one round trip.
+ * actually want, and counting is one round trip. `pending` and `missing` are
+ * the 검수 tabs; the other two survive from when the maps had a tab of their
+ * own and are still the honest answer to "how many maps are there".
  */
 export async function mapCounts(userId: string, db: Db = defaultDb): Promise<MapCounts> {
   const [row] = await db
@@ -422,6 +437,30 @@ export async function mapCounts(userId: string, db: Db = defaultDb): Promise<Map
     pending: row?.pending ?? 0,
     missing: row?.missing ?? 0,
   }
+}
+
+/**
+ * How many words a set holds, and how many of them carry a published map.
+ *
+ * The two numbers on the 전체 / 맵 tabs inside a set. Counted rather than
+ * listed: the tabs want a number, and the list under them is already being
+ * fetched for the tab that is open.
+ */
+export async function setScopeCounts(
+  opts: { setId?: string; unassigned?: boolean; query?: string },
+  db: Db = defaultDb,
+): Promise<{ all: number; mapped: number }> {
+  const filters = placeFilters(opts, db)
+  const [row] = await db
+    .select({
+      all: sql<number>`count(*)::int`,
+      mapped: sql<number>`count(*) filter (where ${brainMaps.status} = 'approved')::int`,
+    })
+    .from(vocabularies)
+    .leftJoin(brainMaps, eq(brainMaps.vocabularyId, vocabularies.id))
+    .where(filters.length ? and(...filters) : undefined)
+
+  return { all: row?.all ?? 0, mapped: row?.mapped ?? 0 }
 }
 
 /**

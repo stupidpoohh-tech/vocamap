@@ -35,10 +35,14 @@ export function WordList({
   items,
   direction,
   emptyHint,
+  showMap = true,
 }: {
   items: WordListItem[]
   direction: ListDirection
   emptyHint?: string
+  /** Off when the list is already only mapped words — a badge on every row
+   *  says nothing the heading has not said once. */
+  showMap?: boolean
 }) {
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
   const [showAll, setShowAll] = useState(false)
@@ -141,19 +145,21 @@ export function WordList({
                   optional one goes first and each keeps a slot of its own
                   width, so the speaker and the star stay in the same place all
                   the way down the list. */}
-              <span className="flex w-7 shrink-0 items-center justify-center">
-                {/* Published maps only. A draft is a curator's business and the
-                    맵 tab is where they see it. */}
-                {item.mapStatus === 'approved' ? (
-                  <Link
-                    href={`/words/${item.id}`}
-                    onClick={(event) => event.stopPropagation()}
-                    className="rounded-chip px-1 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
-                  >
-                    맵
-                  </Link>
-                ) : null}
-              </span>
+              {showMap ? (
+                <span className="flex w-7 shrink-0 items-center justify-center">
+                  {/* Published maps only. A draft is a curator's working copy
+                      and the 검수 screen is where they see it. */}
+                  {item.mapStatus === 'approved' ? (
+                    <Link
+                      href={`/words/${item.id}`}
+                      onClick={(event) => event.stopPropagation()}
+                      className="rounded-chip px-1 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
+                    >
+                      맵
+                    </Link>
+                  ) : null}
+                </span>
+              ) : null}
 
               <span className="flex h-8 w-8 shrink-0 items-center justify-center">
                 {/* Only once the English is on screen. In 한영 the word is the
