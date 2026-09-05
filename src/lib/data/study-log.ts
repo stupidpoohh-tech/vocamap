@@ -44,8 +44,16 @@ export async function studyLog(
   opts: { window?: number } = {},
   db: Db = defaultDb,
 ): Promise<StudyLog> {
-  const window = Math.min(Math.max(opts.window ?? 21, 1), 120)
-  const since = sql`now() - ${`${window} days`}::interval`
+  const requested = Number.isFinite(opts.window) ? Math.trunc(opts.window as number) : 21
+  const window = Math.min(Math.max(requested, 1), 120)
+  // Korean midnight, `window - 1` days back — so the range is exactly `window`
+  // calendar days counting today. Subtracting a rolling `window * 24h` from
+  // `now()` instead would reach back into a *partial* further day, and
+  // `activeDays` could then come out larger than `window`: "최근 21일 중 22일".
+  const since = sql`
+    (((now() at time zone ${LOG_TIME_ZONE})::date - ${window - 1}::int)::timestamp
+      at time zone ${LOG_TIME_ZONE})
+  `
 
   const [dayRows, missRows] = await Promise.all([
     db.execute<{
@@ -65,21 +73,30 @@ export async function studyLog(
         group by 1
         order by 1 desc
     `),
-    // Wrong answers only, worst first. Trimmed to a handful per day in JS
-    // rather than with a window: the point is which words to bring up in the
-    // next lesson, not a transcript, and the whole set is a few hundred rows.
+    // Wrong answers only, worst first, trimmed per day rather than overall:
+    // the point is which words to bring up in the next lesson, not a
+    // transcript. The rank has to be taken per day inside the query — a flat
+    // row cap would spend itself on the newest days and leave the oldest ones
+    // looking like days nothing went wrong on.
     db.execute<{ day: string; lemma: string; wrong: number }>(sql`
-      select (e.reviewed_at at time zone ${LOG_TIME_ZONE})::date::text as day,
-             v.lemma,
-             count(*)::int as wrong
-        from review_events e
-        join vocabularies v on v.id = e.vocabulary_id
-        where e.user_id = ${studentId}
-          and e.correct = false
-          and e.reviewed_at >= ${since}
-        group by 1, 2
-        order by 1 desc, 3 desc, 2
-        limit 1000
+      select day, lemma, wrong
+        from (
+          select day, lemma, wrong,
+                 row_number() over (partition by day order by wrong desc, lemma) as rank
+            from (
+              select (e.reviewed_at at time zone ${LOG_TIME_ZONE})::date::text as day,
+                     v.lemma,
+                     count(*)::int as wrong
+                from review_events e
+                join vocabularies v on v.id = e.vocabulary_id
+                where e.user_id = ${studentId}
+                  and e.correct = false
+                  and e.reviewed_at >= ${since}
+                group by 1, 2
+            ) counted
+        ) ranked
+       where rank <= ${MISSED_PER_DAY}
+       order by day desc, wrong desc, lemma
     `),
   ])
 

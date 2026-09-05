@@ -15,9 +15,24 @@ import { EmptyState } from '@/components/ui'
  * window, blank ones included, because "three of the last seven" is the thing
  * the gaps add up to.
  */
-export function StudyLogView({ log }: { log: StudyLog }) {
+export function StudyLogView({
+  log,
+  everStudiedAt,
+}: {
+  log: StudyLog
+  /** The last answer ever, ignoring the window. */
+  everStudiedAt: Date | null
+}) {
   if (!log.days.length) {
-    return (
+    // A student who stopped three weeks ago has not "never studied", and the
+    // teacher's list one screen back already says "1개월 전" — saying the
+    // opposite here would be the screen arguing with itself.
+    return everStudiedAt ? (
+      <EmptyState
+        title={`최근 ${log.window}일 동안 학습이 없어요`}
+        hint={`마지막 학습은 ${agoKo(everStudiedAt)}이에요.`}
+      />
+    ) : (
       <EmptyState
         title="아직 학습 기록이 없어요"
         hint="학생이 시험을 한 번 보면 날짜별로 여기에 쌓여요."
@@ -26,7 +41,11 @@ export function StudyLogView({ log }: { log: StudyLog }) {
   }
 
   const answered = new Set(log.days.map((day) => day.day))
-  const strip = recentDays(14)
+  // The strip draws the same window the sentence above it counts. Hard-coding
+  // a length here would either contradict that count or draw hollow days from
+  // outside the window, which read as "did not study" when they were never
+  // asked about.
+  const strip = recentDays(log.window)
 
   return (
     <div>
@@ -73,7 +92,9 @@ export function StudyLogView({ log }: { log: StudyLog }) {
 
               {/* Which words to bring up next lesson. Not a transcript — the
                   six that went wrong most often that day. */}
-              {day.missed.length > 0 ? (
+              {day.correct === day.total ? (
+                <p className="mt-1 text-[0.8125rem] text-good">다 맞았어요</p>
+              ) : day.missed.length > 0 ? (
                 <p className="mt-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-[0.8125rem] text-ink-3">
                   <span className="text-xs">틀림</span>
                   {day.missed.map((word) => (
@@ -89,9 +110,7 @@ export function StudyLogView({ log }: { log: StudyLog }) {
                     </Link>
                   ))}
                 </p>
-              ) : (
-                <p className="mt-1 text-[0.8125rem] text-good">다 맞았어요</p>
-              )}
+              ) : null}
             </li>
           )
         })}

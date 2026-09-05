@@ -13,12 +13,17 @@ export default async function TeacherPage() {
   const actor = await requireActor()
   if (actor.role === 'student') redirect('/study')
 
-  const [students, sets, missingPronunciation] = await Promise.all([
-    listStudents(actor.id),
+  // The last-studied read needs the ids the first one returns, so it is chained
+  // rather than listed — that keeps it inside the same wave as the sets and the
+  // pronunciation count instead of behind all of them.
+  const [[students, lastStudied], sets, missingPronunciation] = await Promise.all([
+    listStudents(actor.id).then(
+      async (found) =>
+        [found, await lastStudiedByStudent(found.map((student) => student.id))] as const,
+    ),
     listSets(actor.id),
     countMissingPronunciation(),
   ])
-  const lastStudied = await lastStudiedByStudent(students.map((student) => student.id))
 
   return (
     <div className="animate-rise">

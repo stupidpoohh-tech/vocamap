@@ -10,7 +10,7 @@ import {
   listWeakWords,
   studentProgressSummary,
 } from '@/lib/data/teacher'
-import { studyLog } from '@/lib/data/study-log'
+import { lastStudiedByStudent, studyLog } from '@/lib/data/study-log'
 import { Badge, Card, EmptyState, PageHeader } from '@/components/ui'
 import { FlagButton } from './flag-button'
 import { StudyLogView } from './study-log'
@@ -25,11 +25,14 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
   const [student] = await db.select().from(users).where(eq(users.id, id)).limit(1)
   if (!student) notFound()
 
-  const [weak, confusions, summary, log] = await Promise.all([
+  const [weak, confusions, summary, log, lastStudied] = await Promise.all([
     listWeakWords(id, 15),
     listConfusions(id, 8),
     studentProgressSummary(id),
     studyLog(id),
+    // Unbounded, unlike the log's own window: "nothing in three weeks" and
+    // "never started" are different answers and must not read the same.
+    lastStudiedByStudent([id]),
   ])
 
   return (
@@ -59,7 +62,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
           do about it. */}
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">학습 기록</h2>
-        <StudyLogView log={log} />
+        <StudyLogView log={log} everStudiedAt={lastStudied.get(id) ?? null} />
       </section>
 
       <section className="mb-8">

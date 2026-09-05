@@ -39,12 +39,16 @@ describe.skipIf(!hasDatabase)('a student’s study log', () => {
     })
   }
 
-  /** Korean wall clock, a given number of days back from now. */
-  function korean(daysAgo: number, hhmm: string): string {
-    const day = new Date(Date.now() - daysAgo * 86_400_000).toLocaleDateString('en-CA', {
+  /** The Korean calendar day a given number of days back from now. */
+  function koreanDay(daysAgo: number): string {
+    return new Date(Date.now() - daysAgo * 86_400_000).toLocaleDateString('en-CA', {
       timeZone: 'Asia/Seoul',
     })
-    return `${day} ${hhmm}+09`
+  }
+
+  /** Korean wall clock, a given number of days back from now. */
+  function korean(daysAgo: number, hhmm: string): string {
+    return `${koreanDay(daysAgo)} ${hhmm}+09`
   }
 
   it('gives one row per day, with how much and how right', async () => {
@@ -138,6 +142,43 @@ describe.skipIf(!hasDatabase)('a student’s study log', () => {
     const log = await studyLog(student.id, { window: 7 })
     expect(log.days).toHaveLength(1)
     expect(log.window).toBe(7)
+  })
+
+  it('counts no more days than the window it names', async () => {
+    // The window is calendar days, not a rolling stack of 24-hour blocks. A
+    // rolling one reaches back into a further, partial day, and the screen
+    // then reads "최근 2일 중 3일 학습".
+    const teacher = await createUser('teacher')
+    const student = await createUser('student')
+    const govern = await word('govern', teacher.id)
+
+    await answered(student.id, govern, korean(0, '23:30'), true)
+    await answered(student.id, govern, korean(1, '23:30'), true)
+    await answered(student.id, govern, korean(2, '23:30'), true)
+
+    const log = await studyLog(student.id, { window: 2 })
+    expect(log.activeDays).toBeLessThanOrEqual(log.window)
+    expect(log.days.map((day) => day.day)).toEqual([koreanDay(0), koreanDay(1)])
+  })
+
+  it('keeps the worst six of a day, not the whole transcript', async () => {
+    // Trimming has to happen per day. A flat cap across the query spends
+    // itself on the newest days and leaves older ones looking spotless.
+    const teacher = await createUser('teacher')
+    const student = await createUser('student')
+    const lemmas = ['a1', 'b2', 'c3', 'd4', 'e5', 'f6', 'g7', 'h8']
+    for (const [index, lemma] of lemmas.entries()) {
+      const id = await word(lemma, teacher.id)
+      // Earlier lemmas go wrong more often, so they must survive the trim.
+      for (let time = lemmas.length - index; time > 0; time -= 1) {
+        await answered(student.id, id, korean(0, '09:00'), false)
+      }
+    }
+
+    const [today] = (await studyLog(student.id)).days
+    expect(today!.missed).toHaveLength(6)
+    expect(today!.missed.map((word) => word.lemma)).toEqual(lemmas.slice(0, 6))
+    expect(today!.missed[0]!.wrong).toBeGreaterThan(today!.missed[5]!.wrong)
   })
 
   it('never shows one student another’s work', async () => {
