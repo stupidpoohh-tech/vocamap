@@ -135,29 +135,25 @@ async function mapMaterial(
   const byWord = new Map<string, MapMaterial>()
   if (!vocabularyIds.length) return byWord
 
-  const maps = await db
-    .select({ id: brainMaps.id, vocabularyId: brainMaps.vocabularyId })
-    .from(brainMaps)
-    .where(
-      and(
-        inArray(brainMaps.vocabularyId, vocabularyIds),
-        // Drafts are not questions. A student never meets unreviewed material.
-        eq(brainMaps.status, 'approved'),
-      ),
-    )
-  if (!maps.length) return byWord
+  // The parts are keyed on the words, not on the maps' ids, so they travel
+  // with the map lookup instead of a round trip behind it. Drafts are not
+  // questions — a student never meets unreviewed material — and the subquery
+  // says so once for all four.
+  const approvedMaps = () =>
+    db
+      .select({ id: brainMaps.id })
+      .from(brainMaps)
+      .where(and(inArray(brainMaps.vocabularyId, vocabularyIds), eq(brainMaps.status, 'approved')))
 
-  const mapIds = maps.map((m) => m.id)
-  const wordOf = new Map(maps.map((m) => [m.id, m.vocabularyId]))
-  for (const m of maps) {
-    byWord.set(m.vocabularyId, { senses: [], sentences: [], collocations: [], family: [] })
-  }
-
-  const [meanings, sentences, collocations, family] = await Promise.all([
+  const [maps, meanings, sentences, collocations, family] = await Promise.all([
+    db
+      .select({ id: brainMaps.id, vocabularyId: brainMaps.vocabularyId })
+      .from(brainMaps)
+      .where(and(inArray(brainMaps.vocabularyId, vocabularyIds), eq(brainMaps.status, 'approved'))),
     db
       .select({ brainMapId: brainMapMeanings.brainMapId, ko: brainMapMeanings.ko })
       .from(brainMapMeanings)
-      .where(inArray(brainMapMeanings.brainMapId, mapIds))
+      .where(inArray(brainMapMeanings.brainMapId, approvedMaps()))
       .orderBy(brainMapMeanings.sortOrder),
     db
       .select({
@@ -168,7 +164,7 @@ async function mapMaterial(
         targetMeaning: brainMapSentences.targetMeaning,
       })
       .from(brainMapSentences)
-      .where(inArray(brainMapSentences.brainMapId, mapIds))
+      .where(inArray(brainMapSentences.brainMapId, approvedMaps()))
       .orderBy(brainMapSentences.sortOrder),
     db
       .select({
@@ -177,7 +173,7 @@ async function mapMaterial(
         ko: brainMapCollocations.ko,
       })
       .from(brainMapCollocations)
-      .where(inArray(brainMapCollocations.brainMapId, mapIds))
+      .where(inArray(brainMapCollocations.brainMapId, approvedMaps()))
       .orderBy(brainMapCollocations.sortOrder),
     db
       .select({
@@ -186,9 +182,15 @@ async function mapMaterial(
         ko: brainMapWordFamily.ko,
       })
       .from(brainMapWordFamily)
-      .where(inArray(brainMapWordFamily.brainMapId, mapIds))
+      .where(inArray(brainMapWordFamily.brainMapId, approvedMaps()))
       .orderBy(brainMapWordFamily.sortOrder),
   ])
+  if (!maps.length) return byWord
+
+  const wordOf = new Map(maps.map((m) => [m.id, m.vocabularyId]))
+  for (const m of maps) {
+    byWord.set(m.vocabularyId, { senses: [], sentences: [], collocations: [], family: [] })
+  }
 
   const into = (mapId: string) => byWord.get(wordOf.get(mapId) ?? '')
   for (const row of meanings) into(row.brainMapId)?.senses.push(row.ko)

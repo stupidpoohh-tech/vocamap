@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { requireActor } from '@/lib/auth/session'
+import { redirect } from 'next/navigation'
+import { readerFromCookie } from '@/lib/auth/session'
 import { listReviewWords, reviewCounts, type ReviewBucket } from '@/lib/data/review'
 import { getTodaySummary } from '@/lib/data/study'
 import { Button, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
@@ -27,7 +28,11 @@ export default async function VaultPage({
   searchParams: Promise<{ tab?: string; page?: string }>
 }) {
   const { tab, page } = await searchParams
-  const actor = await requireActor()
+  // The middleware has already turned away anyone without a cookie; what is
+  // left is proving the cookie's session, which runs alongside the three reads
+  // rather than ahead of them. See `readerFromCookie`.
+  const { reader: actor, confirm } = await readerFromCookie()
+  if (actor.isGuest) redirect('/login')
   const bucket: ReviewBucket = tab === 'upcoming' ? 'upcoming' : tab === 'wrong' ? 'wrong' : 'now'
   const pageIndex = Math.max(0, Number(page ?? 0) || 0)
   const now = new Date()
@@ -36,6 +41,7 @@ export default async function VaultPage({
     listReviewWords({ userId: actor.id, bucket, page: pageIndex, now }),
     reviewCounts(actor.id, { now }),
     getTodaySummary(actor.id, { now }),
+    confirm,
   ])
 
   // What "복습 시작" will actually ask. New words ride along in the same

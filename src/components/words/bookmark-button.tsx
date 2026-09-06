@@ -1,7 +1,6 @@
 'use client'
 
 import { useOptimistic, useTransition } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { setBookmark } from '@/app/(app)/actions'
 
@@ -32,9 +31,6 @@ export function BookmarkButton({
 }) {
   const [optimistic, setOptimistic] = useOptimistic(bookmarked)
   const [, startTransition] = useTransition()
-  const router = useRouter()
-  const pathname = usePathname()
-  const search = useSearchParams().toString()
 
   return (
     <button
@@ -50,9 +46,13 @@ export function BookmarkButton({
           if (!result.ok) {
             // The optimistic star falls back on its own when the transition
             // ends without a matching server state, so there is nothing to
-            // undo here — just go and get an account.
-            const here = search ? `${pathname}?${search}` : pathname
-            router.push(`/login?next=${encodeURIComponent(here)}`)
+            // undo here — just go and get an account. The current address is
+            // read off the window at the moment it is needed: this star sits
+            // on every row of a twenty-five-row list, and subscribing each one
+            // to the router for a value only a guest ever uses was a cost paid
+            // on every page for a case that almost never happens.
+            const here = `${window.location.pathname}${window.location.search}`
+            window.location.assign(`/login?next=${encodeURIComponent(here)}`)
           }
         })
       }}

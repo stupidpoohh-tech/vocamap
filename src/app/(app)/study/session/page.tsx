@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getViewer } from '@/lib/auth/session'
+import { readerFromCookie } from '@/lib/auth/session'
 import { buildScopedQueue, parseDirections, parseQueueScope } from '@/lib/data/study'
 import { buildQuestions } from '@/lib/learning/questions'
 import { Button, Card } from '@/components/ui'
@@ -22,15 +22,20 @@ export default async function SessionPage({
   }>
 }) {
   const { scope: scopeParam, dir, set, unassigned, from } = await searchParams
-  const actor = await getViewer()
+  // From the cookie; the session row is proved alongside the queue rather
+  // than ahead of it. See `readerFromCookie`.
+  const { reader: actor, confirm } = await readerFromCookie()
   const scope = parseQueueScope(scopeParam)
 
-  const queue = await buildScopedQueue(actor.id, {
-    scope,
-    setId: set,
-    unassigned: unassigned === '1',
-    directions: parseDirections(dir),
-  })
+  const [queue] = await Promise.all([
+    buildScopedQueue(actor.id, {
+      scope,
+      setId: set,
+      unassigned: unassigned === '1',
+      directions: parseDirections(dir),
+    }),
+    confirm,
+  ])
 
   if (queue.length === 0) {
     return (

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { getViewer } from '@/lib/auth/session'
+import { readerFromCookie } from '@/lib/auth/session'
 import { getTodaySummary } from '@/lib/data/study'
 import {
   listStudyWords,
@@ -49,7 +49,10 @@ export default async function StudyPage({
   }>
 }) {
   const { q, set, dir, page, tab, view } = await searchParams
-  const actor = await getViewer()
+  // From the cookie, so the shell below goes out at once. Every streamed part
+  // that reads as this person awaits `confirm` beside its own reads, which is
+  // where the session row is actually proved. See `readerFromCookie`.
+  const { reader: actor, confirm } = await readerFromCookie()
   const query = q?.trim() ?? ''
   const direction: ListDirection = dir === 'ko_en' ? 'ko_en' : 'en_ko'
 
@@ -90,7 +93,7 @@ export default async function StudyPage({
             /* Streamed on its own so the shelf below does not wait on it: the
                counts and the words are independent questions. */
             <Suspense fallback={<DueStripSkeleton />}>
-              <DueStrip userId={actor.id} direction={direction} />
+              <DueStrip userId={actor.id} direction={direction} confirm={confirm} />
             </Suspense>
           )}
 
@@ -100,7 +103,7 @@ export default async function StudyPage({
               decides what to do next. */}
           {saved ? null : (
             <Suspense fallback={null}>
-              <Recommended userId={actor.id} />
+              <Recommended userId={actor.id} confirm={confirm} />
             </Suspense>
           )}
 
@@ -120,6 +123,7 @@ export default async function StudyPage({
               saved={saved}
               direction={direction}
               page={pageIndex}
+              confirm={confirm}
             />
           </Suspense>
         </>
@@ -141,6 +145,7 @@ export default async function StudyPage({
             direction={direction}
             page={pageIndex}
             mapsOnly={mapsOnly}
+            confirm={confirm}
           />
         </>
       )}
@@ -158,8 +163,16 @@ export default async function StudyPage({
  * mattered. It is a line of type now: the count leads at size, its unit and
  * label trail behind it, and the button is the screen's one filled control.
  */
-async function DueStrip({ userId, direction }: { userId: string; direction: ListDirection }) {
-  const summary = await getTodaySummary(userId)
+async function DueStrip({
+  userId,
+  direction,
+  confirm,
+}: {
+  userId: string
+  direction: ListDirection
+  confirm: Promise<void>
+}) {
+  const [summary] = await Promise.all([getTodaySummary(userId), confirm])
   const total = summary.dueCount + summary.newCount
 
   if (total === 0) {
@@ -210,16 +223,19 @@ async function ShelfArea({
   saved,
   direction,
   page,
+  confirm,
 }: {
   userId: string
   role: string
   saved: boolean
   direction: ListDirection
   page: number
+  confirm: Promise<void>
 }) {
   const [counts, words] = await Promise.all([
     vaultCounts(userId),
     saved ? listStudyWords({ userId, scope: 'saved', page }) : Promise.resolve(null),
+    confirm,
   ])
 
   return (
@@ -380,6 +396,7 @@ async function WordsView({
   direction,
   page,
   mapsOnly,
+  confirm,
 }: {
   userId: string
   role: string
@@ -390,6 +407,7 @@ async function WordsView({
   page: number
   /** The 맵 filter: the same set, narrowed to the words that carry a map. */
   mapsOnly: boolean
+  confirm: Promise<void>
 }) {
   const [words, counts, title] = await Promise.all([
     listStudyWords({
@@ -402,6 +420,7 @@ async function WordsView({
     }),
     setScopeCounts({ setId, unassigned, query }),
     setId ? wordSetName(setId) : Promise.resolve(unassigned ? '세트에 없는 단어' : null),
+    confirm,
   ])
 
   const setParam = setId ?? (unassigned ? 'none' : undefined)
@@ -512,8 +531,8 @@ async function WordsView({
  * A line of links rather than a card: it is a suggestion, and the shelf below
  * it is what the screen is for.
  */
-async function Recommended({ userId }: { userId: string }) {
-  const words = await listRecommendedWords(userId, 5)
+async function Recommended({ userId, confirm }: { userId: string; confirm: Promise<void> }) {
+  const [words] = await Promise.all([listRecommendedWords(userId, 5), confirm])
   if (!words.length) return null
 
   return (

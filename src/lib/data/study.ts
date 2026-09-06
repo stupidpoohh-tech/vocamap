@@ -297,9 +297,10 @@ export async function buildScopedQueue(
 
   const now = opts.now ?? new Date()
   const directions = opts.directions ?? DIRECTIONS
-  const ids = await scopeIds(userId, opts.scope, opts.setId, opts.unassigned ?? false, db)
-  if (!ids.length) return []
 
+  // The scope is a condition on the one query, not a list of ids fetched
+  // first. Naming the ids and then asking for the words was two round trips
+  // for one question, at the top of the one screen a student waits on most.
   const rows = await db
     .select({
       vocabularyId: vocabularies.id,
@@ -322,8 +323,9 @@ export async function buildScopedQueue(
         eq(userVocabularyCards.userId, userId),
       ),
     )
-    .where(inArray(vocabularies.id, ids))
+    .where(scopeCondition(userId, opts.scope, opts.setId, opts.unassigned ?? false, db))
     .orderBy(asc(vocabularies.lemma))
+  if (!rows.length) return []
 
   const words = new Map<string, { lemma: string; translation: string; started: Set<Direction> }>()
   for (const row of rows) {
@@ -352,55 +354,55 @@ export async function buildScopedQueue(
   return items
 }
 
-async function scopeIds(
+/** Which words a scope means, as a condition the queue query can carry. */
+function scopeCondition(
   userId: string,
   scope: Exclude<QueueScope, 'due'>,
   setId: string | undefined,
   unassigned: boolean,
   db: Db,
-): Promise<string[]> {
+) {
   if (scope === 'saved') {
-    const rows = await db
-      .select({ id: userVocabularyState.vocabularyId })
-      .from(userVocabularyState)
-      .where(
-        and(
-          eq(userVocabularyState.userId, userId),
-          sql`${userVocabularyState.bookmarkedAt} is not null`,
+    return inArray(
+      vocabularies.id,
+      db
+        .select({ id: userVocabularyState.vocabularyId })
+        .from(userVocabularyState)
+        .where(
+          and(
+            eq(userVocabularyState.userId, userId),
+            sql`${userVocabularyState.bookmarkedAt} is not null`,
+          ),
         ),
-      )
-    return rows.map((r) => r.id)
+    )
   }
 
   if (scope === 'wrong') {
-    const rows = await db
-      .selectDistinct({ id: reviewEvents.vocabularyId })
-      .from(reviewEvents)
-      .where(and(eq(reviewEvents.userId, userId), eq(reviewEvents.correct, false)))
-    return rows.map((r) => r.id)
+    return inArray(
+      vocabularies.id,
+      db
+        .selectDistinct({ id: reviewEvents.vocabularyId })
+        .from(reviewEvents)
+        .where(and(eq(reviewEvents.userId, userId), eq(reviewEvents.correct, false))),
+    )
   }
 
   if (scope === 'mapped') {
     // Published maps only. A draft is a curator's working copy, and being
     // tested on material nobody has checked is worse than not being tested.
-    const rows = await db
-      .select({ id: vocabularies.id })
-      .from(vocabularies)
-      .innerJoin(
-        brainMaps,
-        and(eq(brainMaps.vocabularyId, vocabularies.id), eq(brainMaps.status, 'approved')),
-      )
-      .where(scopeWhere(setId, unassigned, db))
-      .orderBy(asc(vocabularies.lemma))
-    return rows.map((r) => r.id)
+    return and(
+      inArray(
+        vocabularies.id,
+        db
+          .select({ id: brainMaps.vocabularyId })
+          .from(brainMaps)
+          .where(eq(brainMaps.status, 'approved')),
+      ),
+      scopeWhere(setId, unassigned, db),
+    )
   }
 
-  const rows = await db
-    .select({ id: vocabularies.id })
-    .from(vocabularies)
-    .where(scopeWhere(setId, unassigned, db))
-    .orderBy(asc(vocabularies.lemma))
-  return rows.map((r) => r.id)
+  return scopeWhere(setId, unassigned, db)
 }
 
 function scopeWhere(setId: string | undefined, unassigned: boolean, db: Db) {
