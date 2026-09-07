@@ -17,9 +17,6 @@ export type WordListItem = {
 
 export type ListDirection = 'en_ko' | 'ko_en'
 
-/** Rows past which the list gets its own scrollbar instead of growing the page. */
-const SCROLL_AFTER = 8
-
 /**
  * A paper vocabulary notebook, on a screen.
  *
@@ -38,9 +35,12 @@ export function WordList({
   showMap = true,
   openMap = false,
   wordQuery = '',
+  total,
 }: {
   items: WordListItem[]
   direction: ListDirection
+  /** How many the list has in all, when this is one page of them. */
+  total?: number
   emptyHint?: string
   /** Off when the list is already only mapped words — a badge on every row
    *  says nothing the heading has not said once. */
@@ -77,7 +77,10 @@ export function WordList({
     <div>
       <div className="flex items-baseline justify-between gap-3 pb-1.5">
         <p className="numeral text-xs text-ink-3">
-          {items.length}개
+          {/* "25개" directly under a tab reading "전체 50" is two numbers a line
+              apart disagreeing with each other, and the smaller one is the one
+              beside the words. It says which part of the whole it is. */}
+          {total && total > items.length ? `${items.length}개 / 전체 ${total}` : `${items.length}개`}
           <span className="ml-1.5">
             {showAll
               ? '모두 펼침'
@@ -98,14 +101,21 @@ export function WordList({
         </button>
       </div>
 
-      {/* Past a screenful the list scrolls in its own region so the header, the
-          action and the pager stay reachable without a long scroll. */}
-      <ul
-        className={cn(
-          'divide-y divide-line-soft border-t border-line',
-          items.length > SCROLL_AFTER && 'max-h-[58vh] overflow-y-auto overscroll-contain',
-        )}
-      >
+      {/* One scroll, and it is the page's.
+          
+          This list used to become its own scrolling region past a screenful,
+          so that the header and the pager under it stayed put. On a phone that
+          reversed itself: the box is as wide as the screen, so a finger is
+          always on top of it, and `overscroll-contain` is precisely the rule
+          that stops that scroll continuing to the page. The list ended at word
+          twenty-five and there was no way to reach the "1 / 2" underneath it
+          without finding the few pixels of margin beside the box — which is
+          how a set of fifty words reads as a set of twenty-five.
+          
+          From tablet up there is room beside it and the region behaved as
+          intended, but a rule that only works where it was not needed is not
+          worth the phone it breaks. */}
+      <ul className="divide-y divide-line-soft border-t border-line">
         {items.map((item) => {
           const front = direction === 'en_ko' ? item.lemma : (item.translation ?? '—')
           const back = direction === 'en_ko' ? (item.translation ?? '—') : item.lemma

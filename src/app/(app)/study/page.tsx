@@ -265,6 +265,7 @@ async function ShelfArea({
 
           <WordList
             items={words.words}
+            total={words.total}
             direction={direction}
             emptyHint="세트를 열고 모르는 단어의 ☆ 을 누르면 여기에 담겨요."
           />
@@ -485,6 +486,7 @@ async function WordsView({
 
       <WordList
         items={words.words}
+        total={words.total}
         direction={direction}
         // Every row on the 맵 tab has one, so the badge would be saying the
         // heading's job twenty times over — there the word itself is the way
