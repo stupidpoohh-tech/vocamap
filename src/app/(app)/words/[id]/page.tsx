@@ -20,20 +20,38 @@ export default async function WordPage({
   params: Promise<{ id: string }>
   // Which list this page was opened from. It decides what "next" means and
   // where "← 단어" goes back to.
-  searchParams: Promise<{ set?: string; view?: string }>
+  searchParams: Promise<{ set?: string; view?: string; from?: string }>
 }) {
   const { id } = await params
-  const { set, view } = await searchParams
+  const { set, view, from } = await searchParams
 
   const unassigned = set === 'none'
   const setId = unassigned ? undefined : set
   const mapsOnly = view === 'map'
   const listQuery = listSearch(set, view)
 
+  /**
+   * Whether this page was opened by walking a list.
+   *
+   * "다음" means the next word *in the list you came from*, and it only means
+   * anything if you came from one. Opened from the review desk, from a test's
+   * result screen, from a teacher's report — every one of those linked to the
+   * word and nothing else — there is no list, and the pager was quietly
+   * offering the whole library in alphabetical order instead. Swiping left
+   * inside a set of fifty walked straight out of it into another set's words,
+   * which is what it looked like: 한 세트에서 다음 세트로 넘어감.
+   *
+   * The absence of a set cannot answer this on its own — the library list has
+   * no set either — so the list says so when it links.
+   */
+  const fromList = from === 'list'
+
   // These two are about the word, not the reader, so they leave before the
   // session comes back rather than queueing behind it.
   const translationsPromise = listTranslations(id)
-  const neighboursPromise = wordNeighbours({ id, setId, unassigned, mapsOnly })
+  const neighboursPromise = fromList
+    ? wordNeighbours({ id, setId, unassigned, mapsOnly })
+    : Promise.resolve({ prev: null, next: null })
 
   // Who is reading comes from the cookie, not from a query. The session row is
   // still checked — `confirm` is awaited below, next to everything else — but
@@ -136,7 +154,13 @@ export default async function WordPage({
         </div>
       )}
 
-      <WordPager prev={neighbours.prev} next={neighbours.next} query={listQuery} />
+      {/* The next word is opened the same way this one was — walking the list
+          — so it is told so too, or the pager would work once and then vanish. */}
+      <WordPager
+        prev={neighbours.prev}
+        next={neighbours.next}
+        query={listSearch(set, view, { fromList })}
+      />
 
       {/* Throwing a word away is a curator's job and this is the one screen
           that can reach every word, mapped or not — so it is the one screen
@@ -151,10 +175,15 @@ export default async function WordPage({
 }
 
 /** The list this page belongs to, as a query string to carry around. */
-function listSearch(set: string | undefined, view: string | undefined): string {
+function listSearch(
+  set: string | undefined,
+  view: string | undefined,
+  opts: { fromList?: boolean } = {},
+): string {
   const params = new URLSearchParams()
   if (set) params.set('set', set)
   if (view === 'map') params.set('view', 'map')
+  if (opts.fromList) params.set('from', 'list')
   const rest = params.toString()
   return rest ? `?${rest}` : ''
 }

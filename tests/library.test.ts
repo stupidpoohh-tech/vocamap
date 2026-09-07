@@ -353,6 +353,19 @@ describe.skipIf(!hasDatabase)('the word either side', () => {
     expect(middle.next?.lemma).toBe('gamma')
   })
 
+  it('walks the whole library when it is not told which list', async () => {
+    // Why the word page must not ask without one. "다음" means the next word in
+    // the list you came from; with no list it is the next word in the library,
+    // and a student swiping through a set of fifty walks straight out of it
+    // into another set's words — which is what it looks like from the phone.
+    const { setId, ids } = await aSet(['alpha', 'beta'])
+    const outsider = await findOrCreateVocabulary({ lemma: 'aardvark' })
+
+    expect((await wordNeighbours({ id: ids.alpha!, setId })).prev).toBeNull()
+    // Same word, no set: the neighbour is one the set never contained.
+    expect((await wordNeighbours({ id: ids.alpha! })).prev?.id).toBe(outsider.id)
+  })
+
   it('stops at both ends', async () => {
     const { setId, ids } = await aSet(['alpha', 'beta'])
 

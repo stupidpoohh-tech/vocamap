@@ -493,7 +493,12 @@ async function WordsView({
         // in, and the badge would be a second door beside an open one.
         showMap={!mapsOnly}
         openMap={mapsOnly}
-        wordQuery={buildHref('', { set: setParam, view: viewParam })}
+        // `from=list` is what tells the word page it was opened by walking a
+        // list, and so may offer the word before and after. Only this list
+        // carries it: it is the one whose order `wordNeighbours` reproduces.
+        // The saved list is a list too, and a pager there would be paging
+        // through the library instead — better none than a wrong one.
+        wordQuery={buildHref('', { set: setParam, view: viewParam, from: 'list' })}
         emptyHint={
           query
             ? '다른 표현으로 찾아보세요.'
