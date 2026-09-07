@@ -5,8 +5,7 @@ import { listSets, listStudents } from '@/lib/data/teacher'
 import { DeleteSetButton } from '@/components/words/delete-set-button'
 import { WordbookForm } from './wordbook-form'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
-import { AddStudentForm, FillPronunciationForm, ImportWordsForm } from './forms'
-import { countMissingPronunciation, PRONUNCIATION_BATCH } from '@/lib/data/pronunciation'
+import { AddStudentForm, ImportWordsForm } from './forms'
 import { agoKo, lastStudiedByStudent } from '@/lib/data/study-log'
 
 export default async function TeacherPage() {
@@ -14,15 +13,14 @@ export default async function TeacherPage() {
   if (actor.role === 'student') redirect('/study')
 
   // The last-studied read needs the ids the first one returns, so it is chained
-  // rather than listed — that keeps it inside the same wave as the sets and the
-  // pronunciation count instead of behind all of them.
-  const [[students, lastStudied], sets, missingPronunciation] = await Promise.all([
+  // rather than listed — that keeps it inside the same wave as the sets instead
+  // of behind them.
+  const [[students, lastStudied], sets] = await Promise.all([
     listStudents(actor.id).then(
       async (found) =>
         [found, await lastStudiedByStudent(found.map((student) => student.id))] as const,
     ),
     listSets(actor.id),
-    countMissingPronunciation(),
   ])
 
   return (
@@ -59,11 +57,6 @@ export default async function TeacherPage() {
           </ul>
         )}
         <AddStudentForm />
-      </section>
-
-      <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold">발음기호</h2>
-        <FillPronunciationForm missing={missingPronunciation} batch={PRONUNCIATION_BATCH} />
       </section>
 
       <section className="mb-8">

@@ -88,7 +88,6 @@ describe.skipIf(!hasDatabase)('the map a wordbook entry produces', () => {
     const entry = byLemma.get(lemma)!
     const { id } = await findOrCreateVocabulary({
       lemma: entry.lemma,
-      pronunciation: entry.pronunciation,
       createdBy: teacher.id,
     })
     await writeDraft(id, toBrainMapDraft(entry), { status: 'approved', createdBy: teacher.id })

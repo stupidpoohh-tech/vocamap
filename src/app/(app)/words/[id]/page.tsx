@@ -106,11 +106,6 @@ export default async function WordPage({
             </h1>
             <SpeakButton text={personal.lemma} size="lg" />
           </div>
-          {personal.pronunciation ? (
-            <p className="mt-1 font-mono text-[0.8125rem] text-ink-3">
-              [{personal.pronunciation}]
-            </p>
-          ) : null}
           {/* Just the gloss. The core meaning belongs on its own node, where
               it is something to study rather than a subtitle to skim. */}
           <p className="mt-1 text-sm text-ink-2 break-keep">{personal.translation ?? '—'}</p>

@@ -41,7 +41,6 @@ export type ParsedSense = {
 export type ParsedEntry = {
   lemma: string
   /** As the book prints it, brackets stripped. Null when it printed none. */
-  pronunciation: string | null
   senses: ParsedSense[]
   collocations: Array<{ expression: string; ko: string }>
   wordFamily: Array<{ lemma: string; partOfSpeech: string | null; ko: string }>
@@ -152,13 +151,9 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
   const head = lines[0]!
   const withoutNumber = NUMBERED_HEADWORD.exec(head.text)?.[1] ?? head.text
 
-  // A headword can carry the book's pronunciation, in brackets or slashes.
-  // It is kept: "어떻게 읽는지 모르겠다" is the most common thing a student says
-  // about a new word, and the book already answered it.
-  const pronunciation =
-    /\[([^\]]+)\]/.exec(withoutNumber)?.[1]?.trim() ??
-    /\/([^/]+)\//.exec(withoutNumber)?.[1]?.trim() ??
-    null
+  // A headword can carry the book's phonetics, in brackets or slashes. They
+  // are dropped rather than read — nothing shows them any more — but they still
+  // have to come off the headword or the lemma would be the whole line.
   const lemma = withoutNumber
     .replace(/\[[^\]]*\]/g, '')
     .replace(/\/[^/]*\//g, '')
@@ -179,7 +174,6 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
 
   const entry: ParsedEntry = {
     lemma,
-    pronunciation,
     senses: [],
     collocations: [],
     wordFamily: [],

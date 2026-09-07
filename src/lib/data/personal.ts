@@ -48,7 +48,6 @@ export type DirectionState = {
 export type PersonalBrainMap = {
   vocabularyId: string
   lemma: string
-  pronunciation: string | null
   translation: string | null
   isImportant: boolean
   recommendedAt: Date | null
@@ -81,7 +80,6 @@ export async function getPersonalBrainMap(
       .select({
         id: vocabularies.id,
         lemma: vocabularies.lemma,
-        pronunciation: vocabularies.pronunciation,
       })
       .from(vocabularies)
       .where(eq(vocabularies.id, vocabularyId))
@@ -141,7 +139,6 @@ export async function getPersonalBrainMap(
   return {
     vocabularyId,
     lemma: vocab.lemma,
-    pronunciation: vocab.pronunciation,
     translation: translations[0]?.text ?? null,
     isImportant: state[0]?.isImportant ?? false,
     recommendedAt: state[0]?.brainMapRecommendedAt ?? null,

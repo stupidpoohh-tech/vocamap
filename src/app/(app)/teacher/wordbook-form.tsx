@@ -136,14 +136,7 @@ function Preview({ result }: { result: ReturnType<typeof parseWordbook> }) {
             const examples = entry.senses.reduce((n, sense) => n + sense.examples.length, 0)
             return (
               <li key={`${entry.line}-${entry.lemma}`} className="py-2">
-                <p className="flex items-baseline gap-2">
-                  <span className="text-[0.9375rem] text-ink">{entry.lemma}</span>
-                  {entry.pronunciation ? (
-                    <span className="font-mono text-[0.6875rem] text-ink-3">
-                      [{entry.pronunciation}]
-                    </span>
-                  ) : null}
-                </p>
+                <p className="text-[0.9375rem] text-ink">{entry.lemma}</p>
                 {/* Counts, in the order the map builds them. Reading "연어 0"
                     where six were typed is how a mis-sorted line is caught. */}
                 <p className="numeral mt-0.5 text-[0.6875rem] text-ink-3">

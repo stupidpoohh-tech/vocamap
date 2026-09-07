@@ -60,7 +60,6 @@ export async function importWordbook(
     const vocabulary = await findOrCreateVocabulary({
       lemma: entry.lemma,
       partOfSpeech: entry.senses[0]?.partOfSpeech ?? null,
-      pronunciation: entry.pronunciation,
       translations: draft.primaryTranslations,
       createdBy: input.actor.id,
     })

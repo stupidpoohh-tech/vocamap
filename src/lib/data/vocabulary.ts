@@ -13,8 +13,6 @@ export type VocabularyInput = {
   language?: string
   partOfSpeech?: string | null
   level?: string | null
-  /** As printed in the wordbook, without brackets. */
-  pronunciation?: string | null
   translations?: string[]
   isSeed?: boolean
   createdBy?: string | null
@@ -42,20 +40,9 @@ export async function findOrCreateVocabulary(
   const language = input.language ?? 'en'
   const partOfSpeech = input.partOfSpeech?.trim() || null
 
-  const pronunciation = input.pronunciation?.trim() || null
-
   const existing = await findVocabulary({ lemma, language, partOfSpeech }, db)
   if (existing) {
     if (input.translations?.length) await addTranslations(existing.id, input.translations, db)
-    // Fills a gap, never overwrites: a word already carrying a transcription
-    // was given one deliberately, and a later import of the same word from a
-    // list that has none should not erase it.
-    if (pronunciation) {
-      await db
-        .update(vocabularies)
-        .set({ pronunciation })
-        .where(and(eq(vocabularies.id, existing.id), isNull(vocabularies.pronunciation)))
-    }
     return { id: existing.id, created: false }
   }
 
@@ -67,7 +54,6 @@ export async function findOrCreateVocabulary(
       lemma,
       language,
       partOfSpeech,
-      pronunciation,
       level: input.level ?? null,
       isSeed: input.isSeed ?? false,
       createdBy: input.createdBy ?? null,

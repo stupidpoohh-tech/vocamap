@@ -150,14 +150,13 @@ n. 후보, 출마자; 지원자
     expect(entries.map((e) => e.lemma)).toEqual(['contemporary', 'candidate'])
   })
 
-  it('keeps the pronunciation, in brackets or slashes', () => {
+  it('takes the phonetics off the headword, in brackets or slashes', () => {
+    // Nothing reads them any more, but they still have to come off: left on,
+    // the lemma would be "contemporary [kəntémpərèri]" and the word would
+    // never match anything already in the library.
     const { entries } = parseWordbook(SIMPLE)
-    expect(entries[0]!.pronunciation).toBe('kəntémpərèri')
-    expect(entries[1]!.pronunciation).toBe('ˈkændɪdeɪt')
-  })
-
-  it('leaves the pronunciation null when the book printed none', () => {
-    expect(byLemma.get('govern')!.pronunciation).toBeNull()
+    expect(entries.map((e) => e.lemma)).toEqual(['contemporary', 'candidate'])
+    for (const entry of entries) expect(entry.lemma).not.toMatch(/[[\]/]/)
   })
 
   it('lets an explicit marker override what the content suggests', () => {

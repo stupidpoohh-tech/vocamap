@@ -2,14 +2,7 @@
 
 import { useActionState } from 'react'
 import { Button, Card, Input, Textarea } from '@/components/ui'
-import {
-  addStudent,
-  fillPronunciationBatch,
-  importWords,
-  type ImportState,
-  type LinkState,
-  type PronunciationState,
-} from './actions'
+import { addStudent, importWords, type ImportState, type LinkState } from './actions'
 
 export function AddStudentForm() {
   const [state, action, pending] = useActionState<LinkState, FormData>(addStudent, {})
@@ -84,36 +77,3 @@ function Feedback({ state }: { state: { error?: string; message?: string } }) {
   return null
 }
 
-/**
- * The one button in this app that spends money on purpose.
- *
- * The wordbooks these words come from print no phonetics and the import path
- * deliberately makes no model calls, so the symbols have to be asked for — once
- * per word, forty words a call. The count is on the button so the tutor knows
- * what a press costs before pressing it.
- */
-export function FillPronunciationForm({ missing, batch }: { missing: number; batch: number }) {
-  const [state, action, pending] = useActionState<PronunciationState, FormData>(
-    () => fillPronunciationBatch(),
-    {},
-  )
-
-  if (missing === 0) {
-    return <p className="text-[0.8125rem] text-ink-3">모든 단어에 발음기호가 있어요.</p>
-  }
-
-  return (
-    <div>
-      <p className="mb-3 text-[0.8125rem] leading-relaxed text-ink-3 break-keep">
-        발음기호가 없는 단어 <span className="numeral text-ink-2">{missing}</span>개. 한 번에{' '}
-        {batch}개씩 채워요.
-      </p>
-      <form action={action}>
-        <Button disabled={pending}>
-          {pending ? '가져오는 중…' : `발음기호 ${Math.min(missing, batch)}개 채우기`}
-        </Button>
-      </form>
-      <Feedback state={state} />
-    </div>
-  )
-}

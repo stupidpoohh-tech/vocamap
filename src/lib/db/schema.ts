@@ -136,9 +136,17 @@ export const vocabularies = pgTable(
     language: text().notNull().default('en'),
     partOfSpeech: text(),
     /**
-     * How the word is said, as the wordbook prints it — e.g. `kəntémpərèri`.
-     * Nullable and never guessed: a made-up transcription is worse than none,
-     * and the browser can speak the word without one either way.
+     * IPA — not read by anything.
+     *
+     * The feature it belonged to is gone: only the tutor ever looked at the
+     * symbols, and the one thing that filled them in was a model call. What a
+     * student needs to hear the word is `SpeakButton`, which uses the browser's
+     * own voice and never needed this column.
+     *
+     * Kept declared rather than dropped. The column exists in live databases,
+     * dropping it buys nothing and loses whatever was transcribed, and leaving
+     * it out of the schema would make the next `drizzle-kit generate` propose
+     * exactly that migration.
      */
     pronunciation: text(),
     /** CEFR-ish label. Nullable on purpose: we do not invent levels. */
