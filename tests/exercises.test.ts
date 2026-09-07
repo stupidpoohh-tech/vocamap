@@ -333,3 +333,51 @@ describe('forMastery', () => {
     expect(forMastery([place])).toEqual([place])
   })
 })
+
+describe('a word whose list gave a definition and nothing else', () => {
+  // 어휘 / 영영 풀이 / 의미 and no sentence anywhere — the shape an exam range
+  // arrives in. Before this the meaning node had nothing to ask at all.
+  const args = {
+    label: '장점, 강점',
+    sense: '장점, 강점',
+    sentences: [] as SentenceContent[],
+    meaningCoreKo: null,
+    enDefinition: 'a quality or ability that gives you an advantage',
+    rivalDefinitions: [
+      'something that you hope to achieve',
+      'a person who plays the guitar',
+      'happening after normal school hours',
+    ],
+  }
+
+  it('asks for the definition, which the card does not print', () => {
+    const [first] = meaningExercises(args)
+    if (first?.kind !== 'choice') throw new Error('unreachable')
+    expect(first.prompt).toContain('영영 풀이')
+    expect(first.answer).toBe(args.enDefinition)
+    expect(first.answer).not.toBe(args.label)
+    expect(first.options).toHaveLength(4)
+    expect(first.options).toContain('a person who plays the guitar')
+  })
+
+  it('never offers the Korean gloss as an option — it is written above', () => {
+    const [first] = meaningExercises(args)
+    if (first?.kind !== 'choice') throw new Error('unreachable')
+    for (const option of first.options) expect(option).not.toBe(args.label)
+  })
+
+  it('asks nothing when there is no other definition to be told apart from', () => {
+    expect(meaningExercises({ ...args, rivalDefinitions: [] })).toEqual([])
+    expect(meaningExercises({ ...args, enDefinition: null })).toEqual([])
+  })
+
+  it('comes before the sentence questions when the word has both', () => {
+    const sentences: SentenceContent[] = [
+      { id: 'a', text: 'Mine.', ko: '내 것', targetMeaning: '유지하다', highlight: null, difficulty: 1 },
+      { id: 'b', text: 'Other.', ko: '다른 것', targetMeaning: '주장하다', highlight: null, difficulty: 1 },
+    ]
+    const exercises = meaningExercises({ ...args, label: '유지하다', sense: '유지하다', sentences })
+    expect(exercises[0]!.kind === 'choice' && exercises[0]!.prompt).toContain('영영 풀이')
+    expect(exercises.length).toBeGreaterThan(1)
+  })
+})

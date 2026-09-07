@@ -17,7 +17,7 @@ import {
   type Exercise,
 } from '@/lib/learning/exercises'
 import { MAP_NODE_BUDGET, MAP_NODE_TARGET } from '@/lib/ai'
-import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
+import { getMasterBrainMap, listRivalDefinitions, type MasterBrainMap } from './brain-map'
 import { collectWordState, type Awaitable, type WordAnswer, type WordStateRead } from './study'
 import { listTranslations } from './personal'
 
@@ -163,6 +163,13 @@ export async function buildSemanticMap(
     state?: Awaitable<WordStateRead>
     /** The same glosses the personal view reads. See `listTranslations`. */
     translations?: Awaitable<Array<{ text: string; isPrimary: boolean }>>
+    /**
+     * Definitions of the words beside this one, for the meaning node's wrong
+     * answers. Read here rather than by the caller so a page that wants a map
+     * gets a map with questions in it, and read alongside everything else so
+     * it costs no round trip of its own.
+     */
+    rivalDefinitions?: Awaitable<string[]>
   } = {},
   db: Db = defaultDb,
 ): Promise<SemanticMap | null> {
@@ -171,7 +178,7 @@ export async function buildSemanticMap(
   // could have travelled with it into a round trip of their own — and over a
   // pooled connection to a database three hops away, round trips are what this
   // page costs.
-  const [master, translations, confusions, wordState] = await Promise.all([
+  const [master, translations, confusions, wordState, rivalDefinitions] = await Promise.all([
     getMasterBrainMap(vocabularyId, { approvedOnly: opts.approvedOnly ?? true }, db),
     opts.translations ?? listTranslations(vocabularyId, db),
     // Reached through the word rather than through the pair ids, which are
@@ -187,6 +194,7 @@ export async function buildSemanticMap(
       .innerJoin(brainMaps, eq(brainMaps.id, brainMapSimilarWords.brainMapId))
       .where(and(eq(userConfusions.userId, userId), eq(brainMaps.vocabularyId, vocabularyId))),
     opts.state ?? collectWordState(userId, vocabularyId, db),
+    opts.rivalDefinitions ?? listRivalDefinitions(vocabularyId, 12, db),
   ])
   if (!master) return null
 
@@ -227,6 +235,9 @@ export async function buildSemanticMap(
         sentences: master.sentences,
         meaningCoreKo: master.meaningCoreKo,
         connectionNote: master.meanings[0]?.connectionNote,
+        enDefinition: master.meanings[0]?.enDefinition,
+        rivalDefinitions,
+        seed: `core:${master.id}`,
       }),
     })
   }
@@ -252,6 +263,9 @@ export async function buildSemanticMap(
         sentences: master.sentences,
         meaningCoreKo: master.meaningCoreKo,
         connectionNote: meaning.connectionNote,
+        enDefinition: meaning.enDefinition,
+        rivalDefinitions,
+        seed: meaning.id,
       }),
     })
   })

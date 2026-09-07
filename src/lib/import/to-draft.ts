@@ -22,12 +22,16 @@ export function toBrainMapDraft(entry: ParsedEntry): BrainMapDraft {
     // teaching the book did not print, and guessing one is how a map starts
     // telling students things nobody checked.
     meaningCoreKo: senses[0]?.ko ?? entry.lemma,
-    meaningCoreEn: null,
+    meaningCoreEn: senses[0]?.enDefinition ?? null,
     primaryTranslations: senses.slice(0, 4).map((sense) => sense.ko),
 
     meanings: senses.map((sense) => ({
       ko: sense.ko,
-      enDefinition: null,
+      // The English definition, where the list printed one. A table of 어휘 /
+      // 영영 풀이 / 의미 is often the whole of what a teacher has, and it is
+      // what the exam itself asks about — so it is carried through rather than
+      // dropped for want of the sentences a book would have given.
+      enDefinition: sense.enDefinition,
       connectionNote: '',
       exampleChunk: null,
     })),

@@ -21,7 +21,7 @@ import type { Direction } from './scheduler'
  * are only possible for a word whose Brain Map carries the material, and they
  * are what makes a mapped word worth having a map.
  */
-export type QuestionKind = 'gloss' | 'context' | 'sense' | 'collocation' | 'family'
+export type QuestionKind = 'gloss' | 'definition' | 'context' | 'sense' | 'collocation' | 'family'
 
 export type RecallQuestion = {
   vocabularyId: string
@@ -117,6 +117,8 @@ type PoolWord = { vocabularyId: string; lemma: string; translation: string }
 
 export type MapMaterial = {
   senses: string[]
+  /** English definitions of this word's senses, where the list printed them. */
+  definitions: string[]
   sentences: Array<{ text: string; ko: string; highlight: string | null; targetMeaning: string | null }>
   collocations: Array<{ expression: string; ko: string }>
   family: Array<{ lemma: string; ko: string }>
@@ -151,7 +153,11 @@ async function mapMaterial(
       .from(brainMaps)
       .where(and(inArray(brainMaps.vocabularyId, vocabularyIds), eq(brainMaps.status, 'approved'))),
     db
-      .select({ brainMapId: brainMapMeanings.brainMapId, ko: brainMapMeanings.ko })
+      .select({
+        brainMapId: brainMapMeanings.brainMapId,
+        ko: brainMapMeanings.ko,
+        enDefinition: brainMapMeanings.enDefinition,
+      })
       .from(brainMapMeanings)
       .where(inArray(brainMapMeanings.brainMapId, approvedMaps()))
       .orderBy(brainMapMeanings.sortOrder),
@@ -189,11 +195,21 @@ async function mapMaterial(
 
   const wordOf = new Map(maps.map((m) => [m.id, m.vocabularyId]))
   for (const m of maps) {
-    byWord.set(m.vocabularyId, { senses: [], sentences: [], collocations: [], family: [] })
+    byWord.set(m.vocabularyId, {
+      senses: [],
+      definitions: [],
+      sentences: [],
+      collocations: [],
+      family: [],
+    })
   }
 
   const into = (mapId: string) => byWord.get(wordOf.get(mapId) ?? '')
-  for (const row of meanings) into(row.brainMapId)?.senses.push(row.ko)
+  for (const row of meanings) {
+    const material = into(row.brainMapId)
+    material?.senses.push(row.ko)
+    if (row.enDefinition) material?.definitions.push(row.enDefinition)
+  }
   for (const row of sentences) into(row.brainMapId)?.sentences.push(row)
   for (const row of collocations) into(row.brainMapId)?.collocations.push(row)
   for (const row of family) into(row.brainMapId)?.family.push(row)
@@ -303,6 +319,7 @@ function mapQuestion(
     item.direction === 'en_ko'
       ? [senseQuestion(item, material)]
       : [
+          definitionQuestion(item, material, neighbours),
           contextQuestion(item, material, neighbours),
           collocationQuestion(item, material, everything, neighbours),
           familyQuestion(item, material, everything, neighbours),
@@ -311,6 +328,40 @@ function mapQuestion(
   const usable = variants.filter((v): v is NonNullable<typeof v> => v !== null)
   if (!usable.length) return null
   return usable[hash(seed) % usable.length]!
+}
+
+/**
+ * The word a definition describes. The paper's own question.
+ *
+ * An exam range typed as 어휘 / 영영 풀이 / 의미 has no sentences, so none of the
+ * other mapped questions can be built from it — and the one thing it does have
+ * is exactly what the test asks about. The wrong answers are the words beside
+ * it on the same list, because those are the ones that turn up together on the
+ * paper.
+ */
+function definitionQuestion(
+  item: QueueItem,
+  material: MapMaterial,
+  neighbours: Map<string, PoolWord[]>,
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
+  const own = material.definitions
+  if (!own.length) return null
+  const definition = own[hash(item.vocabularyId) % own.length]!
+
+  const others = (neighbours.get(item.vocabularyId) ?? [])
+    .map((w) => w.lemma)
+    .filter((lemma) => lemma !== item.lemma)
+
+  const distractors = shuffle([...new Set(others)]).slice(0, OPTION_COUNT - 1)
+  if (distractors.length < 2) return null
+
+  return {
+    kind: 'definition',
+    prompt: definition,
+    answer: item.lemma,
+    options: shuffle([item.lemma, ...distractors]),
+    note: `${item.lemma} — ${item.translation}`,
+  }
 }
 
 /** Which of its meanings is at work here? Needs the word to have two. */

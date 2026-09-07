@@ -120,10 +120,17 @@ export function meaningExercises(input: {
   meaningCoreKo: string | null
   /** Why this sense follows from the core idea. Shown after answering. */
   connectionNote?: string | null
+  /** The English definition of this sense, where the list printed one. */
+  enDefinition?: string | null
+  /** Definitions of other words, for the wrong answers. */
+  rivalDefinitions?: string[]
+  /** Distinguishes this node's questions from another's. */
+  seed?: string
 }): Exercise[] {
   const concept = input.connectionNote ?? input.meaningCoreKo
+  const exercises = definitionExercises(input)
   const { mine, others } = splitBySense(input.sentences, input.sense)
-  if (!mine.length) return []
+  if (!mine.length) return exercises
 
   // Easiest first, so the node opens with a way in rather than with its
   // hardest sentence. `difficulty` has been on every sentence since the schema
@@ -133,9 +140,6 @@ export function meaningExercises(input: {
   // Every sentence but the one being held back — unless the sense has only the
   // one, and then it is both placed and translated, in that order.
   const toPlace = ordered.length > 1 ? ordered.slice(0, -1) : ordered
-
-  const exercises: Exercise[] = []
-
   const rivals = others.slice(0, MAX_OPTIONS - 1)
 
   for (const sentence of toPlace.slice(0, 2)) {
@@ -172,6 +176,50 @@ export function meaningExercises(input: {
   })
 
   return exercises
+}
+
+/**
+ * Which English definition belongs to this meaning.
+ *
+ * The whole of what an exam range often is: 어휘, 영영 풀이, 의미, and no
+ * sentence anywhere. The card prints the Korean gloss, so that is the given;
+ * the definition is not printed anywhere on the screen, so that is what is
+ * asked for. The wrong answers are the definitions of the words beside it on
+ * the same list — which is the question the exam itself sets.
+ *
+ * Asked the other way round it would be no question at all: the word is
+ * written across the middle of the map.
+ */
+function definitionExercises(input: {
+  label: string
+  enDefinition?: string | null
+  rivalDefinitions?: string[]
+  meaningCoreKo: string | null
+  seed?: string
+}): Exercise[] {
+  const answer = input.enDefinition?.trim()
+  if (!answer) return []
+
+  const rivals = [
+    ...new Set(
+      (input.rivalDefinitions ?? []).map((d) => d.trim()).filter((d) => d && d !== answer),
+    ),
+  ].slice(0, MAX_OPTIONS - 1)
+
+  // One option is not a question.
+  if (!rivals.length) return []
+
+  return [
+    {
+      kind: 'choice',
+      prompt: `'${input.label}' — 이 뜻의 영영 풀이는?`,
+      options: shuffleStable([answer, ...rivals], input.seed ?? input.label),
+      answer,
+      explanation: answer,
+      concept: input.meaningCoreKo,
+      level: 1,
+    },
+  ]
 }
 
 /** What the sentences that were not the answer were showing instead. */

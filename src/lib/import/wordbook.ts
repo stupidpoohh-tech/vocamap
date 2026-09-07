@@ -34,6 +34,8 @@
 export type ParsedSense = {
   partOfSpeech: string | null
   ko: string
+  /** The English definition, when the book prints one. */
+  enDefinition: string | null
   /** Examples that belong to this sense, in the order they were written. */
   examples: Array<{ en: string; ko: string | null }>
 }
@@ -69,6 +71,9 @@ const PART_OF_SPEECH: Record<string, string> = {
   동: 'verb',
   형: 'adjective',
   부: 'adverb',
+  전: 'preposition',
+  접: 'conjunction',
+  대: 'pronoun',
 }
 
 /** `12. conversion` — how a test range is usually numbered. */
@@ -90,6 +95,9 @@ const RELATION_MARKER = /^(?:≒|~|↔|cf\.|syn\.|ant\.)/i
 const STEM_LENGTH = 4
 
 export function parseWordbook(input: string): ParseResult {
+  const table = parseTable(input)
+  if (table) return table
+
   const problems: ParseProblem[] = []
   const entries: ParsedEntry[] = []
 
@@ -99,6 +107,168 @@ export function parseWordbook(input: string): ParseResult {
   }
 
   return { entries, problems }
+}
+
+/* ─────────────────────────────── a table ─────────────────────────────── */
+
+/**
+ * The other shape a vocabulary list arrives in: a table.
+ *
+ * A teacher's exam range is often a spreadsheet or a document table — 어휘,
+ * 영영 풀이, 의미, one word a row — and pasting one into a parser that expects
+ * "1. word / v. 뜻" reads no words at all and reports a failure on the header.
+ *
+ * Read column by column rather than by position, because the position is not
+ * dependable: some lists number their rows and some do not, and the columns
+ * come in whatever order the teacher typed them. What is dependable is what
+ * each cell *is* — one is Korean, one is a word, one is a sentence about that
+ * word — so that is what is matched on.
+ */
+function parseTable(input: string): ParseResult | null {
+  const rows: Array<{ cells: string[]; number: number }> = []
+  let candidates = 0
+
+  input.split('\n').forEach((raw, index) => {
+    const cells = splitCells(raw)
+    if (!cells) return
+    candidates += 1
+    if (isSeparatorRow(cells) || isHeaderRow(cells)) return
+    rows.push({ cells, number: index + 1 })
+  })
+
+  // Not a table. One stray line with a pipe in it is not a reason to abandon
+  // the format the rest of the paste is written in.
+  if (candidates < 2 || rows.length < 1) return null
+
+  const problems: ParseProblem[] = []
+  const entries: ParsedEntry[] = []
+
+  for (const row of rows) {
+    const entry = parseRow(row.cells, row.number, problems)
+    if (entry) entries.push(entry)
+  }
+
+  return entries.length ? { entries, problems } : null
+}
+
+/**
+ * The cells of one row, or null if the line is not one.
+ *
+ * Pipes and tabs both, because the same table reaches the clipboard as
+ * `| a | b |` from a document and as tab-separated text from a spreadsheet.
+ * Anything else — a page number, an image placeholder, a stray note — has
+ * neither and is simply not a row.
+ */
+function splitCells(raw: string): string[] | null {
+  const line = raw.trim()
+  if (!line) return null
+
+  const source = line.includes('\t')
+    ? line.split('\t')
+    : line.includes('|')
+      ? line.replace(/^\||\|$/g, '').split('|')
+      : null
+  if (!source) return null
+
+  const cells = source.map((cell) => cell.trim())
+  // Two cells is a word and a gloss at best, which the line format already
+  // reads. A table worth this path has the definition column too.
+  return cells.filter(Boolean).length >= 2 ? cells : null
+}
+
+/** `|---|:--:|---|` — the rule a markdown table draws under its header. */
+function isSeparatorRow(cells: string[]): boolean {
+  const filled = cells.filter(Boolean)
+  return filled.length > 0 && filled.every((cell) => /^:?-{2,}:?$/.test(cell))
+}
+
+/** The row that names the columns rather than filling them. */
+function isHeaderRow(cells: string[]): boolean {
+  return cells.some((cell) => /^(어휘|단어|표제어|영영\s*풀이|영영\s*뜻|영영|의미|뜻|해석)$/.test(cell))
+}
+
+/**
+ * One row into one entry.
+ *
+ * The cells are told apart by what they contain, not by where they sit:
+ *
+ *   - a bare number is the row's index — dropped
+ *   - Korean, once a part-of-speech mark is taken off the front, is the gloss
+ *   - of the English cells that remain, the shorter is the word and the longer
+ *     is its definition
+ *
+ * The last rule is what makes `sign up` / `to agree to take part in an
+ * organized activity` come out the right way round without being told which
+ * column is which, and it holds for `in front of` and `according to` too.
+ */
+function parseRow(cells: string[], line: number, problems: ParseProblem[]): ParsedEntry | null {
+  let partOfSpeech: string | null = null
+  let ko: string | null = null
+  const english: string[] = []
+
+  for (const cell of cells) {
+    if (!cell || /^\d+[.)]?$/.test(cell)) continue
+
+    const prefix = leadingPartOfSpeech(cell)
+    const body = prefix ? cell.slice(prefix.length).trim() : cell
+    if (!body) continue
+
+    if (prefix && !partOfSpeech) {
+      partOfSpeech = PART_OF_SPEECH[prefix.trim().replace(/\.$/, '').toLowerCase()] ?? null
+    }
+
+    // A second Korean cell is a second gloss, joined rather than dropped.
+    if (/[가-힣]/.test(body)) ko = ko ? `${ko}, ${body}` : body
+    else english.push(body)
+  }
+
+  if (!english.length) {
+    problems.push({ line, text: cells.join(' | '), message: '이 줄에서 영어 단어를 찾지 못했습니다.' })
+    return null
+  }
+
+  const byLength = [...english].sort((a, b) => wordCount(a) - wordCount(b))
+  const lemma = byLength[0]!
+  const enDefinition = byLength.length > 1 ? byLength[byLength.length - 1]! : null
+
+  if (!ko && !enDefinition) {
+    problems.push({ line, text: cells.join(' | '), message: `"${lemma}" 에 뜻이 없습니다.` })
+    return null
+  }
+
+  return {
+    lemma,
+    // A row with no Korean still teaches something: the English definition is
+    // the gloss then, rather than the entry being thrown away.
+    senses: [{ partOfSpeech, ko: ko ?? enDefinition!, enDefinition, examples: [] }],
+    collocations: [],
+    wordFamily: [],
+    synonyms: [],
+    line,
+  }
+}
+
+/**
+ * `명 `, `v. `, `adj. ` at the head of a cell, as the book abbreviates it.
+ * Returns the whole prefix including its punctuation and space, so the caller
+ * can take it off and be left with the cell's actual content.
+ *
+ * An English mark must carry its dot. Without that rule the `a` of "a large
+ * number or amount of people or things" is read as 형용사 and eaten, leaving a
+ * definition that starts mid-phrase. Books write `v.` and `adj.` with the dot
+ * and 명·동·형 without one, so requiring it costs nothing and settles the only
+ * ambiguity there is.
+ */
+function leadingPartOfSpeech(cell: string): string | null {
+  const match = /^([A-Za-z가-힣]{1,4})(\.?)\s+/.exec(cell)
+  const mark = match?.[1]?.toLowerCase()
+  if (!mark || !(mark in PART_OF_SPEECH)) return null
+  if (/^[a-z]+$/.test(mark) && match![2] !== '.') return null
+  return match![0]
+}
+
+function wordCount(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length
 }
 
 type Line = { text: string; number: number }
@@ -206,7 +376,8 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
 
     const labelled = LABELLED_SENSE.exec(text)
     if (labelled) {
-      entry.senses.push({ partOfSpeech: null, ko: labelled[2]!.trim(), examples: [] })
+      entry.senses.push({ partOfSpeech: null, ko: labelled[2]!.trim(), enDefinition: null,
+      examples: [] })
       continue
     }
 
@@ -215,7 +386,8 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
       entry.senses.push({
         partOfSpeech: PART_OF_SPEECH[sense[1]!.toLowerCase()]!,
         ko: sense[2]!.trim(),
-        examples: [],
+        enDefinition: null,
+      examples: [],
       })
       continue
     }
@@ -224,7 +396,8 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
     // part-of-speech mark. Only before anything else: later on it is a line
     // that lost its marker, and guessing there would bury the mistake.
     if (!entry.senses.length && hasKorean(text)) {
-      entry.senses.push({ partOfSpeech: null, ko: text, examples: [] })
+      entry.senses.push({ partOfSpeech: null, ko: text, enDefinition: null,
+      examples: [] })
       continue
     }
 

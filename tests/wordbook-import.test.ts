@@ -245,7 +245,7 @@ describe('the shapes a page throws at it', () => {
     const { entries, problems } = parse('albeit\n비록 ~일지라도')
     expect(problems).toEqual([])
     expect(entries[0]!.senses).toEqual([
-      { partOfSpeech: null, ko: '비록 ~일지라도', examples: [] },
+      { partOfSpeech: null, ko: '비록 ~일지라도', enDefinition: null, examples: [] },
     ])
   })
 
@@ -268,5 +268,76 @@ describe('the shapes a page throws at it', () => {
       'run\nv. 달리다\n* He runs fast.\n= 그는 빠르게 달린다.\n* She runs daily.\n= 그녀는 매일 달린다.',
     )
     expect(entries[0]!.senses[0]!.examples).toHaveLength(2)
+  })
+})
+
+/**
+ * The other shape a range arrives in: a table of 어휘 / 영영 풀이 / 의미, pasted
+ * out of a document. Real, and 50 words of it, because the rows that make the
+ * format hard are the ones a made-up sample would not have thought of — a
+ * phrase for a headword, a missing part-of-speech mark, a definition that
+ * starts with the word "a", and two page breaks in the middle.
+ */
+const TABLE = readFileSync(new URL('./fixtures/wordbook-table.txt', import.meta.url), 'utf8')
+const table = parseWordbook(TABLE)
+const tableByLemma = new Map(table.entries.map((e) => [e.lemma, e]))
+
+describe('a range typed as a table', () => {
+  it('reads every row without complaint', () => {
+    expect(table.problems).toEqual([])
+    expect(table.entries).toHaveLength(50)
+  })
+
+  it('steps over the header, the rule under it, and the page breaks', () => {
+    // The paste carries "| | 어휘 | 영영 풀이 | 의미 |" twice, a |---|---| under
+    // each, and " * 1 -" / "image.png" where the pages ended.
+    expect(table.entries.map((e) => e.lemma)).not.toContain('어휘')
+    expect(table.entries.map((e) => e.lemma)).not.toContain('image.png')
+  })
+
+  it('tells the word from its definition by which is shorter', () => {
+    // Neither column is named and their order is not promised, so the two are
+    // told apart by what they are: a word, and a sentence about that word.
+    const sign = tableByLemma.get('sign up')!.senses[0]!
+    expect(sign.ko).toBe('신청하다')
+    expect(sign.enDefinition).toBe('to agree to take part in an organized activity')
+  })
+
+  it('takes a headword of several words', () => {
+    for (const lemma of ['sign up', 'in front of', 'put together', 'according to']) {
+      expect(tableByLemma.has(lemma), lemma).toBe(true)
+    }
+  })
+
+  it('reads the part-of-speech mark the book prints, and does without one', () => {
+    expect(tableByLemma.get('strength')!.senses[0]!.partOfSpeech).toBe('noun')
+    expect(tableByLemma.get('toward')!.senses[0]!.partOfSpeech).toBe('preposition')
+    expect(tableByLemma.get('still')!.senses[0]!.partOfSpeech).toBe('adverb')
+    // The book marks none of the phrases, and inventing one would be worse.
+    expect(tableByLemma.get('according to')!.senses[0]!.partOfSpeech).toBeNull()
+  })
+
+  it('does not eat the "a" of a definition that begins with one', () => {
+    // `a` is a part-of-speech mark in this table's own vocabulary, so without
+    // requiring the dot an English mark carries, "a large number or amount of
+    // people or things" arrives as 형용사 plus "large number or amount...".
+    const lots = tableByLemma.get('lots of')!.senses[0]!
+    expect(lots.partOfSpeech).toBeNull()
+    expect(lots.enDefinition).toBe('a large number or amount of people or things')
+  })
+
+  it('reads the same table pasted out of a spreadsheet', () => {
+    const tabbed = '어휘\t영영 풀이\t의미\nstrength\t명 a quality that helps you\t장점'
+    const { entries, problems } = parseWordbook(tabbed)
+    expect(problems).toEqual([])
+    expect(entries[0]!.lemma).toBe('strength')
+    expect(entries[0]!.senses[0]!.enDefinition).toBe('a quality that helps you')
+  })
+
+  it('leaves a line-format paste alone', () => {
+    // One stray pipe is not a reason to abandon the format the rest is in.
+    const { entries } = parseWordbook('govern\nv. 통치하다 | 다스리다')
+    expect(entries[0]!.lemma).toBe('govern')
+    expect(entries[0]!.senses[0]!.enDefinition).toBeNull()
   })
 })

@@ -1,0 +1,57 @@
+|  | 어휘 | 영영 풀이 | 의미 |
+|---|---|---|---|
+| 1 | strength | 명 a quality or ability that gives you an advantage | 장점, 강점 |
+| 2 | goal | 명 something that you hope to achieve | 목표 |
+| 3 | guitarist | 명 a person who plays the guitar | 기타 연주자 |
+| 4 | after-school | 형 happening after normal school hours | 방과 후의 |
+| 5 | hold | 동 to have something such as an event, meeting, etc. | 열다, 개최하다 |
+| 6 | essay | 명 a short piece of writing on a particular subject | 수필, 에세이 |
+| 7 | sign up | to agree to take part in an organized activity | 신청하다 |
+| 8 | drama | 명 the activity or art of performing in a play, show, etc. | 연극 |
+| 9 | comment | 명 something that you say or write that expresses your opinion | 의견, 댓글 |
+| 10 | move | 명 a change of position or place | 움직임, 동작 |
+| 11 | presentation | 명 a talk giving information about something | 발표 |
+| 12 | edit | 동 to make changes to a text, film, etc. | 편집하다 |
+| 13 | in front of | in a position that is just ahead of someone or something | ~ 앞에서 |
+| 14 | thankful | 형 happy or grateful because of something | 고맙게 생각하는, 감사하는 |
+| 15 | dot | 명 a small round mark | 점 |
+| 16 | sign | 동 to write your name on something | 서명하다 |
+| 17 | mix | 동 to put different things together to make something new | 섞다, 혼합하다 |
+| 18 | blank | 형 having no printing, writing, or images | 공백의, 빈 |
+| 19 | discover | 동 to find out something that you did not know before | 발견하다, 알게 되다 |
+| 20 | printing | 명 the act of producing letters, images, etc. on paper or other materials | 인쇄 |
+| 21 | put together | to combine people or things, or organize something | 합하다 |
+| 22 | still | 부 continuing from the past into the present | 아직도, 여전히 |
+| 23 | lean | 동 to move or bend from a straight position in a particular direction | (몸을) 기울이다, 숙이다 |
+| 24 | snowstorm | 명 a windy storm with a lot of falling snow | 눈보라 |
+ * 1 -
+image.png
+|  | 어휘 | 영영 풀이 | 의미 |
+|---|---|---|---|
+| 25 | mark | 명 a stain, spot, line, etc. on the surface of something | 자국, 표시 |
+| 26 | push | 동 to use force to move someone or something forward or away | 밀다 |
+| 27 | toward | 전 in the direction of someone or something | ~ 쪽으로, ~을 향하여 |
+| 28 | frame | 명 a border that holds a picture, window, door, etc. | 액자 |
+| 29 | purple | 형 having the color of red and blue mixed together | 자주색의 |
+| 30 | experiment | 동 to try out new ideas, methods, or activities to see what effect they have | 실험하다 |
+| 31 | lots of | a large number or amount of people or things | 많은 |
+| 32 | bet | 동 to think that something is almost certainly true or will happen | 단언하다 |
+| 33 | hand | 동 to pass or give something to somebody | 건네주다 |
+| 34 | sheet | 명 a piece of paper for writing or printing on | (종이) 한 장 |
+| 35 | shake | 동 to move with short, quick movements from side to side or up and down | 흔들리다 |
+| 36 | believe in | to trust somebody because you think they will do well | ~을 믿다 |
+| 37 | garden | 명 an area in a yard where you grow flowers or plants | 정원 |
+| 38 | quotation | 명 a group of words taken from a book, poem, play, etc. | 인용구, 인용문 |
+| 39 | compose | 동 to produce or create music, poems, or a piece of writing | 작곡하다 |
+| 40 | according to | in a way that agrees with | ~에 따르면 |
+| 41 | self-portrait | 명 a picture you make of yourself | 자화상 |
+| 42 | represent | 동 to show or describe somebody or something | 나타내다 |
+| 43 | parent | 명 a person's father or mother | (-s) 부모, 어버이 |
+| 44 | fail | 동 to not succeed at something | 실패하다 |
+| 45 | support | 동 to help or be ready to help someone if they need it | 지지하다 |
+| 46 | event | 명 one of the races or competitions in a sports program | 종목, 경기 |
+| 47 | race | 명 a competition in which competitors try to be the fastest | 경주 |
+| 48 | worried | 형 concerned about a lot of problems or other bad things | 걱정하는 |
+| 49 | glass | 명 a small container for drinks made of glass | 컵, 잔 |
+| 50 | interesting | 형 attracting your attention because it is unusual or exciting | 재미있는, 흥미로운 |
+ * 2 -
