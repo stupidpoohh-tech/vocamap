@@ -216,13 +216,24 @@ function ChoiceExercise({
   answered: { correct: boolean; given: string } | null
   onSubmit: (given: string, correct: boolean) => void
 }) {
+  // Sentences do not sit side by side. A placement question — which of these
+  // does the expression belong in — has whole sentences for options, and two
+  // of those in one row is two narrow columns of wrapped text the eye has to
+  // read in parallel. Short options keep the pair layout.
+  const long = exercise.options.some((option) => option.length > 28)
+
   return (
     <>
       <p className="text-[0.9375rem] leading-[1.6] break-keep sm:text-base">{exercise.prompt}</p>
       {/* Two columns, so a pair of choices reads as a pair rather than as a
           stack the eye has to walk down. Three or four wrap onto a second row
           at the same width. */}
-      <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:mt-3 sm:gap-2">
+      <div
+        className={cn(
+          'mt-2.5 grid gap-1.5 sm:mt-3 sm:gap-2',
+          long ? 'grid-cols-1' : 'grid-cols-2',
+        )}
+      >
         {exercise.options.map((option) => {
           const isAnswer = option === exercise.answer
           const picked = answered?.given === option

@@ -96,19 +96,30 @@ describe.skipIf(!hasDatabase)('the map a wordbook entry produces', () => {
     return map!
   }
 
-  it('asks which sense a sentence shows when the word has two', async () => {
-    const map = await mapFor('normal')
-    const core = map.nodes.find((n) => n.kind === 'coreMeaning')!
-    expect(core.exercises).toHaveLength(1)
-    expect(asChoice(core.exercises[0]).options).toEqual(
-      expect.arrayContaining(['보통의, 평범한, 정상의', '보통, 평균, 정상']),
-    )
+  it('asks for a translation, because a book prints one sentence per word', async () => {
+    // Placing a sentence under a sense needs a rival sentence to place it
+    // against, and a wordbook gives one example per entry. The question it can
+    // ask is the one the label does not answer: what the sentence means.
+    for (const lemma of ['normal', 'govern']) {
+      const map = await mapFor(lemma)
+      const core = map.nodes.find((n) => n.kind === 'coreMeaning')!
+      expect(core.exercises, lemma).toHaveLength(1)
+      expect(core.exercises[0]!.kind, lemma).toBe('translate')
+    }
   })
 
-  it('asks for a translation when the word has only one sense', async () => {
-    const map = await mapFor('govern')
-    const core = map.nodes.find((n) => n.kind === 'coreMeaning')!
-    expect(core.exercises[0]!.kind).toBe('translate')
+  it('never asks a node for the words printed above it', async () => {
+    // The card heads every question with the item being studied. Whatever the
+    // book turns out to contain, no question may be answerable by reading it.
+    for (const lemma of ['normal', 'legislation', 'magnetic', 'impulse']) {
+      const map = await mapFor(lemma)
+      for (const node of map.nodes) {
+        for (const exercise of node.exercises) {
+          if (exercise.kind !== 'choice') continue
+          expect(exercise.answer, `${lemma} / ${node.label}`).not.toBe(node.label)
+        }
+      }
+    }
   })
 
   it('gives every collocation a question, though the book printed no sentences', async () => {
@@ -120,7 +131,12 @@ describe.skipIf(!hasDatabase)('the map a wordbook entry produces', () => {
     expect(collocations).toHaveLength(6)
     for (const node of collocations) {
       expect(node.exercises, node.label).toHaveLength(1)
-      expect(asChoice(node.exercises[0]).answer).toBe(node.label)
+      // The expression is the given — it is written above the question — so
+      // what is asked for is its meaning, against what the word's other
+      // expressions mean.
+      const question = asChoice(node.exercises[0])
+      expect(question.answer, node.label).toBe(node.secondaryLabel)
+      expect(question.options, node.label).not.toContain(node.label)
     }
   })
 
@@ -130,8 +146,13 @@ describe.skipIf(!hasDatabase)('the map a wordbook entry produces', () => {
     expect(family.map((n) => n.label)).toEqual(['legislate', 'legislative', 'legislator'])
     for (const node of family) {
       expect(node.exercises, node.label).toHaveLength(1)
-      // Told apart from its own family, not from unrelated words.
-      expect(asChoice(node.exercises[0]).options).toContain('legislation')
+      const question = asChoice(node.exercises[0])
+      // Told apart from its own family, not from unrelated words — and the
+      // form itself is printed above the question, so it is not the answer.
+      expect(question.answer, node.label).toBe(node.secondaryLabel)
+      expect(question.options, node.label).toEqual(
+        expect.arrayContaining(family.filter((f) => f !== node).map((f) => f.secondaryLabel)),
+      )
     }
   })
 

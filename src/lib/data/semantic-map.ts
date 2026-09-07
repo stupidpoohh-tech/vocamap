@@ -8,6 +8,14 @@ import {
   vocabularyTranslations,
 } from '@/lib/db/schema'
 import type { NodeType } from '@/lib/learning/nodes'
+import {
+  collocationExercises,
+  confusableExercises,
+  forMastery,
+  meaningExercises,
+  wordFamilyExercises,
+  type Exercise,
+} from '@/lib/learning/exercises'
 import { MAP_NODE_BUDGET, MAP_NODE_TARGET } from '@/lib/ai'
 import { getMasterBrainMap, type MasterBrainMap } from './brain-map'
 import { collectWordState, type Awaitable, type WordAnswer, type WordStateRead } from './study'
@@ -31,24 +39,12 @@ export type NodeKind =
 
 export type NodeStatus = 'unseen' | 'learning' | 'needsReview' | 'weak' | 'completed'
 
-export type Exercise =
-  | {
-      kind: 'choice'
-      /** Sentence or cue shown above the options. */
-      prompt: string
-      options: string[]
-      answer: string
-      explanation: string
-      /** Revealed only after answering. */
-      concept?: string | null
-    }
-  | {
-      kind: 'translate'
-      prompt: string
-      highlight: string | null
-      answer: string
-      concept?: string | null
-    }
+/**
+ * Re-exported so the components that render a card keep importing the map's
+ * own vocabulary. The questions themselves are built in
+ * `@/lib/learning/exercises`, which knows nothing about the database.
+ */
+export type { Exercise }
 
 export type SemanticNode = {
   id: string
@@ -225,7 +221,13 @@ export async function buildSemanticMap(
       onMap: false,
       progressNode: 'meaning_core',
       itemId: `core:${master.id}`,
-      exercises: meaningExercises(master, master.meanings[0]?.ko ?? label),
+      exercises: meaningExercises({
+        label,
+        sense: master.meanings[0]?.ko ?? label,
+        sentences: master.sentences,
+        meaningCoreKo: master.meaningCoreKo,
+        connectionNote: master.meanings[0]?.connectionNote,
+      }),
     })
   }
 
@@ -244,7 +246,13 @@ export async function buildSemanticMap(
       onMap: false,
       progressNode: 'sentences',
       itemId: meaning.id,
-      exercises: meaningExercises(master, meaning.ko),
+      exercises: meaningExercises({
+        label: meaning.ko,
+        sense: meaning.ko,
+        sentences: master.sentences,
+        meaningCoreKo: master.meaningCoreKo,
+        connectionNote: meaning.connectionNote,
+      }),
     })
   })
 
@@ -270,14 +278,7 @@ export async function buildSemanticMap(
       progressNode: 'similar_words',
       itemId: pair.pairId,
       pairId: pair.pairId,
-      exercises: pair.questions.map((q) => ({
-        kind: 'choice' as const,
-        prompt: q.prompt,
-        options: shuffleStable([master.lemma, pair.otherLemma], q.id),
-        answer: q.answer,
-        explanation: q.explanation,
-        concept: pair.coreDifference,
-      })),
+      exercises: confusableExercises({ lemma: master.lemma, pair }),
     })
   }
 
@@ -296,12 +297,15 @@ export async function buildSemanticMap(
       onMap: false,
       progressNode: 'collocations',
       itemId: collocation.id,
-      exercises: collocationExercises(collocation, master.collocations),
+      exercises: collocationExercises({
+        lemma: master.lemma,
+        collocation,
+        siblings: master.collocations,
+      }),
     })
   }
 
   // ── word family ────────────────────────────────────────────────────────
-  const forms = [master.lemma, ...master.wordFamily.map((f) => f.lemma)]
   for (const member of master.wordFamily) {
     nodes.push({
       id: member.id,
@@ -316,8 +320,17 @@ export async function buildSemanticMap(
       onMap: false,
       progressNode: 'word_family',
       itemId: member.id,
-      exercises: wordFamilyExercises(member, forms),
+      exercises: wordFamilyExercises({ member, family: master.wordFamily }),
     })
+  }
+
+  // A student who has already answered a node correctly is not shown the way
+  // in again. The status is known only here, where the event log has been
+  // read, so the pruning happens here rather than inside the builders.
+  for (const node of nodes) {
+    if (node.status === 'learning' || node.status === 'completed') {
+      node.exercises = forMastery(node.exercises)
+    }
   }
 
   selectMapNodes(nodes)
@@ -386,178 +399,4 @@ function selectMapNodes(nodes: SemanticNode[]): void {
   if (picked.length < MAP_NODE_TARGET) take(of('secondaryMeaning')[0])
 
   for (const node of picked) node.onMap = true
-}
-
-/* ───────────────────────────── exercises ───────────────────────────── */
-
-/**
- * Meaning is checked in context: read a real sentence, decide which sense of
- * the word it is carrying. Falls back to a translate-then-reveal when there is
- * only one sense to choose from.
- */
-function meaningExercises(master: MasterBrainMap, sense: string): Exercise[] {
-  const senses = [...new Set(master.meanings.map((m) => m.ko))]
-  const forSense = master.sentences.filter(
-    (s) => !s.targetMeaning || s.targetMeaning === sense || senses.length < 2,
-  )
-  const sentences = (forSense.length ? forSense : master.sentences).slice(0, 4)
-
-  if (senses.length >= 2) {
-    return sentences.map((sentence) => ({
-      kind: 'choice' as const,
-      prompt: sentence.text,
-      options: shuffleStable(senses.slice(0, 4), sentence.id),
-      answer: matchingSense(sentence.targetMeaning, senses, sense),
-      explanation: sentence.ko,
-      concept: master.meaningCoreKo,
-    }))
-  }
-
-  return sentences.map((sentence) => ({
-    kind: 'translate' as const,
-    prompt: sentence.text,
-    highlight: sentence.highlight,
-    answer: sentence.ko,
-    concept: master.meaningCoreKo,
-  }))
-}
-
-function matchingSense(target: string | null, senses: string[], fallback: string): string {
-  if (target && senses.includes(target)) return target
-  return senses.includes(fallback) ? fallback : (senses[0] ?? fallback)
-}
-
-/**
- * A collocation is checked by putting its own example back together — blank
- * the partner word and choose among the other collocations' partners.
- *
- * When the source printed no sentence for it, the meaning is asked instead:
- * given the Korean, pick the expression. A wordbook lists phrases with their
- * glosses and no sentences, and that is exactly the question a wordbook test
- * asks, so the fallback is not a lesser question — it is the native one for
- * material that came from a book.
- */
-function collocationExercises(
-  collocation: MasterBrainMap['collocations'][number],
-  siblings: MasterBrainMap['collocations'],
-): Exercise[] {
-  const cloze = collocationCloze(collocation, siblings.map((c) => c.expression))
-  if (cloze.length) return cloze
-
-  const distractors = siblings
-    .filter((c) => c.id !== collocation.id && c.expression !== collocation.expression)
-    .map((c) => c.expression)
-    .slice(0, 3)
-
-  // One expression on its own has nothing to be told apart from, and a
-  // single-option question teaches nothing.
-  if (!distractors.length) return []
-
-  return [
-    {
-      kind: 'choice',
-      prompt: `'${collocation.ko}' — 알맞은 표현은?`,
-      options: shuffleStable([collocation.expression, ...distractors], collocation.id),
-      answer: collocation.expression,
-      explanation: `${collocation.expression} — ${collocation.ko}`,
-      concept: null,
-    },
-  ]
-}
-
-function collocationCloze(
-  collocation: MasterBrainMap['collocations'][number],
-  allExpressions: string[],
-): Exercise[] {
-  const sentence = collocation.exampleSentence
-  const partner = partnerWord(collocation.expression)
-  if (!sentence || !partner) return []
-
-  const pattern = new RegExp(escapeRegExp(partner), 'i')
-  if (!pattern.test(sentence)) return []
-
-  const distractors = allExpressions
-    .filter((e) => e !== collocation.expression)
-    .map(partnerWord)
-    .filter((w): w is string => Boolean(w) && w !== partner)
-    .slice(0, 3)
-
-  if (!distractors.length) return []
-
-  return [
-    {
-      kind: 'choice',
-      prompt: sentence.replace(pattern, '______'),
-      options: shuffleStable([partner, ...distractors], collocation.id),
-      answer: partner,
-      explanation: `${collocation.expression} — ${collocation.ko}`,
-      concept: null,
-    },
-  ]
-}
-
-/** The half of a collocation that is not the head word, e.g. "order" in "maintain order". */
-function partnerWord(expression: string): string | null {
-  const words = expression.trim().split(/\s+/).filter((w) => !/^(a|an|the)$/i.test(w))
-  return words.length >= 2 ? (words[words.length - 1] ?? null) : null
-}
-
-/**
- * A derived form is checked by blanking it in its own sentence — or, when there
- * is none, by asking which form carries the meaning. The distractors are the
- * word's own family, so the student has to tell `legislate` from `legislative`
- * rather than from an unrelated word.
- */
-function wordFamilyExercises(
-  member: MasterBrainMap['wordFamily'][number],
-  forms: string[],
-): Exercise[] {
-  const options = shuffleStable(forms.slice(0, 4), member.id)
-  const explanation = `${member.lemma} (${member.partOfSpeech}) — ${member.ko}`
-  const sentence = member.exampleSentence
-
-  if (sentence) {
-    const pattern = new RegExp(escapeRegExp(member.lemma), 'i')
-    if (pattern.test(sentence)) {
-      return [
-        {
-          kind: 'choice',
-          prompt: sentence.replace(pattern, '______'),
-          options,
-          answer: member.lemma,
-          explanation,
-          concept: null,
-        },
-      ]
-    }
-  }
-
-  // The headword is always in `forms`, so there is at least one distractor.
-  if (options.length < 2) return []
-
-  return [
-    {
-      kind: 'choice',
-      prompt: `'${member.ko}' — 알맞은 형태는?`,
-      options,
-      answer: member.lemma,
-      explanation,
-      concept: null,
-    },
-  ]
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-/** Order that varies per item but never between renders of the same item. */
-function shuffleStable<T>(items: T[], seed: string): T[] {
-  let h = 0
-  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  return [...items].sort((a, b) => {
-    const ha = (h ^ String(a).length * 2654435761) >>> 0
-    const hb = (h ^ String(b).length * 2654435761) >>> 0
-    return ha === hb ? String(a).localeCompare(String(b)) : ha - hb
-  })
 }

@@ -105,6 +105,78 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
     expect(offMap.every((n) => n.exercises.length >= 0)).toBe(true)
   })
 
+  it('never answers a question with the words printed above it', async () => {
+    // The workspace heads every card with the node's label and the map behind
+    // it says the same thing again. Whatever the content, no question may be
+    // answerable by reading the card.
+    for (const lemma of ['issue', 'maintain', 'affect']) {
+      const { student, vocabularyId } = await seedWord(lemma)
+      const map = (await buildSemanticMap(student.id, vocabularyId))!
+      for (const node of map.nodes) {
+        for (const exercise of node.exercises) {
+          if (exercise.kind !== 'choice') continue
+          expect(exercise.answer, `${lemma} / ${node.label}`).not.toBe(node.label)
+        }
+      }
+      await resetDatabase()
+    }
+  })
+
+  it('asks where a collocation belongs, not which word completes it', async () => {
+    // "raise an issue" on the page of `issue`: blanking the last word of the
+    // expression blanked `issue` itself. The question is which context the
+    // expression belongs to, and every candidate is blanked the same way.
+    const { student, vocabularyId } = await seedWord('issue')
+    const map = (await buildSemanticMap(student.id, vocabularyId))!
+    const collocation = map.nodes.find((n) => n.kind === 'collocation' && n.exercises.length)!
+    const [placement] = collocation.exercises
+
+    expect(placement?.kind).toBe('choice')
+    if (placement?.kind !== 'choice') throw new Error('unreachable')
+    expect(placement.options.length).toBeGreaterThan(1)
+    for (const option of placement.options) expect(option).toContain('______')
+    expect(placement.answer).toContain('issue')
+  })
+
+  it('has the student judge two contexts before it has them guess a blank', async () => {
+    const { student, vocabularyId } = await seedWord('affect')
+    const map = (await buildSemanticMap(student.id, vocabularyId))!
+    const pair = map.nodes.find((n) => n.kind === 'confusable')!
+    const [first] = pair.exercises
+
+    if (first?.kind !== 'choice') throw new Error('unreachable')
+    expect(first.options).toHaveLength(2)
+    for (const option of first.options) expect(option).toContain('___')
+    // And the difference the curator wrote reaches the student here.
+    expect(first.concept).toContain('앞에 the/an이 오면')
+  })
+
+  it('stops showing the way in once the student is past it', async () => {
+    const { student, vocabularyId } = await seedWord('maintain')
+
+    const before = (await buildSemanticMap(student.id, vocabularyId))!
+    const node = before.nodes.find(
+      (n) => n.exercises.length > 1 && n.exercises.some((e) => e.level === 1),
+    )!
+
+    // Three correct answers is `completed` — see `statusFor`.
+    for (let i = 0; i < 3; i += 1) {
+      await recordNodeAnswer({
+        userId: student.id,
+        vocabularyId,
+        node: node.progressNode,
+        questionType: 'sentence_translation',
+        correct: true,
+        payload: { itemId: node.itemId },
+      })
+    }
+
+    const after = (await buildSemanticMap(student.id, vocabularyId))!
+    const same = after.nodes.find((n) => n.id === node.id)!
+    expect(same.status).toBe('completed')
+    expect(same.exercises.every((e) => e.level > 1)).toBe(true)
+  })
+
   it('never spends a map slot on a derived form', async () => {
     // A list of derivatives is reference material. Putting it on the map spends
     // the student's attention on the least useful thing there.
