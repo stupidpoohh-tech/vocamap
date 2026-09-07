@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseWordbook } from '@/lib/import/wordbook'
+import { draftHasQuestions, toBrainMapDraft } from '@/lib/import/to-draft'
 
 /**
  * A real test range, typed by the tutor who is going to use this — 20 words of
@@ -339,5 +340,35 @@ describe('a range typed as a table', () => {
     const { entries } = parseWordbook('govern\nv. 통치하다 | 다스리다')
     expect(entries[0]!.lemma).toBe('govern')
     expect(entries[0]!.senses[0]!.enDefinition).toBeNull()
+  })
+})
+
+describe('what the teacher is told before saving', () => {
+  // The counts under each word are the only place a mis-read paste shows
+  // itself, so what they claim has to be true.
+
+  it('counts a definition as material, not as a missing example', () => {
+    // Every word in a table of definitions has no sentence. Judging by
+    // sentences alone flagged all fifty as unusable on the way in — while the
+    // map was in fact about to ask every one of them.
+    for (const entry of table.entries) {
+      const draft = toBrainMapDraft(entry)
+      expect(draft.sentences, entry.lemma).toHaveLength(0)
+      expect(draftHasQuestions(draft, { rivalDefinitions: true }), entry.lemma).toBe(true)
+    }
+  })
+
+  it('says so when a word really has nothing to ask', () => {
+    // One word, one gloss, no definition, no sentence, nothing beside it.
+    const { entries } = parseWordbook('albeit\n비록 ~일지라도')
+    const draft = toBrainMapDraft(entries[0]!)
+    expect(draftHasQuestions(draft, { rivalDefinitions: false })).toBe(false)
+  })
+
+  it('does not count a definition that has nothing to be told apart from', () => {
+    const { entries } = parseWordbook('어휘\t영영 풀이\t의미\nstrength\ta quality that helps\t장점')
+    const draft = toBrainMapDraft(entries[0]!)
+    expect(draftHasQuestions(draft, { rivalDefinitions: false })).toBe(false)
+    expect(draftHasQuestions(draft, { rivalDefinitions: true })).toBe(true)
   })
 })

@@ -4,7 +4,7 @@ import { writeDraft } from '@/lib/data/brain-map'
 import { addToSet, assignSet, assertCanAccessStudent, createSet } from '@/lib/data/teacher'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
 import { parseWordbook, type ParseProblem } from './wordbook'
-import { toBrainMapDraft } from './to-draft'
+import { draftHasQuestions, toBrainMapDraft } from './to-draft'
 
 export type ImportSummary = {
   setId: string
@@ -46,6 +46,12 @@ export async function importWordbook(
     }
   }
 
+  // A definition question draws its wrong answers from the rest of the range,
+  // so whether any word can be asked that way is a fact about the paste, not
+  // about the word.
+  const rivalDefinitions =
+    entries.filter((entry) => entry.senses.some((sense) => sense.enDefinition)).length >= 2
+
   const setId = await createSet({ ownerId: input.actor.id, title: input.title })
 
   const ids: string[] = []
@@ -73,9 +79,9 @@ export async function importWordbook(
       reviewNote: '단어장 직접 입력',
     })
 
-    // Worth naming: a word whose only example arrived without a translation
-    // still gets a map, but its meaning node has nothing to ask.
-    if (!draft.sentences.length) withoutQuestions.push(entry.lemma)
+    // Worth naming: a word the list gave nothing askable for still gets a map,
+    // but every node on it is a card with no question under it.
+    if (!draftHasQuestions(draft, { rivalDefinitions })) withoutQuestions.push(entry.lemma)
   }
 
   await addToSet(setId, ids)

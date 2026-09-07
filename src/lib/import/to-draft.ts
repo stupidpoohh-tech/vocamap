@@ -136,3 +136,25 @@ function inflections(lemma: string): string[] {
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
+
+/**
+ * Whether this draft gives the map anything to ask.
+ *
+ * Sentences are no longer the only material. A list of 어휘 / 영영 풀이 / 의미
+ * has none and is still fully askable — the definition is the question — so a
+ * check that only counted sentences called a whole exam range unusable and
+ * told the teacher so on the way in.
+ *
+ * `rivalDefinitions` is what the rest of the paste can supply: a definition
+ * question needs wrong answers, and one word alone cannot provide them.
+ */
+export function draftHasQuestions(
+  draft: BrainMapDraft,
+  opts: { rivalDefinitions: boolean },
+): boolean {
+  if (draft.sentences.length) return true
+  if (opts.rivalDefinitions && draft.meanings.some((m) => m.enDefinition)) return true
+  // Two of a kind: one expression or one derived form has nothing to be told
+  // apart from, and a question with a single option teaches nothing.
+  return draft.collocations.length >= 2 || draft.wordFamily.length >= 2
+}

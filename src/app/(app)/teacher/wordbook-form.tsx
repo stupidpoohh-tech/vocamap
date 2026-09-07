@@ -98,18 +98,26 @@ export function WordbookForm({
 function Legend() {
   return (
     <div className="rounded-card bg-sunken px-3.5 py-3 text-xs leading-relaxed text-ink-2 break-keep">
-      <p className="font-medium text-ink">단어장을 그대로 옮겨 적으면 됩니다.</p>
+      <p className="font-medium text-ink">단어장이든 시험 범위 표든 그대로 붙여넣으면 됩니다.</p>
       <p className="mt-1.5">
-        번호가 단어를 나누고, 뜻은 <code>n. 뜻</code>, 해석은 <code>=</code>, 나머지 줄은{' '}
-        <code>*</code> 로 시작합니다. 예문·연어·파생어·유의어는 내용을 보고 알아서
-        구분하고, 그 결과를 저장 전에 여기에서 보여줍니다.
+        단어장은 번호가 단어를 나누고, 뜻은 <code>n. 뜻</code>, 해석은 <code>=</code>, 나머지
+        줄은 <code>*</code> 로 시작합니다. 예문·연어·파생어·유의어는 내용을 보고 알아서
+        구분합니다.
       </p>
+      <p className="mt-1.5">
+        <span className="text-ink">어휘 · 영영 풀이 · 의미</span> 로 된 표도 그대로 됩니다.
+        열 순서와 번호는 상관없고, 표 제목 줄과 페이지 표시는 알아서 건너뜁니다. 예문이
+        없어도 영영 풀이가 문제가 됩니다.
+      </p>
+      <p className="mt-1.5">읽은 결과는 저장 전에 아래에서 보여줍니다.</p>
     </div>
   )
 }
 
 function Preview({ result }: { result: ReturnType<typeof parseWordbook> }) {
   const { entries, problems } = result
+  const rivalDefinitions =
+    entries.filter((entry) => entry.senses.some((sense) => sense.enDefinition)).length >= 2
 
   return (
     <div className="rounded-card bg-sunken px-3.5 py-3">
@@ -134,18 +142,33 @@ function Preview({ result }: { result: ReturnType<typeof parseWordbook> }) {
         <ul className="mt-2 max-h-64 divide-y divide-line-soft overflow-y-auto overscroll-contain border-t border-line">
           {entries.map((entry) => {
             const examples = entry.senses.reduce((n, sense) => n + sense.examples.length, 0)
+            const definitions = entry.senses.filter((sense) => sense.enDefinition).length
+            // A definition question is told apart from the definitions of the
+            // other words in the paste, so one word alone cannot be asked that
+            // way — which makes this a fact about the paste, not the word.
+            const askable =
+              examples > 0 ||
+              (definitions > 0 && rivalDefinitions) ||
+              entry.collocations.length >= 2 ||
+              entry.wordFamily.length >= 2
             return (
               <li key={`${entry.line}-${entry.lemma}`} className="py-2">
                 <p className="text-[0.9375rem] text-ink">{entry.lemma}</p>
                 {/* Counts, in the order the map builds them. Reading "연어 0"
-                    where six were typed is how a mis-sorted line is caught. */}
+                    where six were typed is how a mis-sorted line is caught, and
+                    reading "영영 1" is how a table of definitions is confirmed
+                    to have been understood as one. */}
                 <p className="numeral mt-0.5 text-[0.6875rem] text-ink-3">
-                  뜻 {entry.senses.length} · 예문 {examples} · 연어 {entry.collocations.length} ·
-                  파생어 {entry.wordFamily.length}
+                  뜻 {entry.senses.length} · 영영 {definitions} · 예문 {examples} · 연어{' '}
+                  {entry.collocations.length} · 파생어 {entry.wordFamily.length}
                   {entry.synonyms.length ? (
                     <span className="text-ink-3"> · 유의어 {entry.synonyms.length}(미사용)</span>
                   ) : null}
-                  {examples === 0 ? <span className="text-warn"> · 예문 없음</span> : null}
+                  {/* Only when there is genuinely nothing to ask. Warning on a
+                      missing example was right when sentences were the only
+                      material; on a range of definitions it flagged all fifty
+                      words that were about to work perfectly well. */}
+                  {askable ? null : <span className="text-warn"> · 낼 문제 없음</span>}
                 </p>
               </li>
             )

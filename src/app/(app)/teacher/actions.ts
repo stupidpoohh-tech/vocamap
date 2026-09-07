@@ -176,7 +176,7 @@ export async function importWordbookPage(
     `${summary.words}개 단어 · 새로 ${summary.created}개, 기존 ${summary.reused}개`,
     summary.synonymsSkipped ? `유의어 ${summary.synonymsSkipped}개는 넣지 않았어요` : null,
     summary.withoutQuestions.length
-      ? `예문 해석이 없어 문제를 못 만든 단어: ${summary.withoutQuestions.join(', ')}`
+      ? `낼 문제가 없는 단어: ${summary.withoutQuestions.join(', ')}`
       : null,
   ].filter(Boolean)
 
