@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useMemo, useState } from 'react'
+import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Card, Input, Textarea } from '@/components/ui'
 import { parseWordbook } from '@/lib/import/wordbook'
 import { importWordbookPage, type WordbookState } from './actions'
@@ -40,6 +40,7 @@ export function WordbookForm({
   )
 
   const preview = useMemo(() => (text.trim() ? parseWordbook(text) : null), [text])
+  const elapsed = useElapsedSeconds(pending)
 
   return (
     <Card>
@@ -76,6 +77,18 @@ export function WordbookForm({
         <Button disabled={pending || !preview?.entries.length}>
           {pending ? '만드는 중…' : '맵 만들기'}
         </Button>
+
+        {/* A word costs about seventeen round trips to a database that is not
+            in this building, and a range is fifty words. Even written eight at
+            a time that is seconds, not milliseconds, and a button that only
+            says "만드는 중…" for that long is indistinguishable from one that
+            has hung. The count says how much work was asked for and the clock
+            says it is still being done. */}
+        {pending ? (
+          <p className="numeral text-center text-xs text-ink-3">
+            단어 {preview?.entries.length ?? 0}개를 넣고 있어요 · {elapsed}초
+          </p>
+        ) : null}
       </form>
 
       {state.error ? <p className="mt-3 text-sm text-bad break-keep">{state.error}</p> : null}
@@ -93,6 +106,35 @@ export function WordbookForm({
       ) : null}
     </Card>
   )
+}
+
+/**
+ * Seconds since the work started, or 0 when nothing is running.
+ *
+ * A server action gives the browser no progress to report — the request is
+ * open and then it is not — so the one honest thing to show is that time is
+ * passing and the page is still waiting. It is the difference between "this is
+ * taking a while" and "this is broken".
+ */
+function useElapsedSeconds(running: boolean): number {
+  const [seconds, setSeconds] = useState(0)
+  const startedAt = useRef(0)
+
+  useEffect(() => {
+    if (!running) {
+      setSeconds(0)
+      return
+    }
+    startedAt.current = Date.now()
+    setSeconds(0)
+    const timer = setInterval(
+      () => setSeconds(Math.floor((Date.now() - startedAt.current) / 1000)),
+      1000,
+    )
+    return () => clearInterval(timer)
+  }, [running])
+
+  return seconds
 }
 
 function Legend() {

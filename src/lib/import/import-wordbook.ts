@@ -5,6 +5,7 @@ import { addToSet, assignSet, assertCanAccessStudent, createSet } from '@/lib/da
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
 import { parseWordbook, type ParseProblem } from './wordbook'
 import { draftHasQuestions, toBrainMapDraft } from './to-draft'
+import { WRITE_CONCURRENCY, inBatches } from './batches'
 
 export type ImportSummary = {
   setId: string
@@ -54,23 +55,30 @@ export async function importWordbook(
 
   const setId = await createSet({ ownerId: input.actor.id, title: input.title })
 
-  const ids: string[] = []
-  let created = 0
-  let synonymsSkipped = 0
-  const withoutQuestions: string[] = []
-
-  for (const entry of entries) {
+  // Words are written several at a time rather than one after another.
+  //
+  // Each word costs about seventeen round trips — find it, insert it, its
+  // glosses, then the map's head and every part of it inside a transaction —
+  // and fifty of them in a row is eight hundred and fifty round trips in
+  // series. Locally that is under a second; against a database three hops away
+  // at fifty milliseconds a trip it is most of a minute, which is what the
+  // teacher was staring at.
+  //
+  // Nothing about one word depends on another, so the wait is pure latency and
+  // overlapping it is the whole fix. The width is the connection pool's, not a
+  // guess: past that the queries queue on the client instead.
+  const written = await inBatches(entries, WRITE_CONCURRENCY, async (entry) => {
     const draft = toBrainMapDraft(entry)
-    synonymsSkipped += entry.synonyms.length
 
+    // `findOrCreateVocabulary` is safe to run beside itself — the natural key
+    // is the arbiter and the loser re-reads — so a list that repeats a word
+    // still lands on one row.
     const vocabulary = await findOrCreateVocabulary({
       lemma: entry.lemma,
       partOfSpeech: entry.senses[0]?.partOfSpeech ?? null,
       translations: draft.primaryTranslations,
       createdBy: input.actor.id,
     })
-    if (vocabulary.created) created += 1
-    ids.push(vocabulary.id)
 
     await writeDraft(vocabulary.id, draft, {
       status: 'approved',
@@ -79,10 +87,22 @@ export async function importWordbook(
       reviewNote: '단어장 직접 입력',
     })
 
-    // Worth naming: a word the list gave nothing askable for still gets a map,
-    // but every node on it is a card with no question under it.
-    if (!draftHasQuestions(draft, { rivalDefinitions })) withoutQuestions.push(entry.lemma)
-  }
+    return {
+      id: vocabulary.id,
+      created: vocabulary.created,
+      synonyms: entry.synonyms.length,
+      // Worth naming: a word the list gave nothing askable for still gets a
+      // map, but every node on it is a card with no question under it.
+      askable: draftHasQuestions(draft, { rivalDefinitions }),
+      lemma: entry.lemma,
+    }
+  })
+
+  // In the order they were typed, whatever order they finished in.
+  const ids = written.map((word) => word.id)
+  const created = written.filter((word) => word.created).length
+  const synonymsSkipped = written.reduce((n, word) => n + word.synonyms, 0)
+  const withoutQuestions = written.filter((word) => !word.askable).map((word) => word.lemma)
 
   await addToSet(setId, ids)
 

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseWordbook } from '@/lib/import/wordbook'
 import { draftHasQuestions, toBrainMapDraft } from '@/lib/import/to-draft'
+import { inBatches } from '@/lib/import/batches'
 
 /**
  * A real test range, typed by the tutor who is going to use this — 20 words of
@@ -370,5 +371,38 @@ describe('what the teacher is told before saving', () => {
     const draft = toBrainMapDraft(entries[0]!)
     expect(draftHasQuestions(draft, { rivalDefinitions: false })).toBe(false)
     expect(draftHasQuestions(draft, { rivalDefinitions: true })).toBe(true)
+  })
+})
+
+describe('writing a whole range', () => {
+  // Not a unit of behaviour but a unit of cost: the batching only matters
+  // because the alternative was a wait the teacher read as a failure.
+
+  it('keeps the words in the order they were typed', async () => {
+    // The batches finish out of order; the set must not.
+    const order: number[] = []
+    const done: number[] = []
+    const result = await inBatches([0, 1, 2, 3, 4, 5, 6, 7, 8], 4, async (n) => {
+      order.push(n)
+      await new Promise((resolve) => setTimeout(resolve, (9 - n) % 5))
+      done.push(n)
+      return n * 10
+    })
+    expect(result).toEqual([0, 10, 20, 30, 40, 50, 60, 70, 80])
+    // And they really did overlap, or the test proves nothing.
+    expect(done).not.toEqual(order)
+  })
+
+  it('never has more than the batch width in flight', async () => {
+    let inFlight = 0
+    let peak = 0
+    await inBatches([...Array(20).keys()], 6, async () => {
+      inFlight += 1
+      peak = Math.max(peak, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      inFlight -= 1
+    })
+    expect(peak).toBeLessThanOrEqual(6)
+    expect(peak).toBeGreaterThan(1)
   })
 })
