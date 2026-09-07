@@ -46,6 +46,33 @@ jobs:
       - name: Build
         run: pnpm run cf:build
 
+      # Before the deploy, not after. Every migration here adds something —
+      # a nullable column, a new table — so the running code ignores it until
+      # the new code arrives, and the new code never arrives first.
+      #
+      # This step exists because it was missing. `en_definition_ko` shipped
+      # against a database that did not have it, and every screen that reads a
+      # Brain Map answered with a server error until the column was added by
+      # hand. Nothing in the pipeline had noticed, because nothing in the
+      # pipeline was looking.
+      #
+      # Neon's pooled connection cannot hold the advisory lock a migration
+      # takes, so this wants the direct one — the URL *without* `-pooler` in
+      # the host. `DATABASE_URL_UNPOOLED` is preferred when both are set.
+      - name: Migrate database
+        if: github.event_name != 'pull_request'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: |
+          if [ -z "$DATABASE_URL_UNPOOLED" ] && [ -z "$DATABASE_URL" ]; then
+            echo "::error::Neither DATABASE_URL_UNPOOLED nor DATABASE_URL is set."
+            echo "::error::Add one as a repository secret (Settings → Secrets and variables → Actions)."
+            echo "::error::Deploying without it ships code against a database that may not have its columns yet."
+            exit 1
+          fi
+          pnpm db:migrate
+
       - name: Deploy
         if: github.event_name != 'pull_request'
         run: pnpm exec wrangler deploy
