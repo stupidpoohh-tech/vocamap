@@ -228,6 +228,7 @@ export async function buildSemanticMap(
         meaningCoreKo: master.meaningCoreKo,
         connectionNote: master.meanings[0]?.connectionNote,
         enDefinition: master.meanings[0]?.enDefinition,
+        enDefinitionKo: master.meanings[0]?.enDefinitionKo,
         lemma: master.lemma,
       }),
     })
@@ -255,6 +256,7 @@ export async function buildSemanticMap(
         meaningCoreKo: master.meaningCoreKo,
         connectionNote: meaning.connectionNote,
         enDefinition: meaning.enDefinition,
+        enDefinitionKo: meaning.enDefinitionKo,
         lemma: master.lemma,
       }),
     })

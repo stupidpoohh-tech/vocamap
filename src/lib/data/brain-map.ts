@@ -40,6 +40,7 @@ export type MasterBrainMap = {
     id: string
     ko: string
     enDefinition: string | null
+    enDefinitionKo: string | null
     connectionNote: string | null
     exampleChunk: string | null
   }>
@@ -177,6 +178,7 @@ export async function getMasterBrainMap(
       id: m.id,
       ko: m.ko,
       enDefinition: m.enDefinition,
+      enDefinitionKo: m.enDefinitionKo,
       connectionNote: m.connectionNote,
       exampleChunk: m.exampleChunk,
     })),
@@ -429,6 +431,7 @@ export async function writeDraft(
           brainMapId: id,
           ko: m.ko,
           enDefinition: m.enDefinition,
+          enDefinitionKo: m.enDefinitionKo ?? null,
           connectionNote: m.connectionNote,
           exampleChunk: m.exampleChunk,
           sortOrder: i,

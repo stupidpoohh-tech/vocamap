@@ -36,6 +36,8 @@ export type ParsedSense = {
   ko: string
   /** The English definition, when the book prints one. */
   enDefinition: string | null
+  /** What that definition says, in Korean, when the list spells it out. */
+  enDefinitionKo: string | null
   /** Examples that belong to this sense, in the order they were written. */
   examples: Array<{ en: string; ko: string | null }>
 }
@@ -127,12 +129,17 @@ export function parseWordbook(input: string): ParseResult {
 function parseTable(input: string): ParseResult | null {
   const rows: Array<{ cells: string[]; number: number }> = []
   let candidates = 0
+  let columns: Columns | null = null
 
   input.split('\n').forEach((raw, index) => {
     const cells = splitCells(raw)
     if (!cells) return
     candidates += 1
-    if (isSeparatorRow(cells) || isHeaderRow(cells)) return
+    if (isSeparatorRow(cells)) return
+    if (isHeaderRow(cells)) {
+      columns ??= readHeader(cells)
+      return
+    }
     rows.push({ cells, number: index + 1 })
   })
 
@@ -144,11 +151,47 @@ function parseTable(input: string): ParseResult | null {
   const entries: ParsedEntry[] = []
 
   for (const row of rows) {
-    const entry = parseRow(row.cells, row.number, problems)
+    const entry = parseRow(row.cells, row.number, columns, problems)
     if (entry) entries.push(entry)
   }
 
   return entries.length ? { entries, problems } : null
+}
+
+/**
+ * Which column is which, when the table says so itself.
+ *
+ * The cells are normally told apart by what they hold, which needs no header
+ * and does not care what order the columns are in. That stops working the
+ * moment a table has **two** Korean columns — the word's meaning and the
+ * translation of the English definition are both Korean, and there is nothing
+ * in the text of either that says which is which.
+ *
+ * A header answers it outright, so where there is one it is believed.
+ */
+type Columns = { lemma?: number; definition?: number; definitionKo?: number; ko?: number }
+
+const HEADER_NAMES: Array<[keyof Columns, RegExp]> = [
+  ['lemma', /^(어휘|단어|표제어|word)$/i],
+  // Checked before `definition`, or "영영 풀이 해석" matches the definition.
+  ['definitionKo', /(영영.*(해석|뜻풀이 해석)|풀이\s*해석|^해석$)/],
+  ['definition', /^(영영\s*풀이|영영\s*뜻|영영|영영\s*정의|definition)$/i],
+  ['ko', /^(의미|뜻|한국어\s*뜻|meaning)$/],
+]
+
+function readHeader(cells: string[]): Columns {
+  const columns: Columns = {}
+  cells.forEach((cell, index) => {
+    const name = cell.trim()
+    if (!name) return
+    for (const [role, pattern] of HEADER_NAMES) {
+      if (columns[role] === undefined && pattern.test(name)) {
+        columns[role] = index
+        return
+      }
+    }
+  })
+  return columns
 }
 
 /**
@@ -184,7 +227,7 @@ function isSeparatorRow(cells: string[]): boolean {
 
 /** The row that names the columns rather than filling them. */
 function isHeaderRow(cells: string[]): boolean {
-  return cells.some((cell) => /^(어휘|단어|표제어|영영\s*풀이|영영\s*뜻|영영|의미|뜻|해석)$/.test(cell))
+  return cells.some((cell) => HEADER_NAMES.some(([, pattern]) => pattern.test(cell.trim())))
 }
 
 /**
@@ -201,7 +244,86 @@ function isHeaderRow(cells: string[]): boolean {
  * organized activity` come out the right way round without being told which
  * column is which, and it holds for `in front of` and `according to` too.
  */
-function parseRow(cells: string[], line: number, problems: ParseProblem[]): ParsedEntry | null {
+function parseRow(
+  cells: string[],
+  line: number,
+  columns: Columns | null,
+  problems: ParseProblem[],
+): ParsedEntry | null {
+  const named = columns ? fromHeader(cells, columns) : null
+  const read = named ?? fromContent(cells)
+
+  if (!read.lemma) {
+    problems.push({ line, text: cells.join(' | '), message: '이 줄에서 영어 단어를 찾지 못했습니다.' })
+    return null
+  }
+  if (!read.ko && !read.enDefinition) {
+    problems.push({ line, text: cells.join(' | '), message: `"${read.lemma}" 에 뜻이 없습니다.` })
+    return null
+  }
+
+  return {
+    lemma: read.lemma,
+    senses: [
+      {
+        partOfSpeech: read.partOfSpeech,
+        // A row with no Korean still teaches something: the English definition
+        // is the gloss then, rather than the entry being thrown away.
+        ko: read.ko ?? read.enDefinition!,
+        enDefinition: read.enDefinition,
+        enDefinitionKo: read.enDefinitionKo,
+        examples: [],
+      },
+    ],
+    collocations: [],
+    wordFamily: [],
+    synonyms: [],
+    line,
+  }
+}
+
+type ReadRow = {
+  lemma: string | null
+  partOfSpeech: string | null
+  enDefinition: string | null
+  enDefinitionKo: string | null
+  ko: string | null
+}
+
+/** Straight off the header, which said which column is which. */
+function fromHeader(cells: string[], columns: Columns): ReadRow | null {
+  const at = (index: number | undefined) =>
+    index === undefined ? null : (cells[index]?.trim() || null)
+
+  const lemma = at(columns.lemma)
+  if (!lemma) return null
+
+  const definitionCell = at(columns.definition)
+  const prefix = definitionCell ? leadingPartOfSpeech(definitionCell) : null
+
+  return {
+    lemma,
+    partOfSpeech: prefix ? partOfSpeechOf(prefix) : null,
+    enDefinition: prefix ? definitionCell!.slice(prefix.length).trim() || null : definitionCell,
+    enDefinitionKo: at(columns.definitionKo),
+    ko: at(columns.ko),
+  }
+}
+
+/**
+ * Told apart by what each cell holds, for a table with no header.
+ *
+ * A bare number is the row's index. Korean, once a part-of-speech mark is off
+ * the front, is the meaning. Of the English cells that remain, the shorter is
+ * the word and the longer is its definition — which is what makes `sign up` /
+ * `to agree to take part in an organized activity` come out the right way
+ * round without being told which column is which.
+ *
+ * Two Korean cells cannot be told apart this way, which is why a table that
+ * carries the definition's translation needs its header. Without one the
+ * second Korean cell is read as more of the meaning rather than guessed at.
+ */
+function fromContent(cells: string[]): ReadRow {
   let partOfSpeech: string | null = null
   let ko: string | null = null
   const english: string[] = []
@@ -213,39 +335,25 @@ function parseRow(cells: string[], line: number, problems: ParseProblem[]): Pars
     const body = prefix ? cell.slice(prefix.length).trim() : cell
     if (!body) continue
 
-    if (prefix && !partOfSpeech) {
-      partOfSpeech = PART_OF_SPEECH[prefix.trim().replace(/\.$/, '').toLowerCase()] ?? null
-    }
+    if (prefix && !partOfSpeech) partOfSpeech = partOfSpeechOf(prefix)
 
     // A second Korean cell is a second gloss, joined rather than dropped.
     if (/[가-힣]/.test(body)) ko = ko ? `${ko}, ${body}` : body
     else english.push(body)
   }
 
-  if (!english.length) {
-    problems.push({ line, text: cells.join(' | '), message: '이 줄에서 영어 단어를 찾지 못했습니다.' })
-    return null
-  }
-
   const byLength = [...english].sort((a, b) => wordCount(a) - wordCount(b))
-  const lemma = byLength[0]!
-  const enDefinition = byLength.length > 1 ? byLength[byLength.length - 1]! : null
-
-  if (!ko && !enDefinition) {
-    problems.push({ line, text: cells.join(' | '), message: `"${lemma}" 에 뜻이 없습니다.` })
-    return null
-  }
-
   return {
-    lemma,
-    // A row with no Korean still teaches something: the English definition is
-    // the gloss then, rather than the entry being thrown away.
-    senses: [{ partOfSpeech, ko: ko ?? enDefinition!, enDefinition, examples: [] }],
-    collocations: [],
-    wordFamily: [],
-    synonyms: [],
-    line,
+    lemma: byLength[0] ?? null,
+    partOfSpeech,
+    enDefinition: byLength.length > 1 ? byLength[byLength.length - 1]! : null,
+    enDefinitionKo: null,
+    ko,
   }
+}
+
+function partOfSpeechOf(prefix: string): string | null {
+  return PART_OF_SPEECH[prefix.trim().replace(/\.$/, '').toLowerCase()] ?? null
 }
 
 /**
@@ -377,6 +485,7 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
     const labelled = LABELLED_SENSE.exec(text)
     if (labelled) {
       entry.senses.push({ partOfSpeech: null, ko: labelled[2]!.trim(), enDefinition: null,
+      enDefinitionKo: null,
       examples: [] })
       continue
     }
@@ -387,6 +496,7 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
         partOfSpeech: PART_OF_SPEECH[sense[1]!.toLowerCase()]!,
         ko: sense[2]!.trim(),
         enDefinition: null,
+      enDefinitionKo: null,
       examples: [],
       })
       continue
@@ -397,6 +507,7 @@ function parseBlock(lines: Line[], problems: ParseProblem[]): ParsedEntry | null
     // that lost its marker, and guessing there would bury the mistake.
     if (!entry.senses.length && hasKorean(text)) {
       entry.senses.push({ partOfSpeech: null, ko: text, enDefinition: null,
+      enDefinitionKo: null,
       examples: [] })
       continue
     }

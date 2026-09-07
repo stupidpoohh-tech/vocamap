@@ -230,6 +230,16 @@ export const brainMapMeanings = pgTable(
       .references(() => brainMaps.id, { onDelete: 'cascade' }),
     ko: text().notNull(),
     enDefinition: text(),
+    /**
+     * What the English definition says, in Korean.
+     *
+     * Not the same thing as `ko`, which is the word's gloss. "a quality or
+     * ability that gives you an advantage" and "장점, 강점" are both true and
+     * only one of them tells a student whether they read the English
+     * correctly — which is the whole point of putting the definition in front
+     * of them.
+     */
+    enDefinitionKo: text(),
     /** How this sense follows from the meaning core. The teaching payload. */
     connectionNote: text(),
     exampleChunk: text(),

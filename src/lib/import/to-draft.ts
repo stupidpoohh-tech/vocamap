@@ -32,6 +32,9 @@ export function toBrainMapDraft(entry: ParsedEntry): BrainMapDraft {
       // what the exam itself asks about — so it is carried through rather than
       // dropped for want of the sentences a book would have given.
       enDefinition: sense.enDefinition,
+      // The definition's own translation, where the list spelled it out. It is
+      // what the map shows when the student asks what the English said.
+      enDefinitionKo: sense.enDefinitionKo,
       connectionNote: '',
       exampleChunk: null,
     })),

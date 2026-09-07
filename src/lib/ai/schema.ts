@@ -17,6 +17,13 @@ const sentenceText = z.string().trim().min(5).max(180)
 export const meaningSchema = z.object({
   ko: shortText.describe('한국어 뜻. 사전식 나열이 아니라 하나의 용법.'),
   enDefinition: z.string().trim().max(240).nullable(),
+  enDefinitionKo: z
+    .string()
+    .trim()
+    .max(240)
+    .nullable()
+    .optional()
+    .describe('영영 풀이를 한국어로 옮긴 것. 단어 뜻이 아니라 그 문장의 해석.'),
   connectionNote: z
     .string()
     .trim()

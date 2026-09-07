@@ -15,6 +15,7 @@ import { db as defaultDb } from './index'
  */
 const REQUIREMENTS: Array<{ migration: string; table: string; column: string }> = [
   { migration: '0001_bookmarks', table: 'user_vocabulary_state', column: 'bookmarked_at' },
+  { migration: '0003_definition_ko', table: 'brain_map_meanings', column: 'en_definition_ko' },
 ]
 
 export type SchemaStatus = {

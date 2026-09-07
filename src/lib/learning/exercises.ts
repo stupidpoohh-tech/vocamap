@@ -131,7 +131,9 @@ export function meaningExercises(input: {
   connectionNote?: string | null
   /** The English definition of this sense, where the list printed one. */
   enDefinition?: string | null
-  /** The word itself, to head the card whose answer is the gloss. */
+  /** What that definition says, in Korean. Not the word's gloss. */
+  enDefinitionKo?: string | null
+  /** The word itself, to head the card whose answer is the reading. */
   lemma?: string | null
 }): Exercise[] {
   const concept = input.connectionNote ?? input.meaningCoreKo
@@ -190,12 +192,18 @@ export function meaningExercises(input: {
  *
  * Reading an English definition and working out what it says is the study, and
  * it stops being study the moment the Korean is sitting beside it. So the
- * definition is what the card shows, and the gloss arrives only when asked
+ * definition is what the card shows, and what it says arrives only when asked
  * for — the same shape as translating a sentence, which is the one exercise
  * here that was already a reading exercise rather than a question.
  *
- * The card is headed with the word rather than with the gloss, because the
- * gloss is the answer.
+ * What is revealed is **the definition's own translation**, not the word's
+ * gloss. "장점, 강점" is true of `strength` and tells a student nothing about
+ * whether they read "a quality or ability that gives you an advantage"; it is
+ * also already printed on the map beside them. The gloss stands in only when
+ * the list gave no translation, because a card that reveals nothing is worse
+ * than one that reveals the wrong-sized thing.
+ *
+ * The card is headed with the word, because the gloss is one of the answers.
  *
  * Choosing the right definition out of four is the other way to use this
  * material, and it is a good question — it is just not study. It belongs to
@@ -205,10 +213,13 @@ function definitionExercises(input: {
   lemma?: string | null
   label: string
   enDefinition?: string | null
+  enDefinitionKo?: string | null
   meaningCoreKo: string | null
 }): Exercise[] {
   const definition = input.enDefinition?.trim()
   if (!definition) return []
+
+  const reading = input.enDefinitionKo?.trim()
 
   return [
     {
@@ -216,8 +227,10 @@ function definitionExercises(input: {
       heading: input.lemma ?? null,
       prompt: definition,
       highlight: null,
-      answer: input.label,
-      concept: input.meaningCoreKo,
+      answer: reading || input.label,
+      // The word's gloss is worth having beside a translation of the sentence;
+      // it is not worth repeating when it *is* the answer.
+      concept: reading ? input.label : input.meaningCoreKo,
       level: 1,
     },
   ]

@@ -346,11 +346,26 @@ describe('a word whose list gave a definition and nothing else', () => {
     enDefinition: 'a quality or ability that gives you an advantage',
   }
 
-  it('shows the definition and keeps the meaning back until it is asked for', () => {
-    const [first] = meaningExercises(args)
+  it('shows the definition and keeps what it says back until it is asked for', () => {
+    const [first] = meaningExercises({
+      ...args,
+      enDefinitionKo: '유리함을 주는 자질이나 능력',
+    })
     expect(first?.kind).toBe('translate')
     if (first?.kind !== 'translate') throw new Error('unreachable')
     expect(first.prompt).toBe(args.enDefinition)
+    // What the sentence said, not what the word means. The gloss is already
+    // printed on the map and says nothing about whether the English was read.
+    expect(first.answer).toBe('유리함을 주는 자질이나 능력')
+    expect(first.answer).not.toBe(args.label)
+    // The gloss is still worth having, beside the reading rather than as it.
+    expect(first.concept).toBe(args.label)
+  })
+
+  it('falls back to the gloss when the list gave no translation', () => {
+    // Coarser than it should be, and better than a card that reveals nothing.
+    const [first] = meaningExercises(args)
+    if (first?.kind !== 'translate') throw new Error('unreachable')
     expect(first.answer).toBe('장점, 강점')
   })
 

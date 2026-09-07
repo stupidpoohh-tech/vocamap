@@ -247,7 +247,13 @@ describe('the shapes a page throws at it', () => {
     const { entries, problems } = parse('albeit\n비록 ~일지라도')
     expect(problems).toEqual([])
     expect(entries[0]!.senses).toEqual([
-      { partOfSpeech: null, ko: '비록 ~일지라도', enDefinition: null, examples: [] },
+      {
+        partOfSpeech: null,
+        ko: '비록 ~일지라도',
+        enDefinition: null,
+        enDefinitionKo: null,
+        examples: [],
+      },
     ])
   })
 
@@ -404,5 +410,58 @@ describe('writing a whole range', () => {
     })
     expect(peak).toBeLessThanOrEqual(6)
     expect(peak).toBeGreaterThan(1)
+  })
+})
+
+describe('a table that also carries the definition\'s translation', () => {
+  // 어휘 / 영영 풀이 / 영영 풀이 해석 / 의미. Two of those columns are Korean,
+  // and nothing in the text of either says which is which — so this is the one
+  // shape that cannot be read by content and needs the header.
+  const FOUR = [
+    '|  | 어휘 | 영영 풀이 | 영영 풀이 해석 | 의미 |',
+    '|---|---|---|---|---|',
+    '| 1 | strength | 명 a quality or ability that gives you an advantage | 유리함을 주는 자질이나 능력 | 장점, 강점 |',
+    '| 2 | sign up | to agree to take part in an organized activity | 조직된 활동에 참여하기로 동의하다 | 신청하다 |',
+  ].join('\n')
+
+  const four = parseWordbook(FOUR)
+
+  it('keeps the two Korean columns apart', () => {
+    expect(four.problems).toEqual([])
+    const sense = four.entries[0]!.senses[0]!
+    expect(sense.ko).toBe('장점, 강점')
+    expect(sense.enDefinitionKo).toBe('유리함을 주는 자질이나 능력')
+    // The gloss must not have swallowed the translation, which is what
+    // happens when both Korean cells are read as more meaning.
+    expect(sense.ko).not.toContain('자질')
+  })
+
+  it('still reads the definition and the part-of-speech mark off the column', () => {
+    const sense = four.entries[0]!.senses[0]!
+    expect(sense.partOfSpeech).toBe('noun')
+    expect(sense.enDefinition).toBe('a quality or ability that gives you an advantage')
+  })
+
+  it('reads a phrase with no mark the same way', () => {
+    const sense = four.entries[1]!.senses[0]!
+    expect(sense.partOfSpeech).toBeNull()
+    expect(sense.enDefinition).toBe('to agree to take part in an organized activity')
+    expect(sense.enDefinitionKo).toBe('조직된 활동에 참여하기로 동의하다')
+  })
+
+  it('leaves a three-column table exactly as it was', () => {
+    // The header now decides the columns where there is one, and this must not
+    // change what the range that has no 해석 column already produced.
+    const sense = tableByLemma.get('strength')!.senses[0]!
+    expect(sense.ko).toBe('장점, 강점')
+    expect(sense.enDefinition).toBe('a quality or ability that gives you an advantage')
+    expect(sense.enDefinitionKo).toBeNull()
+    expect(table.entries).toHaveLength(50)
+  })
+
+  it('carries the translation into the draft', () => {
+    expect(toBrainMapDraft(four.entries[0]!).meanings[0]!.enDefinitionKo).toBe(
+      '유리함을 주는 자질이나 능력',
+    )
   })
 })

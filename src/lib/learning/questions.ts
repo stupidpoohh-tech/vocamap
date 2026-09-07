@@ -130,6 +130,8 @@ export type MapMaterial = {
   senses: string[]
   /** English definitions of this word's senses, where the list printed them. */
   definitions: string[]
+  /** What those definitions say, in Korean. Not the word's gloss. */
+  definitionReadings: string[]
   sentences: Array<{ text: string; ko: string; highlight: string | null; targetMeaning: string | null }>
   collocations: Array<{ expression: string; ko: string }>
   family: Array<{ lemma: string; ko: string }>
@@ -168,6 +170,7 @@ async function mapMaterial(
         brainMapId: brainMapMeanings.brainMapId,
         ko: brainMapMeanings.ko,
         enDefinition: brainMapMeanings.enDefinition,
+        enDefinitionKo: brainMapMeanings.enDefinitionKo,
       })
       .from(brainMapMeanings)
       .where(inArray(brainMapMeanings.brainMapId, approvedMaps()))
@@ -209,6 +212,7 @@ async function mapMaterial(
     byWord.set(m.vocabularyId, {
       senses: [],
       definitions: [],
+      definitionReadings: [],
       sentences: [],
       collocations: [],
       family: [],
@@ -220,6 +224,7 @@ async function mapMaterial(
     const material = into(row.brainMapId)
     material?.senses.push(row.ko)
     if (row.enDefinition) material?.definitions.push(row.enDefinition)
+    if (row.enDefinitionKo) material?.definitionReadings.push(row.enDefinitionKo)
   }
   for (const row of sentences) into(row.brainMapId)?.sentences.push(row)
   for (const row of collocations) into(row.brainMapId)?.collocations.push(row)
@@ -337,7 +342,7 @@ function mapQuestion(
     item.direction === 'en_ko'
       ? [
           senseQuestion(item, material),
-          definitionSenseQuestion(item, material, neighbours),
+          definitionSenseQuestion(item, material, neighbours, everything),
           collocationSenseQuestion(item, material, everything),
           familySenseQuestion(item, material, everything),
         ]
@@ -502,35 +507,47 @@ function familyQuestion(
 }
 
 /**
- * What an English definition means. The reading question.
+ * What an English definition says. The reading question.
  *
  * The exam range's other half: `definitionQuestion` gives the definition and
- * asks for the word, this gives it and asks what it says. The rivals are the
- * meanings of the words beside it on the list, so it cannot be answered by
- * recognising a topic.
+ * asks for the word, this gives it and asks what it said.
+ *
+ * What is asked for is the definition's own translation where the list has
+ * one, because that is what tells a student whether they read the English.
+ * Where it has none the word's gloss stands in — a coarser question, but the
+ * only one the material supports. The rivals match whichever is being asked,
+ * so the four options are always the same kind of thing.
  */
 function definitionSenseQuestion(
   item: QueueItem,
   material: MapMaterial,
   neighbours: Map<string, PoolWord[]>,
+  everything: Map<string, MapMaterial>,
 ): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
   const own = material.definitions
-  if (!own.length || !item.translation) return null
+  if (!own.length) return null
   const definition = own[hash(item.vocabularyId) % own.length]!
 
-  const others = (neighbours.get(item.vocabularyId) ?? [])
-    .map((word) => word.translation)
-    .filter((translation) => translation && translation !== item.translation)
+  const reading = material.definitionReadings[0]
+  const answer = reading ?? item.translation
+  if (!answer) return null
 
-  const distractors = shuffle([...new Set(others)]).slice(0, OPTION_COUNT - 1)
+  const pool = reading
+    ? [...everything.values()].flatMap((m) => m.definitionReadings)
+    : (neighbours.get(item.vocabularyId) ?? []).map((word) => word.translation)
+
+  const distractors = shuffle([...new Set(pool)].filter((value) => value && value !== answer)).slice(
+    0,
+    OPTION_COUNT - 1,
+  )
   if (distractors.length < 2) return null
 
   return {
     kind: 'definitionSense',
     prompt: definition,
-    answer: item.translation,
-    options: shuffle([item.translation, ...distractors]),
-    note: `${item.lemma} — ${definition}`,
+    answer,
+    options: shuffle([answer, ...distractors]),
+    note: `${item.lemma} — ${item.translation}`,
   }
 }
 
