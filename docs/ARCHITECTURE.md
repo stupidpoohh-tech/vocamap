@@ -331,7 +331,7 @@ Class/Group, Assignment 만료, Analytics 대시보드는 테이블과 관계만
 
 ## 11. 테스트가 고정하는 것
 
-`pnpm test` — 315개. 순수 로직은 DB 없이, 나머지는 `TEST_DATABASE_URL` 이 있을 때만.
+`pnpm test` — 318개. 순수 로직은 DB 없이, 나머지는 `TEST_DATABASE_URL` 이 있을 때만.
 
 의도적으로 다음을 고정한다.
 
@@ -350,6 +350,23 @@ Class/Group, Assignment 만료, Analytics 대시보드는 테이블과 관계만
 - 짝이 양쪽 단어에서 같은 row인지
 - 학생 간 상태 격리
 - 교사 접근 게이트 8가지 경우
+
+- 마이그레이션 파일과 `meta/_journal.json` 이 어긋나지 않는지
+
+### 저널에 없는 마이그레이션은 조용히 건너뛴다
+
+`drizzle-kit generate` 는 `.sql` 과 저널 항목을 같이 쓰지만, 손으로 쓴
+마이그레이션은 파일만 생긴다. 실행기는 저널을 읽으므로 그런 파일은 **성공을
+보고하면서 실행되지 않는다.** `0002_pronunciation.sql` 이 그렇게 며칠 동안 존재만
+했고, 그 사이에 `pnpm db:migrate` 나 `db/setup.sql` 로 만든 DB에는
+`vocabularies.pronunciation` 이 없다.
+
+고칠 때 지킨 것: SQL은 `ADD COLUMN IF NOT EXISTS` 로 두어 컬럼을 손으로 이미 넣은
+DB가 깨지지 않게 하고, 저널의 `when` 은 마지막 적용분보다 뒤로 잡아 이미 0001까지
+온 DB에서도 적용되게 했다. 새 DB / 옛 setup.sql로 만든 DB / 컬럼을 손으로 넣은 DB
+세 경우를 로컬 Postgres에서 실제로 돌려 확인했다 — 어느 쪽도 데이터를 잃지 않는다.
+
+`tests/migrations.test.ts` 가 이 어긋남을 고정한다. 실패가 조용하기 때문이다.
 
 ### 테스트 DB 격리
 
