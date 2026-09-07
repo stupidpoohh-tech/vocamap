@@ -22,6 +22,9 @@ const KIND_LABEL: Partial<Record<QuestionKind, string>> = {
   // so the label says which is wanted rather than leaving it to be guessed.
   context: '문맥 속 빈칸 · 원형 고르기',
   definition: '영영 풀이에 맞는 단어',
+  definitionSense: '영영 풀이의 뜻',
+  collocationSense: '이 표현의 뜻',
+  familySense: '이 파생어의 뜻',
   sense: '이 문장에서의 뜻',
   collocation: '함께 쓰는 표현',
   family: '알맞은 형태',

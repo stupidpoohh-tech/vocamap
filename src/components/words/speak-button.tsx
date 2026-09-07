@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { pickEnglishVoice, type VoiceChoice } from '@/lib/learning/voices'
 import { cn } from '@/lib/utils'
 
 /**
@@ -8,13 +9,36 @@ import { cn } from '@/lib/utils'
  *
  * Uses the browser's own speech synthesis rather than an audio service: it
  * costs nothing, needs no network round trip, and works for every word in the
- * library including ones nobody has recorded. The voice is whatever the
- * student's phone already speaks English with, which on a Korean device is the
- * same voice their other apps use.
+ * library including ones nobody has recorded. The voice is whichever English
+ * one the student's phone already has — chosen explicitly, because the default
+ * on a Korean device is a Korean voice. See `useEnglishVoice`.
  *
  * Hidden entirely where the browser cannot speak — an inert speaker icon is
  * worse than no speaker icon.
  */
+/**
+ * The English voice this device will use, and whether it has one at all.
+ *
+ * The rule for choosing lives in `pickEnglishVoice`, which is pure and tested;
+ * this is the part that has to watch the browser publish its list, since
+ * `getVoices()` is commonly empty on the first call.
+ */
+function useEnglishVoice(): VoiceChoice<SpeechSynthesisVoice> {
+  const [choice, setChoice] = useState<VoiceChoice<SpeechSynthesisVoice>>({ state: 'loading' })
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    const synth = window.speechSynthesis
+
+    const choose = () => setChoice(pickEnglishVoice(synth.getVoices()))
+    choose()
+    synth.addEventListener?.('voiceschanged', choose)
+    return () => synth.removeEventListener?.('voiceschanged', choose)
+  }, [])
+
+  return choice
+}
+
 export function SpeakButton({
   text,
   size = 'sm',
@@ -28,6 +52,7 @@ export function SpeakButton({
   // no `speechSynthesis` to ask.
   const [supported, setSupported] = useState(false)
   const [speaking, setSpeaking] = useState(false)
+  const voice = useEnglishVoice()
 
   useEffect(() => {
     setSupported(typeof window !== 'undefined' && 'speechSynthesis' in window)
@@ -42,7 +67,12 @@ export function SpeakButton({
     }
   }, [])
 
-  if (!supported) return null
+  // Hidden where the browser cannot speak, and equally where it can speak but
+  // not in English: a speaker button that says 스트렝쓰 is worse than no
+  // speaker button, which is the same reason the inert one is not drawn. An
+  // empty voice list is not that case — it is a list that has not arrived —
+  // so the button stays and the utterance goes out with its language named.
+  if (!supported || voice.state === 'none') return null
 
   const speak = (event: React.MouseEvent) => {
     // The button lives inside rows that are themselves links.
@@ -54,6 +84,12 @@ export function SpeakButton({
 
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = 'en-US'
+    // Naming the language is not choosing a voice. On a Korean phone the
+    // default voice is Korean, and a Korean voice handed English text reads it
+    // with Korean sounds — "strength" comes out as 스트렝쓰. The engine is
+    // doing what it was asked; it was never asked for an English voice. See
+    // `pickEnglishVoice`.
+    if (voice.state === 'found') utterance.voice = voice.voice
     // A shade under natural pace: this is a word being learned, not read.
     utterance.rate = 0.9
     utterance.onend = () => setSpeaking(false)

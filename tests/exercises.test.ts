@@ -338,36 +338,30 @@ describe('a word whose list gave a definition and nothing else', () => {
   // 어휘 / 영영 풀이 / 의미 and no sentence anywhere — the shape an exam range
   // arrives in. Before this the meaning node had nothing to ask at all.
   const args = {
+    lemma: 'strength',
     label: '장점, 강점',
     sense: '장점, 강점',
     sentences: [] as SentenceContent[],
     meaningCoreKo: null,
     enDefinition: 'a quality or ability that gives you an advantage',
-    rivalDefinitions: [
-      'something that you hope to achieve',
-      'a person who plays the guitar',
-      'happening after normal school hours',
-    ],
   }
 
-  it('asks for the definition, which the card does not print', () => {
+  it('shows the definition and keeps the meaning back until it is asked for', () => {
     const [first] = meaningExercises(args)
-    if (first?.kind !== 'choice') throw new Error('unreachable')
-    expect(first.prompt).toContain('영영 풀이')
-    expect(first.answer).toBe(args.enDefinition)
-    expect(first.answer).not.toBe(args.label)
-    expect(first.options).toHaveLength(4)
-    expect(first.options).toContain('a person who plays the guitar')
+    expect(first?.kind).toBe('translate')
+    if (first?.kind !== 'translate') throw new Error('unreachable')
+    expect(first.prompt).toBe(args.enDefinition)
+    expect(first.answer).toBe('장점, 강점')
   })
 
-  it('never offers the Korean gloss as an option — it is written above', () => {
+  it('heads the card with the word, because the gloss is the answer', () => {
     const [first] = meaningExercises(args)
-    if (first?.kind !== 'choice') throw new Error('unreachable')
-    for (const option of first.options) expect(option).not.toBe(args.label)
+    if (first?.kind !== 'translate') throw new Error('unreachable')
+    expect(first.heading).toBe('strength')
+    expect(first.heading).not.toBe(args.label)
   })
 
-  it('asks nothing when there is no other definition to be told apart from', () => {
-    expect(meaningExercises({ ...args, rivalDefinitions: [] })).toEqual([])
+  it('has nothing to show when the list printed no definition', () => {
     expect(meaningExercises({ ...args, enDefinition: null })).toEqual([])
   })
 
@@ -377,7 +371,7 @@ describe('a word whose list gave a definition and nothing else', () => {
       { id: 'b', text: 'Other.', ko: '다른 것', targetMeaning: '주장하다', highlight: null, difficulty: 1 },
     ]
     const exercises = meaningExercises({ ...args, label: '유지하다', sense: '유지하다', sentences })
-    expect(exercises[0]!.kind === 'choice' && exercises[0]!.prompt).toContain('영영 풀이')
+    expect(exercises[0]!.kind === 'translate' && exercises[0]!.prompt).toBe(args.enDefinition)
     expect(exercises.length).toBeGreaterThan(1)
   })
 })

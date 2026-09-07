@@ -54,6 +54,15 @@ export type Exercise =
       highlight: string | null
       answer: string
       concept?: string | null
+      /**
+       * What to print above the question instead of the node's own label.
+       *
+       * The card heads itself with the thing being studied, which for a
+       * meaning node is the Korean gloss — and on a card whose whole point is
+       * that the gloss stays hidden until asked for, that is the answer in
+       * bold at the top. The word itself goes there instead.
+       */
+      heading?: string | null
       level: ExerciseLevel
     }
 
@@ -122,10 +131,8 @@ export function meaningExercises(input: {
   connectionNote?: string | null
   /** The English definition of this sense, where the list printed one. */
   enDefinition?: string | null
-  /** Definitions of other words, for the wrong answers. */
-  rivalDefinitions?: string[]
-  /** Distinguishes this node's questions from another's. */
-  seed?: string
+  /** The word itself, to head the card whose answer is the gloss. */
+  lemma?: string | null
 }): Exercise[] {
   const concept = input.connectionNote ?? input.meaningCoreKo
   const exercises = definitionExercises(input)
@@ -179,43 +186,37 @@ export function meaningExercises(input: {
 }
 
 /**
- * Which English definition belongs to this meaning.
+ * The definition, with its meaning held back.
  *
- * The whole of what an exam range often is: 어휘, 영영 풀이, 의미, and no
- * sentence anywhere. The card prints the Korean gloss, so that is the given;
- * the definition is not printed anywhere on the screen, so that is what is
- * asked for. The wrong answers are the definitions of the words beside it on
- * the same list — which is the question the exam itself sets.
+ * Reading an English definition and working out what it says is the study, and
+ * it stops being study the moment the Korean is sitting beside it. So the
+ * definition is what the card shows, and the gloss arrives only when asked
+ * for — the same shape as translating a sentence, which is the one exercise
+ * here that was already a reading exercise rather than a question.
  *
- * Asked the other way round it would be no question at all: the word is
- * written across the middle of the map.
+ * The card is headed with the word rather than with the gloss, because the
+ * gloss is the answer.
+ *
+ * Choosing the right definition out of four is the other way to use this
+ * material, and it is a good question — it is just not study. It belongs to
+ * the test, where there is no map beside it. See `definitionQuestion`.
  */
 function definitionExercises(input: {
+  lemma?: string | null
   label: string
   enDefinition?: string | null
-  rivalDefinitions?: string[]
   meaningCoreKo: string | null
-  seed?: string
 }): Exercise[] {
-  const answer = input.enDefinition?.trim()
-  if (!answer) return []
-
-  const rivals = [
-    ...new Set(
-      (input.rivalDefinitions ?? []).map((d) => d.trim()).filter((d) => d && d !== answer),
-    ),
-  ].slice(0, MAX_OPTIONS - 1)
-
-  // One option is not a question.
-  if (!rivals.length) return []
+  const definition = input.enDefinition?.trim()
+  if (!definition) return []
 
   return [
     {
-      kind: 'choice',
-      prompt: `'${input.label}' — 이 뜻의 영영 풀이는?`,
-      options: shuffleStable([answer, ...rivals], input.seed ?? input.label),
-      answer,
-      explanation: answer,
+      kind: 'translate',
+      heading: input.lemma ?? null,
+      prompt: definition,
+      highlight: null,
+      answer: input.label,
       concept: input.meaningCoreKo,
       level: 1,
     },

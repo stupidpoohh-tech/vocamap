@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull, lt, ne, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import {
@@ -72,51 +72,6 @@ export type MasterBrainMap = {
     usageRule: string | null
     questions: Array<{ id: string; prompt: string; answer: string; explanation: string }>
   }>
-}
-
-/**
- * The English definitions of the other words a student is learning alongside
- * this one.
- *
- * A list that arrives as 어휘 / 영영 풀이 / 의미 has no sentences, so the meaning
- * node has nothing to place and nothing to ask — the map is a single card
- * saying it has no questions. The definition is the one thing about the word
- * that the card does not already print, so it is what can be asked for; and a
- * question needs wrong answers, which have to come from outside the word.
- *
- * Words the teacher put in the same set come first: those are the words that
- * turn up together on the paper, and telling them apart is the exam. The rest
- * of the library fills in behind them for a word in no set at all.
- */
-export async function listRivalDefinitions(
-  vocabularyId: string,
-  limit = 12,
-  db: Db = defaultDb,
-): Promise<string[]> {
-  const sharesASet = sql<boolean>`${brainMaps.vocabularyId} in (
-    select shared.vocabulary_id
-    from vocabulary_set_items shared
-    where shared.set_id in (
-      select mine.set_id from vocabulary_set_items mine
-      where mine.vocabulary_id = ${vocabularyId}
-    )
-  )`
-
-  const rows = await db
-    .select({ definition: brainMapMeanings.enDefinition, near: sharesASet })
-    .from(brainMapMeanings)
-    .innerJoin(brainMaps, eq(brainMaps.id, brainMapMeanings.brainMapId))
-    .where(
-      and(
-        eq(brainMaps.status, 'approved'),
-        isNotNull(brainMapMeanings.enDefinition),
-        ne(brainMaps.vocabularyId, vocabularyId),
-      ),
-    )
-    .orderBy(desc(sharesASet))
-    .limit(limit)
-
-  return [...new Set(rows.map((row) => row.definition).filter((d): d is string => Boolean(d)))]
 }
 
 /**

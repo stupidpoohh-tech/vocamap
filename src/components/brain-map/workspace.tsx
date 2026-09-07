@@ -69,7 +69,16 @@ export function Workspace({
  * The label and the count share a row now and the category rides beside the
  * node it describes.
  */
-function Heading({ node, step }: { node: SemanticNode; step?: string }) {
+function Heading({
+  node,
+  step,
+  title,
+}: {
+  node: SemanticNode
+  step?: string
+  /** Overrides the node's own label. See `Exercise`'s `heading`. */
+  title?: string | null
+}) {
   return (
     <>
       {/* A marker and a word, not a pill. The grey chip was a box inside a box
@@ -86,7 +95,7 @@ function Heading({ node, step }: { node: SemanticNode; step?: string }) {
           and this card share one height there — so the two share a baseline. */}
       <p className="mt-2 flex flex-wrap items-baseline gap-x-2 sm:mt-2.5 sm:block">
         <span className="text-[1.0625rem] leading-snug font-semibold tracking-[-0.012em] break-keep sm:text-[1.1875rem]">
-          {node.label}
+          {title ?? node.label}
         </span>
         <span className="text-xs text-ink-3 sm:mt-1.5 sm:block">{node.eyebrow}</span>
       </p>
@@ -140,7 +149,13 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
 
   return (
     <section className={CARD}>
-      <Heading node={node} step={`${index + 1} / ${node.exercises.length}`} />
+      <Heading
+        node={node}
+        step={`${index + 1} / ${node.exercises.length}`}
+        // A card whose answer is the node's own label cannot print that label
+        // above the question and still be asking anything.
+        title={exercise.kind === 'translate' ? exercise.heading : null}
+      />
 
       <Divider />
       <div>
@@ -298,14 +313,20 @@ function TranslateExercise({
             placeholder="직접 해석해 보세요"
             className="w-full resize-none rounded-control bg-sunken px-3.5 py-2.5 text-sm ring-1 ring-line focus:bg-surface focus:ring-brand-line focus:outline-none"
           />
+          {/* Typing is optional and always was — the button is the only thing
+              that has to be pressed. Saying "뜻 확인" on a card that hides a
+              gloss and "해석 확인" on one that hides a translation is the
+              difference between a label and an instruction. */}
           <Button variant="secondary" onClick={() => setRevealed(true)}>
-            해석 확인
+            {exercise.heading ? '뜻 확인' : '해석 확인'}
           </Button>
         </div>
       ) : !answered ? (
         <div className="mt-4">
           <p className="rounded-control bg-sunken px-3 py-2 text-[0.8125rem] break-keep">{exercise.answer}</p>
-          <p className="mt-3 mb-2 text-xs text-ink-2">내 해석과 비교했을 때 어땠나요?</p>
+          <p className="mt-3 mb-2 text-xs text-ink-2">
+            {exercise.heading ? '생각한 뜻과 같았나요?' : '내 해석과 비교했을 때 어땠나요?'}
+          </p>
           <div className="flex gap-2">
             <Button variant="secondary" className="flex-1" onClick={() => onSubmit(draft, true)}>
               맞았어요

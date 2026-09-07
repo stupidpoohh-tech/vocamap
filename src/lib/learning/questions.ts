@@ -21,7 +21,18 @@ import type { Direction } from './scheduler'
  * are only possible for a word whose Brain Map carries the material, and they
  * are what makes a mapped word worth having a map.
  */
-export type QuestionKind = 'gloss' | 'definition' | 'context' | 'sense' | 'collocation' | 'family'
+export type QuestionKind =
+  | 'gloss'
+  /* ── answer is English ── */
+  | 'definition'
+  | 'context'
+  | 'collocation'
+  | 'family'
+  /* ── answer is Korean ── */
+  | 'sense'
+  | 'definitionSense'
+  | 'collocationSense'
+  | 'familySense'
 
 export type RecallQuestion = {
   vocabularyId: string
@@ -315,9 +326,21 @@ function mapQuestion(
   if (!material) return null
 
   const seed = `${item.vocabularyId}:${item.dueAt.toISOString()}`
+  // Both directions draw on the map. They used to not: `en_ko` had one variant,
+  // and that one needed the word to have two senses *and* a sentence carrying
+  // the right one. A range typed as definitions has neither, so every word in
+  // it fell through to the plain gloss question — the map test was the ordinary
+  // test with fewer words in it, which is the one thing it is not supposed to
+  // be. The split is by what is being recalled: an English answer belongs with
+  // `ko_en`, a Korean one with `en_ko`.
   const variants =
     item.direction === 'en_ko'
-      ? [senseQuestion(item, material)]
+      ? [
+          senseQuestion(item, material),
+          definitionSenseQuestion(item, material, neighbours),
+          collocationSenseQuestion(item, material, everything),
+          familySenseQuestion(item, material, everything),
+        ]
       : [
           definitionQuestion(item, material, neighbours),
           contextQuestion(item, material, neighbours),
@@ -476,6 +499,101 @@ function familyQuestion(
     answer: target.lemma,
     options: shuffle([target.lemma, ...distractors]),
   }
+}
+
+/**
+ * What an English definition means. The reading question.
+ *
+ * The exam range's other half: `definitionQuestion` gives the definition and
+ * asks for the word, this gives it and asks what it says. The rivals are the
+ * meanings of the words beside it on the list, so it cannot be answered by
+ * recognising a topic.
+ */
+function definitionSenseQuestion(
+  item: QueueItem,
+  material: MapMaterial,
+  neighbours: Map<string, PoolWord[]>,
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
+  const own = material.definitions
+  if (!own.length || !item.translation) return null
+  const definition = own[hash(item.vocabularyId) % own.length]!
+
+  const others = (neighbours.get(item.vocabularyId) ?? [])
+    .map((word) => word.translation)
+    .filter((translation) => translation && translation !== item.translation)
+
+  const distractors = shuffle([...new Set(others)]).slice(0, OPTION_COUNT - 1)
+  if (distractors.length < 2) return null
+
+  return {
+    kind: 'definitionSense',
+    prompt: definition,
+    answer: item.translation,
+    options: shuffle([item.translation, ...distractors]),
+    note: `${item.lemma} — ${definition}`,
+  }
+}
+
+/** What an expression means. The other way round from `collocationQuestion`. */
+function collocationSenseQuestion(
+  item: QueueItem,
+  material: MapMaterial,
+  everything: Map<string, MapMaterial>,
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
+  const own = material.collocations
+  if (!own.length) return null
+  const target = own[hash(item.vocabularyId) % own.length]!
+
+  const distractors = glossDistractors(
+    target.ko,
+    own.map((c) => c.ko),
+    [...everything.values()].flatMap((m) => m.collocations.map((c) => c.ko)),
+  )
+  if (!distractors.length) return null
+
+  return {
+    kind: 'collocationSense',
+    prompt: target.expression,
+    answer: target.ko,
+    options: shuffle([target.ko, ...distractors]),
+  }
+}
+
+/** What a derived form means. The other way round from `familyQuestion`. */
+function familySenseQuestion(
+  item: QueueItem,
+  material: MapMaterial,
+  everything: Map<string, MapMaterial>,
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
+  const own = material.family
+  if (!own.length) return null
+  const target = own[hash(item.vocabularyId) % own.length]!
+
+  const distractors = glossDistractors(
+    target.ko,
+    own.map((f) => f.ko),
+    [...everything.values()].flatMap((m) => m.family.map((f) => f.ko)),
+  )
+  if (!distractors.length) return null
+
+  return {
+    kind: 'familySense',
+    prompt: target.lemma,
+    answer: target.ko,
+    options: shuffle([target.ko, ...distractors]),
+  }
+}
+
+/**
+ * Wrong meanings, the word's own first and the rest of the library behind.
+ *
+ * The word's own siblings are the sharper distractors — telling 관계를 유지하다
+ * from 질서를 유지하다 is the collocation — and there are rarely enough of them
+ * to fill four options on their own.
+ */
+function glossDistractors(answer: string, siblings: string[], pool: string[]): string[] {
+  const usable = (values: string[]) => [...new Set(values)].filter((value) => value !== answer)
+  return [...new Set([...usable(siblings), ...shuffle(usable(pool))])].slice(0, OPTION_COUNT - 1)
 }
 
 /** Stable, so a variant does not reroll when the page is refreshed. */

@@ -59,18 +59,19 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
     }
   })
 
-  it('asks for the definition, never for the gloss printed above it', async () => {
+  it('shows the definition and holds the meaning back', async () => {
     const { student, ids } = await importRange()
     const map = (await buildSemanticMap(student.id, ids[0]!.id))!
     const node = map.nodes[0]!
-    const [question] = node.exercises
+    const [study] = node.exercises
 
     expect(node.label).toBe('장점, 강점')
-    if (question?.kind !== 'choice') throw new Error('unreachable')
-    expect(question.answer).toBe('a quality or ability that gives you an advantage')
-    // The wrong answers are the words beside it on the same list.
-    expect(question.options).toHaveLength(4)
-    for (const option of question.options) expect(option).not.toBe(node.label)
+    if (study?.kind !== 'translate') throw new Error('unreachable')
+    // English to read, Korean behind a press — and the card is headed with the
+    // word, so the answer is not printed above the question.
+    expect(study.prompt).toBe('a quality or ability that gives you an advantage')
+    expect(study.answer).toBe('장점, 강점')
+    expect(study.heading).toBe('strength')
   })
 
   it('sets the paper\'s own question in the test session', async () => {
@@ -89,5 +90,30 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
     expect(one.options).toHaveLength(4)
     const inRange = new Set(ids.map((w) => w.lemma))
     for (const option of one.options) expect(inRange.has(option), option).toBe(true)
+  })
+
+  it('asks the map test from the map, in the direction it opens in', async () => {
+    // The test opens on en_ko unless the reader says otherwise, and that
+    // direction used to have one map variant — which needed two senses and a
+    // sentence. A range of definitions has neither, so every word fell through
+    // to the plain gloss question and the map test was the ordinary test.
+    const { student, setId } = await importRange()
+    const queue = await buildScopedQueue(student.id, {
+      scope: 'all',
+      setId,
+      wordLimit: 50,
+      directions: ['en_ko'],
+    })
+    const questions = await buildQuestions(student.id, queue)
+
+    const fromTheMap = questions.filter((q) => q.kind !== 'gloss')
+    expect(fromTheMap.length).toBeGreaterThan(0)
+    expect(new Set(fromTheMap.map((q) => q.kind))).toContain('definitionSense')
+
+    const one = fromTheMap.find((q) => q.kind === 'definitionSense')!
+    // English definition in, Korean meaning out.
+    expect(one.prompt).toMatch(/[a-z]/)
+    expect(one.answer).toMatch(/[가-힣]/)
+    expect(one.options).toHaveLength(4)
   })
 })
