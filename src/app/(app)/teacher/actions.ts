@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { fillDefinitionReadings } from '@/lib/data/definition-reading'
 import { eq, sql } from 'drizzle-orm'
 import { requireRole } from '@/lib/auth/session'
 import { db } from '@/lib/db'
@@ -183,3 +184,32 @@ export async function importWordbookPage(
   return { message: notes.join(' · '), problems }
 }
 
+/* ────────────────────────── definition readings ────────────────────────── */
+
+export type ReadingState = { error?: string; message?: string }
+
+/**
+ * Translates a batch of English definitions that have none.
+ *
+ * One model call for forty, on the tutor's say-so. The import path stays free
+ * of model calls — this is the one place that spends anything, and only for
+ * definitions that have never been read.
+ */
+export async function fillDefinitionReadingBatch(): Promise<ReadingState> {
+  await requireRole('teacher', 'admin')
+  try {
+    const result = await fillDefinitionReadings()
+    if (result.attempted === 0) return { message: '해석이 없는 영영 풀이가 없어요.' }
+
+    revalidatePath('/teacher')
+    revalidatePath('/study')
+    return {
+      message:
+        result.remaining > 0
+          ? `${result.filled}개 채웠어요. ${result.remaining}개 남았어요 — 한 번 더 누르면 이어서 채워요.`
+          : `${result.filled}개 채웠어요. 남은 풀이가 없어요.`,
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : '해석을 가져오지 못했어요.' }
+  }
+}

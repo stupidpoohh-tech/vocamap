@@ -69,6 +69,7 @@ class AnthropicProvider implements LLMProvider {
   constructor(readonly model: string) {}
 
   async generateStructured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
+
     assertServer()
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new LLMError('ANTHROPIC_API_KEY is not set')
@@ -206,6 +207,28 @@ export class TemplateProvider implements LLMProvider {
   readonly model = 'template-dev'
 
   async generateStructured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
+    // A batch of translations is a different shape and a different job, so it
+    // gets its own placeholder rather than a Brain Map that cannot parse.
+    if (req.schemaName === 'definition_reading_batch') {
+      const value = {
+        // Korean only, and no echo of the English. `cleanReading` throws away
+        // an answer that is mostly Latin letters — that is the rule catching a
+        // definition that came back untranslated, and a placeholder that trips
+        // it would leave `LLM_PROVIDER=mock` unable to walk this path at all.
+        entries: [...req.prompt.matchAll(/^(\d+)\./gm)].map((match) => ({
+          number: Number(match[1]),
+          ko: `[예시] ${match[1]}번 영영 풀이의 한국어 해석이 여기에 들어갑니다.`,
+        })),
+      }
+      const raw = JSON.stringify(value)
+      return {
+        data: parseOrThrow(req.schema, value, raw),
+        raw,
+        provider: this.name,
+        model: this.model,
+      }
+    }
+
     const lemma = /Target word:\s*(\S+)/.exec(req.prompt)?.[1] ?? 'word'
     const value = {
       meaningCoreKo: `[예시 데이터] ${lemma}의 중심 의미가 여기에 들어갑니다.`,

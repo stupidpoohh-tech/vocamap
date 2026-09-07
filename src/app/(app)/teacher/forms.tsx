@@ -2,7 +2,14 @@
 
 import { useActionState } from 'react'
 import { Button, Card, Input, Textarea } from '@/components/ui'
-import { addStudent, importWords, type ImportState, type LinkState } from './actions'
+import {
+  addStudent,
+  fillDefinitionReadingBatch,
+  importWords,
+  type ImportState,
+  type LinkState,
+  type ReadingState,
+} from './actions'
 
 export function AddStudentForm() {
   const [state, action, pending] = useActionState<LinkState, FormData>(addStudent, {})
@@ -77,3 +84,39 @@ function Feedback({ state }: { state: { error?: string; message?: string } }) {
   return null
 }
 
+/**
+ * The one button in the app that spends money.
+ *
+ * A teacher's list prints the English definition and its Korean meaning, and
+ * almost never what the definition itself says — which is what the map holds
+ * back and reveals, and typing fifty of them by hand is the reason that reveal
+ * would go unpressed. The count is on the button so the tutor knows what a
+ * press costs before pressing it, and it is paid once per definition for every
+ * student who will ever see it.
+ */
+export function FillReadingsForm({ missing, batch }: { missing: number; batch: number }) {
+  const [state, action, pending] = useActionState<ReadingState, FormData>(
+    () => fillDefinitionReadingBatch(),
+    {},
+  )
+
+  if (missing === 0) {
+    return <p className="text-[0.8125rem] text-ink-3">모든 영영 풀이에 해석이 있어요.</p>
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-[0.8125rem] leading-relaxed text-ink-3 break-keep">
+        해석이 없는 영영 풀이 <span className="numeral text-ink-2">{missing}</span>개. 한 번에{' '}
+        {batch}개씩 채워요. 표에 해석 열을 직접 넣었다면 그것이 우선이고, 여기서 덮어쓰지
+        않아요.
+      </p>
+      <form action={action}>
+        <Button disabled={pending}>
+          {pending ? '가져오는 중…' : `해석 ${Math.min(missing, batch)}개 채우기`}
+        </Button>
+      </form>
+      <Feedback state={state} />
+    </div>
+  )
+}

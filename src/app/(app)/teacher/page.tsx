@@ -5,7 +5,8 @@ import { listSets, listStudents } from '@/lib/data/teacher'
 import { DeleteSetButton } from '@/components/words/delete-set-button'
 import { WordbookForm } from './wordbook-form'
 import { Badge, EmptyState, PageHeader } from '@/components/ui'
-import { AddStudentForm, ImportWordsForm } from './forms'
+import { AddStudentForm, FillReadingsForm, ImportWordsForm } from './forms'
+import { countMissingReadings, DEFINITION_READING_BATCH } from '@/lib/data/definition-reading'
 import { agoKo, lastStudiedByStudent } from '@/lib/data/study-log'
 
 export default async function TeacherPage() {
@@ -13,14 +14,15 @@ export default async function TeacherPage() {
   if (actor.role === 'student') redirect('/study')
 
   // The last-studied read needs the ids the first one returns, so it is chained
-  // rather than listed — that keeps it inside the same wave as the sets instead
-  // of behind them.
-  const [[students, lastStudied], sets] = await Promise.all([
+  // rather than listed — that keeps it inside the same wave as the sets and the
+  // reading count instead of behind them.
+  const [[students, lastStudied], sets, missingReadings] = await Promise.all([
     listStudents(actor.id).then(
       async (found) =>
         [found, await lastStudiedByStudent(found.map((student) => student.id))] as const,
     ),
     listSets(actor.id),
+    countMissingReadings(),
   ])
 
   return (
@@ -57,6 +59,11 @@ export default async function TeacherPage() {
           </ul>
         )}
         <AddStudentForm />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-lg font-semibold">영영 풀이 해석</h2>
+        <FillReadingsForm missing={missingReadings} batch={DEFINITION_READING_BATCH} />
       </section>
 
       <section className="mb-8">
