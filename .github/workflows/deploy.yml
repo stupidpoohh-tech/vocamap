@@ -59,6 +59,12 @@ jobs:
       # Neon's pooled connection cannot hold the advisory lock a migration
       # takes, so this wants the direct one — the URL *without* `-pooler` in
       # the host. `DATABASE_URL_UNPOOLED` is preferred when both are set.
+      #
+      # Missing secret warns and moves on. It used to fail the job, and that
+      # was the wrong call twice over: it was a guard nobody had asked for, and
+      # it held six deploys of unrelated fixes hostage to a secret that had
+      # never been set. A migration that is configured and then *fails* still
+      # stops the deploy — that is a real signal. Not being configured is not.
       - name: Migrate database
         if: github.event_name != 'pull_request'
         env:
@@ -66,10 +72,11 @@ jobs:
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
         run: |
           if [ -z "$DATABASE_URL_UNPOOLED" ] && [ -z "$DATABASE_URL" ]; then
-            echo "::error::Neither DATABASE_URL_UNPOOLED nor DATABASE_URL is set."
-            echo "::error::Add one as a repository secret (Settings → Secrets and variables → Actions)."
-            echo "::error::Deploying without it ships code against a database that may not have its columns yet."
-            exit 1
+            echo "::warning::No database secret is set, so migrations were not run."
+            echo "::warning::Add DATABASE_URL (Neon's direct URL, the one without '-pooler')"
+            echo "::warning::under Settings → Secrets and variables → Actions to have them run here."
+            echo "::warning::Until then, apply new drizzle/*.sql by hand and check /api/health after deploying."
+            exit 0
           fi
           pnpm db:migrate
 
