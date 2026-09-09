@@ -133,6 +133,8 @@ export function meaningExercises(input: {
   enDefinition?: string | null
   /** What that definition says, in Korean. Not the word's gloss. */
   enDefinitionKo?: string | null
+  /** Definitions of other words, for the fallback question's wrong answers. */
+  rivalDefinitions?: string[]
   /** The word itself, to head the card whose answer is the reading. */
   lemma?: string | null
 }): Exercise[] {
@@ -188,49 +190,73 @@ export function meaningExercises(input: {
 }
 
 /**
- * The definition, with its meaning held back.
+ * The definition, and what it says — held back until asked for.
  *
  * Reading an English definition and working out what it says is the study, and
  * it stops being study the moment the Korean is sitting beside it. So the
- * definition is what the card shows, and what it says arrives only when asked
- * for — the same shape as translating a sentence, which is the one exercise
- * here that was already a reading exercise rather than a question.
+ * definition is what the card shows, and its reading arrives only when asked
+ * for — the same shape as translating a sentence.
  *
- * What is revealed is **the definition's own translation**, not the word's
- * gloss. "장점, 강점" is true of `strength` and tells a student nothing about
- * whether they read "a quality or ability that gives you an advantage"; it is
- * also already printed on the map beside them. The gloss stands in only when
- * the list gave no translation, because a card that reveals nothing is worse
- * than one that reveals the wrong-sized thing.
+ * **What is revealed is the definition's own translation.** The word's gloss
+ * is not that. "움직임, 동작" is true of `move` and says nothing about whether
+ * the student read "a change of position or place"; it is also printed on the
+ * map beside them, on the header above them, and in the list they came from. A
+ * reveal that shows it is a check button that checks nothing, which is exactly
+ * what it looked like.
  *
- * The card is headed with the word, because the gloss is one of the answers.
+ * So a word with no translation is not given this card at all. It is asked
+ * instead: here is the meaning, which of these definitions is it — a real
+ * question, with the other words on the list supplying the wrong answers.
+ * Nothing pretends, in either state, and the node is never empty.
  *
- * Choosing the right definition out of four is the other way to use this
- * material, and it is a good question — it is just not study. It belongs to
- * the test, where there is no map beside it. See `definitionQuestion`.
+ * The card is headed with the word, because the gloss is the giveaway.
  */
 function definitionExercises(input: {
   lemma?: string | null
   label: string
   enDefinition?: string | null
   enDefinitionKo?: string | null
+  rivalDefinitions?: string[]
   meaningCoreKo: string | null
 }): Exercise[] {
   const definition = input.enDefinition?.trim()
   if (!definition) return []
 
   const reading = input.enDefinitionKo?.trim()
+  if (reading) {
+    return [
+      {
+        kind: 'translate',
+        heading: input.lemma ?? null,
+        prompt: definition,
+        highlight: null,
+        answer: reading,
+        // The word's gloss is worth having beside the reading; it is not worth
+        // standing in for it.
+        concept: input.label,
+        level: 1,
+      },
+    ]
+  }
+
+  const rivals = [
+    ...new Set(
+      (input.rivalDefinitions ?? []).map((d) => d.trim()).filter((d) => d && d !== definition),
+    ),
+  ].slice(0, MAX_OPTIONS - 1)
+
+  // One option is not a question, and a card with neither a reading nor a
+  // question has nothing to say — which the screen states plainly.
+  if (!rivals.length) return []
 
   return [
     {
-      kind: 'translate',
-      heading: input.lemma ?? null,
-      prompt: definition,
-      highlight: null,
-      answer: reading || input.label,
-      // The word's gloss is worth having beside a translation of the sentence;
-      // it is not worth repeating when it *is* the answer.
-      concept: reading ? input.label : input.meaningCoreKo,
+      kind: 'choice',
+      prompt: `'${input.label}' — 이 뜻의 영영 풀이는?`,
+      options: shuffleStable([definition, ...rivals], input.lemma ?? input.label),
+      answer: definition,
+      explanation: definition,
+      concept: input.meaningCoreKo,
       level: 1,
     },
   ]

@@ -59,19 +59,49 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
     }
   })
 
-  it('shows the definition and holds the meaning back', async () => {
+  it('asks which definition the meaning is, when the list gave no translation', async () => {
+    // The range as typed: 어휘 / 영영 풀이 / 의미, and no 해석 column. There is
+    // nothing to reveal, so the node asks rather than pretending — revealing
+    // the word's gloss would be a check button that checks nothing, since the
+    // gloss is already on the map, in the header and in the list.
     const { student, ids } = await importRange()
     const map = (await buildSemanticMap(student.id, ids[0]!.id))!
     const node = map.nodes[0]!
-    const [study] = node.exercises
+    const [question] = node.exercises
 
     expect(node.label).toBe('장점, 강점')
+    if (question?.kind !== 'choice') throw new Error('unreachable')
+    expect(question.answer).toBe('a quality or ability that gives you an advantage')
+    expect(question.options).toHaveLength(4)
+    for (const option of question.options) expect(option).not.toBe(node.label)
+  })
+
+  it('reveals the translation once the list carries one', async () => {
+    const teacher = await createUser('teacher')
+    const student = await createUser('student')
+    const table = [
+      '| 어휘 | 영영 풀이 | 영영 풀이 해석 | 의미 |',
+      '|---|---|---|---|',
+      '| move | 명 a change of position or place | 위치나 장소의 변화 | 움직임, 동작 |',
+    ].join('\n')
+
+    const entry = parseWordbook(table).entries[0]!
+    const draft = toBrainMapDraft(entry)
+    const { id } = await findOrCreateVocabulary({
+      lemma: entry.lemma,
+      translations: draft.primaryTranslations,
+      createdBy: teacher.id,
+    })
+    await writeDraft(id, draft, { status: 'approved', createdBy: teacher.id })
+
+    const map = (await buildSemanticMap(student.id, id))!
+    const [study] = map.nodes[0]!.exercises
     if (study?.kind !== 'translate') throw new Error('unreachable')
-    // English to read, Korean behind a press — and the card is headed with the
-    // word, so the answer is not printed above the question.
-    expect(study.prompt).toBe('a quality or ability that gives you an advantage')
-    expect(study.answer).toBe('장점, 강점')
-    expect(study.heading).toBe('strength')
+    // What the sentence said — not 움직임, 동작.
+    expect(study.prompt).toBe('a change of position or place')
+    expect(study.answer).toBe('위치나 장소의 변화')
+    expect(study.answer).not.toBe(map.nodes[0]!.label)
+    expect(study.heading).toBe('move')
   })
 
   it('sets the paper\'s own question in the test session', async () => {

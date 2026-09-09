@@ -336,47 +336,53 @@ describe('forMastery', () => {
 
 describe('a word whose list gave a definition and nothing else', () => {
   // 어휘 / 영영 풀이 / 의미 and no sentence anywhere — the shape an exam range
-  // arrives in. Before this the meaning node had nothing to ask at all.
+  // arrives in.
   const args = {
-    lemma: 'strength',
-    label: '장점, 강점',
-    sense: '장점, 강점',
+    lemma: 'move',
+    label: '움직임, 동작',
+    sense: '움직임, 동작',
     sentences: [] as SentenceContent[],
     meaningCoreKo: null,
-    enDefinition: 'a quality or ability that gives you an advantage',
+    enDefinition: 'a change of position or place',
   }
+  const reading = '위치나 장소의 변화'
+  const rivals = [
+    'something that you hope to achieve',
+    'a person who plays the guitar',
+    'happening after normal school hours',
+  ]
 
-  it('shows the definition and keeps what it says back until it is asked for', () => {
-    const [first] = meaningExercises({
-      ...args,
-      enDefinitionKo: '유리함을 주는 자질이나 능력',
-    })
+  it('reveals what the definition says, and never the word\'s gloss', () => {
+    const [first] = meaningExercises({ ...args, enDefinitionKo: reading })
     expect(first?.kind).toBe('translate')
     if (first?.kind !== 'translate') throw new Error('unreachable')
     expect(first.prompt).toBe(args.enDefinition)
-    // What the sentence said, not what the word means. The gloss is already
-    // printed on the map and says nothing about whether the English was read.
-    expect(first.answer).toBe('유리함을 주는 자질이나 능력')
+    expect(first.answer).toBe(reading)
+    // The gloss is on the map, in the header and in the list this page was
+    // opened from. Revealing it checks nothing.
     expect(first.answer).not.toBe(args.label)
-    // The gloss is still worth having, beside the reading rather than as it.
+    // It is still worth having, beside the reading rather than as it.
     expect(first.concept).toBe(args.label)
   })
 
-  it('falls back to the gloss when the list gave no translation', () => {
-    // Coarser than it should be, and better than a card that reveals nothing.
-    const [first] = meaningExercises(args)
-    if (first?.kind !== 'translate') throw new Error('unreachable')
-    expect(first.answer).toBe('장점, 강점')
+  it('heads the card with the word, because the gloss gives it away', () => {
+    const [first] = meaningExercises({ ...args, enDefinitionKo: reading })
+    expect(first?.kind === 'translate' && first.heading).toBe('move')
   })
 
-  it('heads the card with the word, because the gloss is the answer', () => {
-    const [first] = meaningExercises(args)
-    if (first?.kind !== 'translate') throw new Error('unreachable')
-    expect(first.heading).toBe('strength')
-    expect(first.heading).not.toBe(args.label)
+  it('asks a question instead when there is no translation to reveal', () => {
+    // Rather than revealing the gloss and calling it a check.
+    const [first] = meaningExercises({ ...args, rivalDefinitions: rivals })
+    expect(first?.kind).toBe('choice')
+    if (first?.kind !== 'choice') throw new Error('unreachable')
+    expect(first.answer).toBe(args.enDefinition)
+    expect(first.options).toHaveLength(4)
+    for (const option of first.options) expect(option).not.toBe(args.label)
   })
 
-  it('has nothing to show when the list printed no definition', () => {
+  it('says nothing rather than something wrong', () => {
+    // No translation and nothing to be told apart from.
+    expect(meaningExercises(args)).toEqual([])
     expect(meaningExercises({ ...args, enDefinition: null })).toEqual([])
   })
 
@@ -385,7 +391,13 @@ describe('a word whose list gave a definition and nothing else', () => {
       { id: 'a', text: 'Mine.', ko: '내 것', targetMeaning: '유지하다', highlight: null, difficulty: 1 },
       { id: 'b', text: 'Other.', ko: '다른 것', targetMeaning: '주장하다', highlight: null, difficulty: 1 },
     ]
-    const exercises = meaningExercises({ ...args, label: '유지하다', sense: '유지하다', sentences })
+    const exercises = meaningExercises({
+      ...args,
+      enDefinitionKo: reading,
+      label: '유지하다',
+      sense: '유지하다',
+      sentences,
+    })
     expect(exercises[0]!.kind === 'translate' && exercises[0]!.prompt).toBe(args.enDefinition)
     expect(exercises.length).toBeGreaterThan(1)
   })
