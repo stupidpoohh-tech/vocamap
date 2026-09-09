@@ -265,8 +265,19 @@ export function parseDirections(value: string | undefined): Direction[] {
   return DIRECTIONS
 }
 
-/** Words per test when the student aims one at a list. Two directions each. */
-const SCOPED_WORD_LIMIT = 25
+/**
+ * Words per test when the student aims one at a list. Two directions each.
+ *
+ * A test aimed at a set covers the set. Twenty-five was a sitting's worth, but
+ * it silently halved a fifty-word exam range: the student revised fifty words
+ * and was tested on the first twenty-five in alphabetical order, with no
+ * indication that the rest were not coming.
+ *
+ * What is left is a guard against a list nobody meant to sit in one go, not a
+ * judgement about how long a test should be. How long it should be is the
+ * student's to decide by stopping.
+ */
+const SCOPED_WORD_LIMIT = 300
 
 /**
  * Builds a test over an arbitrary list.

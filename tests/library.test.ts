@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '@/lib/db'
 import { brainMaps } from '@/lib/db/schema'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
-import { listStudyWords, listWordSets, wordNeighbours, wordSetName } from '@/lib/data/library'
+import {
+  WORD_PAGE_SIZE,
+  listStudyWords,
+  listWordSets,
+  wordNeighbours,
+  wordSetName,
+} from '@/lib/data/library'
 import {
   buildScopedQueue,
   buildTodayQueue,
@@ -344,6 +350,35 @@ describe.skipIf(!hasDatabase)('the word either side', () => {
     await addToSet(setId, Object.values(ids))
     return { setId, ids, teacher }
   }
+
+  it('shows a whole set on one page, however long the set is', async () => {
+    // The library keeps its pages; a set is read end to end and does not. A
+    // "다음" between the twenty-fifth word and the twenty-sixth is a wall the
+    // student counted fifty on the tab to find.
+    const teacher = await createUser('teacher')
+    const student = await createUser('student')
+    const ids: string[] = []
+    for (let i = 0; i < 40; i += 1) {
+      const { id } = await findOrCreateVocabulary({
+        lemma: `word${String(i).padStart(3, '0')}`,
+        translations: [`뜻${i}`],
+      })
+      ids.push(id)
+    }
+    const setId = await createSet({ ownerId: teacher.id, title: '시험 범위' })
+    await addToSet(setId, ids)
+
+    const inSet = await listStudyWords({ userId: student.id, scope: 'all', setId })
+    expect(inSet.total).toBe(40)
+    expect(inSet.words).toHaveLength(40)
+    expect(inSet.pageCount).toBe(1)
+
+    // The library is not a set, and still pages.
+    const library = await listStudyWords({ userId: student.id, scope: 'all' })
+    expect(library.total).toBeGreaterThan(WORD_PAGE_SIZE)
+    expect(library.words).toHaveLength(WORD_PAGE_SIZE)
+    expect(library.pageCount).toBeGreaterThan(1)
+  })
 
   it('walks the set in the order the list shows it', async () => {
     const { setId, ids } = await aSet(['gamma', 'alpha', 'beta'])

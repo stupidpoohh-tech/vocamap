@@ -71,6 +71,20 @@ export type ListWordsOptions = {
  */
 export const WORD_PAGE_SIZE = 25
 
+/**
+ * A set is shown whole.
+ *
+ * The library keeps its pages: it grows without limit and nobody reads it end
+ * to end. A set does not and is read exactly that way — it is a chapter, a test
+ * range, the thing a student works down — and cutting it in half puts a "다음"
+ * between the twenty-fifth word and the twenty-sixth for no reason the student
+ * can see. They counted fifty on the tab and found twenty-five.
+ *
+ * The number is a guard, not a curriculum: past a few hundred a "set" is a
+ * library by another name, and the pager comes back to catch it.
+ */
+export const SET_PAGE_SIZE = 300
+
 export type WordPage = {
   words: StudyWord[]
   /** Rows matching the filter, not rows on this page. Drives the pager. */
@@ -101,7 +115,9 @@ export async function listStudyWords(
   const filters = [scopeFilter(opts.scope, wrong), ...placeFilters(opts, db)]
   if (opts.savedOnly) filters.push(isNotNull(userVocabularyState.bookmarkedAt))
 
-  const pageSize = opts.pageSize ?? opts.limit ?? WORD_PAGE_SIZE
+  // A list aimed at one set is that set; anything else is the library.
+  const wholeSet = Boolean(opts.setId) || Boolean(opts.unassigned)
+  const pageSize = opts.pageSize ?? opts.limit ?? (wholeSet ? SET_PAGE_SIZE : WORD_PAGE_SIZE)
   const page = Math.max(0, opts.page ?? 0)
 
   const rows = await db

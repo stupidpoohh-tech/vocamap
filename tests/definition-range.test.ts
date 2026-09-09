@@ -173,4 +173,20 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
       }
     }
   })
+
+  it('tests the whole set, not the first pageful of it', async () => {
+    // The range is fifty words. Revising fifty and being tested on the first
+    // twenty-five in alphabetical order — with nothing on screen saying the
+    // rest were not coming — is the same wall as the list's "다음".
+    const { student, setId, ids } = await importRange()
+    const queue = await buildScopedQueue(student.id, {
+      scope: 'all',
+      setId,
+      directions: ['en_ko'],
+    })
+    expect(new Set(queue.map((item) => item.vocabularyId)).size).toBe(ids.length)
+
+    const questions = await buildQuestions(student.id, queue)
+    expect(new Set(questions.map((q) => q.vocabularyId)).size).toBe(ids.length)
+  })
 })
