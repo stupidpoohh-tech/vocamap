@@ -56,7 +56,6 @@ export function BrainMapExplorer({
       questionType: questionTypeFor(input.node.kind),
       correct: input.correct,
       responseTimeMs: input.responseTimeMs,
-      pairId: input.node.pairId,
       payload: input.payload,
     }).then(() => {
       setNodes((prev) =>
@@ -128,8 +127,6 @@ export function BrainMapExplorer({
 
 function questionTypeFor(kind: SemanticNode['kind']) {
   switch (kind) {
-    case 'confusable':
-      return 'similar_battle' as const
     case 'collocation':
       return 'collocation_cloze' as const
     case 'wordFamily':

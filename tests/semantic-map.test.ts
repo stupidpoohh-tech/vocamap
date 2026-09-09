@@ -40,9 +40,20 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
       expect(labels).not.toContain(category)
     }
 
-    expect(labels).toContain('issue vs problem')
     expect(labels).toContain('raise an issue')
     expect(labels.some((l) => l.includes('문제'))).toBe(true)
+  })
+
+  it('leaves word-pair content off the map entirely', async () => {
+    // "issue vs problem" is a smaller thing to know than what issue means, and
+    // it was taking a slot on every map that had one. The pair is still stored
+    // and still editable by the curator — it just is not a card any more.
+    const { student, vocabularyId } = await seedIssue()
+    const map = (await buildSemanticMap(student.id, vocabularyId))!
+
+    expect(map.nodes.map((n) => n.label)).not.toContain('issue vs problem')
+    expect(map.nodes.some((n) => n.label.includes(' vs '))).toBe(false)
+    expect(map.nodes.every((n) => n.progressNode !== 'similar_words')).toBe(true)
   })
 
   it('gives every kind of content a node', async () => {
@@ -50,43 +61,16 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
     const map = (await buildSemanticMap(student.id, vocabularyId))!
     const kinds = new Set(map.nodes.map((n) => n.kind))
     expect(kinds).toContain('coreMeaning')
-    expect(kinds).toContain('confusable')
     expect(kinds).toContain('collocation')
     expect(kinds).toContain('secondaryMeaning')
   })
 
-  it('ranks a confusable the student actually mixes up above everything else', async () => {
-    const { student, vocabularyId } = await seedIssue()
-
-    const before = (await buildSemanticMap(student.id, vocabularyId))!
-    const pair = before.nodes.find((n) => n.kind === 'confusable')!
-
-    for (let i = 0; i < 2; i += 1) {
-      await recordNodeAnswer({
-        userId: student.id,
-        vocabularyId,
-        node: 'similar_words',
-        questionType: 'similar_battle',
-        correct: false,
-        pairId: pair.pairId,
-        payload: { itemId: pair.itemId },
-      })
-    }
-
-    const after = (await buildSemanticMap(student.id, vocabularyId))!
-    const confusable = after.nodes.find((n) => n.id === pair.id)!
-
-    expect(confusable.importance).toBe(1)
-    expect(confusable.status).toBe('weak')
-    expect(after.recommendedNodeId).toBe(pair.id)
-    expect(Math.max(...after.nodes.map((n) => n.importance))).toBe(confusable.importance)
-  })
 
   it('puts only the few connections that must survive on the map', async () => {
-    // The worked example of the rule: for "issue" the map is 문제·쟁점, the
-    // issue/problem confusion, and the two collocations a student will meet.
-    // "(잡지의) 호" and "issue a statement" are real English and belong nowhere
-    // near the default map, so they stay in the list under it.
+    // The worked example of the rule: for "issue" the map is 문제·쟁점 and the
+    // two collocations a student will meet. "(잡지의) 호" and "issue a
+    // statement" are real English and belong nowhere near the default map, so
+    // they stay in the list under it.
     const { student, vocabularyId } = await seedIssue()
     const map = (await buildSemanticMap(student.id, vocabularyId))!
 
@@ -95,7 +79,6 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
     expect(onMap.length).toBeLessThanOrEqual(5)
 
     expect(onMap.filter((n) => n.kind === 'coreMeaning')).toHaveLength(1)
-    expect(onMap.filter((n) => n.kind === 'confusable')).toHaveLength(1)
     expect(onMap.filter((n) => n.kind === 'collocation')).toHaveLength(2)
     expect(onMap.filter((n) => n.kind === 'secondaryMeaning')).toHaveLength(0)
 
@@ -138,18 +121,6 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
     expect(placement.answer).toContain('issue')
   })
 
-  it('has the student judge two contexts before it has them guess a blank', async () => {
-    const { student, vocabularyId } = await seedWord('affect')
-    const map = (await buildSemanticMap(student.id, vocabularyId))!
-    const pair = map.nodes.find((n) => n.kind === 'confusable')!
-    const [first] = pair.exercises
-
-    if (first?.kind !== 'choice') throw new Error('unreachable')
-    expect(first.options).toHaveLength(2)
-    for (const option of first.options) expect(option).toContain('___')
-    // And the difference the curator wrote reaches the student here.
-    expect(first.concept).toContain('앞에 the/an이 오면')
-  })
 
   it('stops showing the way in once the student is past it', async () => {
     const { student, vocabularyId } = await seedWord('maintain')
@@ -188,7 +159,7 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
   })
 
   it('falls back to a further sense only when the map would be thin', async () => {
-    // A word with no confusable and no collocations still has to be a map.
+    // A word with nothing but senses still has to be a map.
     const admin = await createUser('admin')
     const student = await createUser('student')
     const { id } = await findOrCreateVocabulary({ lemma: 'thin', partOfSpeech: 'noun' })
@@ -270,14 +241,14 @@ describe.skipIf(!hasDatabase)('semantic brain map', () => {
     const { student, vocabularyId } = await seedIssue()
     const map = (await buildSemanticMap(student.id, vocabularyId))!
 
-    const confusable = map.nodes.find((n) => n.kind === 'confusable')!
-    expect(confusable.exercises[0]!.kind).toBe('choice')
+    const collocation = map.nodes.find((n) => n.kind === 'collocation')!
+    expect(collocation.exercises[0]!.kind).toBe('choice')
 
     const core = map.nodes.find((n) => n.kind === 'coreMeaning')!
     expect(core.exercises.length).toBeGreaterThan(0)
 
     // The concept is the reward for answering, so it must not be the prompt.
-    for (const exercise of confusable.exercises) {
+    for (const exercise of collocation.exercises) {
       if (exercise.kind !== 'choice') continue
       expect(exercise.prompt).not.toContain(exercise.explanation)
     }

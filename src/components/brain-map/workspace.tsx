@@ -176,13 +176,25 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
         <div className="animate-rise">
           <Divider />
           <div className="flex items-baseline justify-between gap-3">
+            {/* A reveal card was never graded, so it does not get a verdict.
+                Saying "정답입니다" because the reader pressed the only button
+                on the card is the app claiming to know something it did not
+                measure. */}
             <span
               className={cn(
                 'text-sm font-medium',
-                answered.correct ? 'text-good' : 'text-bad',
+                exercise.kind === 'translate'
+                  ? 'text-ink-2'
+                  : answered.correct
+                    ? 'text-good'
+                    : 'text-bad',
               )}
             >
-              {answered.correct ? '정답입니다' : '다시 볼게요'}
+              {exercise.kind === 'translate'
+                ? '확인했어요'
+                : answered.correct
+                  ? '정답입니다'
+                  : '다시 볼게요'}
             </span>
             {!last ? (
               <button
@@ -296,15 +308,13 @@ function TranslateExercise({
   onDraft: (value: string) => void
   onSubmit: (given: string, correct: boolean) => void
 }) {
-  const [revealed, setRevealed] = useState(false)
-
   return (
     <>
       <p className="text-[0.9375rem] leading-[1.6] sm:text-base">
         {highlight(exercise.prompt, exercise.highlight)}
       </p>
 
-      {!revealed ? (
+      {!answered ? (
         <div className="mt-4 flex flex-col gap-2">
           <textarea
             value={draft}
@@ -314,27 +324,20 @@ function TranslateExercise({
             className="w-full resize-none rounded-control bg-sunken px-3.5 py-2.5 text-sm ring-1 ring-line focus:bg-surface focus:ring-brand-line focus:outline-none"
           />
           {/* Typing is optional and always was — the button is the only thing
-              that has to be pressed. Saying "뜻 확인" on a card that hides a
-              gloss and "해석 확인" on one that hides a translation is the
-              difference between a label and an instruction. */}
-          <Button variant="secondary" onClick={() => setRevealed(true)}>
-            {exercise.heading ? '뜻 확인' : '해석 확인'}
+              that has to be pressed.
+
+              Both cards that reach here hide a Korean reading of English text:
+              a sentence, or an English definition. The label said "뜻 확인" on
+              the definition card, from when that card hid the word's gloss
+              rather than the definition's reading.
+
+              Pressing it finishes the card. It used to reveal the answer and
+              then ask 맞았어요 / 틀렸어요, which is a grade the app cannot
+              check and the reader has no reason to file — they came to read the
+              translation, and they have read it. */}
+          <Button variant="secondary" onClick={() => onSubmit(draft, true)}>
+            해석 확인
           </Button>
-        </div>
-      ) : !answered ? (
-        <div className="mt-4">
-          <p className="rounded-control bg-sunken px-3 py-2 text-[0.8125rem] break-keep">{exercise.answer}</p>
-          <p className="mt-3 mb-2 text-xs text-ink-2">
-            {exercise.heading ? '생각한 뜻과 같았나요?' : '내 해석과 비교했을 때 어땠나요?'}
-          </p>
-          <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1" onClick={() => onSubmit(draft, true)}>
-              맞았어요
-            </Button>
-            <Button variant="secondary" className="flex-1" onClick={() => onSubmit(draft, false)}>
-              틀렸어요
-            </Button>
-          </div>
         </div>
       ) : null}
     </>

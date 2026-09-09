@@ -97,14 +97,6 @@ export type FamilyContent = {
   exampleSentence: string | null
 }
 
-export type PairContent = {
-  pairId: string
-  otherLemma: string
-  coreDifference: string
-  usageRule: string | null
-  questions: Array<{ id: string; prompt: string; answer: string; explanation: string }>
-}
-
 /** At most this many candidates in one placement question. */
 const MAX_OPTIONS = 4
 
@@ -316,65 +308,6 @@ function sharesAWord(a: string, b: string): boolean {
 /** Easiest first. Sentences with no difficulty recorded sit in the middle. */
 function byDifficulty(sentences: SentenceContent[]): SentenceContent[] {
   return [...sentences].sort((a, b) => (a.difficulty ?? 3) - (b.difficulty ?? 3))
-}
-
-/* ──────────────────────────── confusable ──────────────────────────── */
-
-/**
- * The one node whose label — `issue vs problem` — names both candidates and
- * gives neither away, so it can be asked either way round.
- *
- * It is asked as a comparison first: two sentences, one of which takes this
- * word. A blank with two options under it is a coin flip on the node that
- * matters most; choosing between two contexts is the judgement the pair exists
- * to teach. The two sentences it uses are not then asked again on their own —
- * their answers have just been displayed.
- *
- * `usageRule` reaches the student here. It was written for exactly this moment
- * and until now only the review screen ever showed it.
- */
-export function confusableExercises(input: { lemma: string; pair: PairContent }): Exercise[] {
-  const { lemma, pair } = input
-  const concept = [pair.coreDifference, pair.usageRule].filter(Boolean).join(' ')
-
-  const isTarget = (answer: string) => sameWord(answer, lemma)
-  const mine = pair.questions.filter((q) => isTarget(q.answer))
-  const theirs = pair.questions.filter((q) => !isTarget(q.answer))
-
-  const exercises: Exercise[] = []
-  const used = new Set<string>()
-
-  if (mine.length && theirs.length) {
-    const a = mine[0]!
-    const b = theirs[0]!
-    used.add(a.id).add(b.id)
-    exercises.push({
-      kind: 'choice',
-      // No particle after the lemma: the word is English and Korean particles
-      // pick themselves by the sound of what comes before them.
-      prompt: `'${lemma}' — 어느 문장에 들어갈까요?`,
-      options: shuffleStable([a.prompt, b.prompt], pair.pairId),
-      answer: a.prompt,
-      explanation: a.explanation,
-      concept,
-      level: 1,
-    })
-  }
-
-  for (const question of pair.questions) {
-    if (used.has(question.id)) continue
-    exercises.push({
-      kind: 'choice',
-      prompt: question.prompt,
-      options: shuffleStable([lemma, pair.otherLemma], question.id),
-      answer: question.answer,
-      explanation: question.explanation,
-      concept,
-      level: 1,
-    })
-  }
-
-  return exercises
 }
 
 /* ─────────────────────────── collocation ─────────────────────────── */

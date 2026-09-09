@@ -1,16 +1,10 @@
 import { and, eq, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
-import {
-  brainMaps,
-  brainMapSimilarWords,
-  userConfusions,
-  vocabularyTranslations,
-} from '@/lib/db/schema'
+import { vocabularyTranslations } from '@/lib/db/schema'
 import type { NodeType } from '@/lib/learning/nodes'
 import {
   collocationExercises,
-  confusableExercises,
   forMastery,
   meaningExercises,
   wordFamilyExercises,
@@ -30,12 +24,7 @@ import { listTranslations } from './personal'
  * which keeps every existing analytic and the node-level progress table intact.
  */
 
-export type NodeKind =
-  | 'coreMeaning'
-  | 'secondaryMeaning'
-  | 'confusable'
-  | 'collocation'
-  | 'wordFamily'
+export type NodeKind = 'coreMeaning' | 'secondaryMeaning' | 'collocation' | 'wordFamily'
 
 export type NodeStatus = 'unseen' | 'learning' | 'needsReview' | 'weak' | 'completed'
 
@@ -73,7 +62,6 @@ export type SemanticNode = {
   onMap: boolean
   /** Carried into `review_events.payload` so per-item status can be derived. */
   itemId: string
-  pairId?: string
   exercises: Exercise[]
 }
 
@@ -91,7 +79,6 @@ export type SemanticMap = {
 const EYEBROW: Record<NodeKind, string> = {
   coreMeaning: '핵심 의미',
   secondaryMeaning: '확장 의미',
-  confusable: '자주 헷갈림',
   collocation: '함께 쓰는 표현',
   wordFamily: '파생어',
 }
@@ -99,7 +86,6 @@ const EYEBROW: Record<NodeKind, string> = {
 const PROGRESS_NODE: Record<NodeKind, NodeType> = {
   coreMeaning: 'meaning_core',
   secondaryMeaning: 'sentences',
-  confusable: 'similar_words',
   collocation: 'collocations',
   wordFamily: 'word_family',
 }
@@ -178,21 +164,9 @@ export async function buildSemanticMap(
   // could have travelled with it into a round trip of their own — and over a
   // pooled connection to a database three hops away, round trips are what this
   // page costs.
-  const [master, translations, confusions, wordState, rivalDefinitions] = await Promise.all([
+  const [master, translations, wordState, rivalDefinitions] = await Promise.all([
     getMasterBrainMap(vocabularyId, { approvedOnly: opts.approvedOnly ?? true }, db),
     opts.translations ?? listTranslations(vocabularyId, db),
-    // Reached through the word rather than through the pair ids, which are
-    // only known once the map has landed.
-    db
-      .select({
-        pairId: userConfusions.pairId,
-        wrongCount: userConfusions.wrongCount,
-        rightCount: userConfusions.rightCount,
-      })
-      .from(userConfusions)
-      .innerJoin(brainMapSimilarWords, eq(brainMapSimilarWords.pairId, userConfusions.pairId))
-      .innerJoin(brainMaps, eq(brainMaps.id, brainMapSimilarWords.brainMapId))
-      .where(and(eq(userConfusions.userId, userId), eq(brainMaps.vocabularyId, vocabularyId))),
     opts.state ?? collectWordState(userId, vocabularyId, db),
     opts.rivalDefinitions ?? listRivalDefinitions(vocabularyId, 12, db),
   ])
@@ -271,32 +245,6 @@ export async function buildSemanticMap(
       }),
     })
   })
-
-  // ── confusable pairs ───────────────────────────────────────────────────
-  for (const pair of master.similarWords) {
-    const confusion = confusions.find((c) => c.pairId === pair.pairId)
-    const wrong = confusion?.wrongCount ?? 0
-    const tally = tallies.get(pair.pairId)
-
-    nodes.push({
-      id: pair.pairId,
-      kind: 'confusable',
-      label: `${master.lemma} vs ${pair.otherLemma}`,
-      secondaryLabel: '구별',
-      eyebrow: EYEBROW.confusable,
-      // A pair the student actually mixes up is the most important thing on
-      // the map; one they have never met is merely useful.
-      importance: wrong >= 2 ? 1 : wrong === 1 ? 0.92 : 0.85,
-      relationStrength: 0.95,
-      status: wrong >= 2 ? 'weak' : statusFor(tally),
-      recommended: false,
-      onMap: false,
-      progressNode: 'similar_words',
-      itemId: pair.pairId,
-      pairId: pair.pairId,
-      exercises: confusableExercises({ lemma: master.lemma, pair }),
-    })
-  }
 
   // ── collocations ───────────────────────────────────────────────────────
   for (const collocation of master.collocations) {
@@ -382,9 +330,8 @@ export async function buildSemanticMap(
 
 /**
  * Chooses the handful of nodes that go on the map, in priority order:
- * the one core meaning, the confusable the student actually mixes up, the one
- * or two collocations they will really meet, and — only if there is room — one
- * further sense.
+ * the one core meaning, the one or two collocations the student will really
+ * meet, and — only if there is room — one further sense.
  *
  * Derived forms are deliberately never picked. A list of derivatives is
  * reference material; putting it on the map spends the student's attention on
@@ -405,13 +352,12 @@ function selectMapNodes(nodes: SemanticNode[]): void {
   }
 
   take(of('coreMeaning')[0])
-  take(of('confusable')[0])
   for (const collocation of of('collocation').slice(0, 2)) take(collocation)
 
   // A further sense is the last thing in, and only when the map would otherwise
-  // be too thin to be a map. For "issue" that means 문제·쟁점, issue vs problem
-  // and two collocations fill the budget, so "이번 호" and "issue a statement"
-  // — both real English — stay off it, which is the point.
+  // be too thin to be a map. A word-pair card used to hold the slot after the
+  // core meaning; the map is one card shorter without it rather than filled
+  // with something else, which is what removing them was for.
   if (picked.length < MAP_NODE_TARGET) take(of('secondaryMeaning')[0])
 
   for (const node of picked) node.onMap = true

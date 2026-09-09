@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   collocationExercises,
-  confusableExercises,
   forMastery,
   meaningExercises,
   partnerWord,
@@ -28,13 +27,6 @@ function seed(lemma: string) {
     sentences: map.sentences.map((s, i): SentenceContent => ({ ...s, id: `s${i}` })),
     collocations: map.collocations.map((c, i): CollocationContent => ({ ...c, id: `c${i}` })),
     family: map.wordFamily.map((f, i): FamilyContent => ({ ...f, id: `f${i}` })),
-    pairs: map.similarWords.map((p, i) => ({
-      pairId: `p${i}`,
-      otherLemma: p.lemma,
-      coreDifference: p.coreDifference,
-      usageRule: p.usageRule,
-      questions: p.questions.map((q, j) => ({ ...q, id: `p${i}q${j}` })),
-    })),
   }
 }
 
@@ -126,60 +118,6 @@ describe('surfaceFormIn', () => {
   })
 })
 
-describe('a confusable pair', () => {
-  it('is asked as a comparison, not as a coin flip', () => {
-    const { lemma, pairs } = seed('affect')
-    const [first] = confusableExercises({ lemma, pair: pairs[0]! })
-
-    expect(first?.kind).toBe('choice')
-    if (first?.kind !== 'choice') throw new Error('unreachable')
-    // Two contexts to judge between, not the two words with the answer above.
-    expect(first.options).toHaveLength(2)
-    for (const option of first.options) expect(option).toContain('___')
-    expect(first.options).not.toContain(lemma)
-  })
-
-  it('does not ask again about the sentences the comparison has shown', () => {
-    const { lemma, pairs } = seed('affect')
-    const pair = pairs[0]!
-    const exercises = confusableExercises({ lemma, pair })
-    const [comparison, ...rest] = exercises
-
-    if (comparison?.kind !== 'choice') throw new Error('unreachable')
-    for (const exercise of rest) {
-      if (exercise.kind !== 'choice') continue
-      expect(comparison.options).not.toContain(exercise.prompt)
-    }
-    // The third curated question is still asked.
-    expect(exercises).toHaveLength(2)
-  })
-
-  it('carries the usage rule the review screen used to keep to itself', () => {
-    const { lemma, pairs } = seed('affect')
-    const pair = pairs[0]!
-    const [first] = confusableExercises({ lemma, pair })
-    expect(first?.concept).toContain(pair.usageRule!)
-  })
-
-  it('still asks the curated blanks when only one side has a sentence', () => {
-    const exercises = confusableExercises({
-      lemma: 'maintain',
-      pair: {
-        pairId: 'p',
-        otherLemma: 'keep',
-        coreDifference: '차이',
-        usageRule: null,
-        questions: [
-          { id: 'q1', prompt: 'Engineers ___ the bridge.', answer: 'maintain', explanation: '설명' },
-        ],
-      },
-    })
-    expect(exercises).toHaveLength(1)
-    expect(exercises[0]!.kind === 'choice' && exercises[0]!.options).toEqual(
-      expect.arrayContaining(['maintain', 'keep']),
-    )
-  })
-})
 
 describe('a meaning node', () => {
   it('asks which sentence carries the sense, with rival senses as the choices', () => {
