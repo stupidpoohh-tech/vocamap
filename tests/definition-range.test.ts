@@ -84,8 +84,10 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
 
     const one = definition[0]!
     // English definition in, English word out — and the rivals are words from
-    // this range, not from anywhere in the library.
-    expect(one.direction).toBe('ko_en')
+    // this range, not from anywhere in the library. Which direction's card it
+    // was scheduled against is not part of the question: this one is asked the
+    // same way round in both.
+    expect(one.answer).not.toMatch(/[가-힣]/)
     expect(one.options).toContain(one.answer)
     expect(one.options).toHaveLength(4)
     const inRange = new Set(ids.map((w) => w.lemma))
@@ -108,12 +110,37 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
 
     const fromTheMap = questions.filter((q) => q.kind !== 'gloss')
     expect(fromTheMap.length).toBeGreaterThan(0)
-    expect(new Set(fromTheMap.map((q) => q.kind))).toContain('definitionSense')
+    expect(new Set(fromTheMap.map((q) => q.kind))).toContain('definition')
 
-    const one = fromTheMap.find((q) => q.kind === 'definitionSense')!
-    // English definition in, Korean meaning out.
-    expect(one.prompt).toMatch(/[a-z]/)
-    expect(one.answer).toMatch(/[가-힣]/)
+    const one = fromTheMap.find((q) => q.kind === 'definition')!
+    // English definition in, the **word** out — the paper's own question, and
+    // the one a student who never touches the direction toggle has to meet.
+    // Asked the other way round it is the plain 영한 question with a longer
+    // prompt: read the definition, then name the gloss printed beside that
+    // word on every other screen.
+    expect(one.prompt).toMatch(/^[a-z]/)
+    expect(one.answer).toMatch(/^[a-zA-Z]/)
+    expect(one.answer).not.toMatch(/[가-힣]/)
     expect(one.options).toHaveLength(4)
+    for (const option of one.options) expect(option).not.toMatch(/[가-힣]/)
+  })
+
+  it('asks it the same way whichever direction the test opens in', async () => {
+    const { student, setId } = await importRange()
+    for (const direction of ['en_ko', 'ko_en'] as const) {
+      const queue = await buildScopedQueue(student.id, {
+        scope: 'all',
+        setId,
+        wordLimit: 50,
+        directions: [direction],
+      })
+      const definitions = (await buildQuestions(student.id, queue)).filter(
+        (q) => q.kind === 'definition',
+      )
+      expect(definitions.length, direction).toBeGreaterThan(0)
+      for (const question of definitions) {
+        expect(question.answer, direction).not.toMatch(/[가-힣]/)
+      }
+    }
   })
 })

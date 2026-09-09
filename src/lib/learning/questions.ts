@@ -30,7 +30,6 @@ export type QuestionKind =
   | 'family'
   /* ── answer is Korean ── */
   | 'sense'
-  | 'definitionSense'
   | 'collocationSense'
   | 'familySense'
 
@@ -130,8 +129,6 @@ export type MapMaterial = {
   senses: string[]
   /** English definitions of this word's senses, where the list printed them. */
   definitions: string[]
-  /** What those definitions say, in Korean. Not the word's gloss. */
-  definitionReadings: string[]
   sentences: Array<{ text: string; ko: string; highlight: string | null; targetMeaning: string | null }>
   collocations: Array<{ expression: string; ko: string }>
   family: Array<{ lemma: string; ko: string }>
@@ -170,7 +167,6 @@ async function mapMaterial(
         brainMapId: brainMapMeanings.brainMapId,
         ko: brainMapMeanings.ko,
         enDefinition: brainMapMeanings.enDefinition,
-        enDefinitionKo: brainMapMeanings.enDefinitionKo,
       })
       .from(brainMapMeanings)
       .where(inArray(brainMapMeanings.brainMapId, approvedMaps()))
@@ -212,7 +208,6 @@ async function mapMaterial(
     byWord.set(m.vocabularyId, {
       senses: [],
       definitions: [],
-      definitionReadings: [],
       sentences: [],
       collocations: [],
       family: [],
@@ -224,7 +219,6 @@ async function mapMaterial(
     const material = into(row.brainMapId)
     material?.senses.push(row.ko)
     if (row.enDefinition) material?.definitions.push(row.enDefinition)
-    if (row.enDefinitionKo) material?.definitionReadings.push(row.enDefinitionKo)
   }
   for (const row of sentences) into(row.brainMapId)?.sentences.push(row)
   for (const row of collocations) into(row.brainMapId)?.collocations.push(row)
@@ -331,23 +325,32 @@ function mapQuestion(
   if (!material) return null
 
   const seed = `${item.vocabularyId}:${item.dueAt.toISOString()}`
-  // Both directions draw on the map. They used to not: `en_ko` had one variant,
-  // and that one needed the word to have two senses *and* a sentence carrying
-  // the right one. A range typed as definitions has neither, so every word in
-  // it fell through to the plain gloss question — the map test was the ordinary
-  // test with fewer words in it, which is the one thing it is not supposed to
-  // be. The split is by what is being recalled: an English answer belongs with
-  // `ko_en`, a Korean one with `en_ko`.
+  // Both directions draw on the map, and they are otherwise split by what is
+  // being recalled: an English answer with `ko_en`, a Korean one with `en_ko`.
+  //
+  // The definition question sits in both, and its answer is always the word.
+  // That is the question the paper asks — here is the definition, which word
+  // is it — and it was being asked the other way round in the direction the
+  // test opens in: definition given, Korean meaning to choose. Answering that
+  // is reading the definition and then naming the gloss already printed beside
+  // the word everywhere else, which is the plain 영한 question wearing a
+  // longer prompt.
+  //
+  // It is the one place the direction rule bends, deliberately. Reading an
+  // English definition and producing the English word is a harder thing to do
+  // than either card measures on its own, and having it only in `ko_en` meant
+  // a student who never touched the direction toggle never met it.
+  const definition = definitionQuestion(item, material, neighbours)
   const variants =
     item.direction === 'en_ko'
       ? [
+          definition,
           senseQuestion(item, material),
-          definitionSenseQuestion(item, material, neighbours, everything),
           collocationSenseQuestion(item, material, everything),
           familySenseQuestion(item, material, everything),
         ]
       : [
-          definitionQuestion(item, material, neighbours),
+          definition,
           contextQuestion(item, material, neighbours),
           collocationQuestion(item, material, everything, neighbours),
           familyQuestion(item, material, everything, neighbours),
@@ -503,51 +506,6 @@ function familyQuestion(
     prompt: `'${target.ko}' — 알맞은 형태는?`,
     answer: target.lemma,
     options: shuffle([target.lemma, ...distractors]),
-  }
-}
-
-/**
- * What an English definition says. The reading question.
- *
- * The exam range's other half: `definitionQuestion` gives the definition and
- * asks for the word, this gives it and asks what it said.
- *
- * What is asked for is the definition's own translation where the list has
- * one, because that is what tells a student whether they read the English.
- * Where it has none the word's gloss stands in — a coarser question, but the
- * only one the material supports. The rivals match whichever is being asked,
- * so the four options are always the same kind of thing.
- */
-function definitionSenseQuestion(
-  item: QueueItem,
-  material: MapMaterial,
-  neighbours: Map<string, PoolWord[]>,
-  everything: Map<string, MapMaterial>,
-): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
-  const own = material.definitions
-  if (!own.length) return null
-  const definition = own[hash(item.vocabularyId) % own.length]!
-
-  const reading = material.definitionReadings[0]
-  const answer = reading ?? item.translation
-  if (!answer) return null
-
-  const pool = reading
-    ? [...everything.values()].flatMap((m) => m.definitionReadings)
-    : (neighbours.get(item.vocabularyId) ?? []).map((word) => word.translation)
-
-  const distractors = shuffle([...new Set(pool)].filter((value) => value && value !== answer)).slice(
-    0,
-    OPTION_COUNT - 1,
-  )
-  if (distractors.length < 2) return null
-
-  return {
-    kind: 'definitionSense',
-    prompt: definition,
-    answer,
-    options: shuffle([answer, ...distractors]),
-    note: `${item.lemma} — ${item.translation}`,
   }
 }
 
