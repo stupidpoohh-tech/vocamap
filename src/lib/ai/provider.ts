@@ -62,6 +62,40 @@ export class LLMError extends Error {
   }
 }
 
+/**
+ * The provider's own explanation, folded into the thrown message.
+ *
+ * A status code on its own says a request was refused without saying which
+ * part of it was wrong, and that is the whole of what the curator saw: "API
+ * error 400" on the button and the same seven words on the job row. The body
+ * always carries the reason — it was being read into `detail` and then never
+ * looked at by anything.
+ *
+ * The body is the vendor's error envelope; both vendors put the sentence at
+ * `error.message`. Anything else is passed through as text, because an
+ * unparseable body is still more than a number.
+ *
+ * Error bodies never echo the key — they name the header, not its value — so
+ * this is safe to show. Trimmed because a stack of schema complaints can run
+ * for pages and the useful part is the front of it.
+ */
+export function describeApiError(vendor: string, status: number, body: string): string {
+  const head = `${vendor} API error ${status}`
+  let detail = body.trim()
+
+  try {
+    const parsed = JSON.parse(body) as { error?: { type?: string; message?: string } }
+    const message = parsed.error?.message?.trim()
+    const type = parsed.error?.type?.trim()
+    if (message) detail = type && type !== 'invalid_request_error' ? `${type}: ${message}` : message
+  } catch {
+    // Not JSON. Fall through to the raw text.
+  }
+
+  if (!detail) return head
+  return `${head} — ${detail.length > 400 ? `${detail.slice(0, 400)}…` : detail}`
+}
+
 /* ─────────────────────────────── Anthropic ─────────────────────────────── */
 
 class AnthropicProvider implements LLMProvider {
@@ -102,15 +136,20 @@ class AnthropicProvider implements LLMProvider {
         tools: [tool],
         tool_choice: { type: 'tool', name: req.schemaName },
         // Thinking tokens bill as output and dominate the cost of a generation,
-        // so effort is the dial that actually moves the bill. Sent only when
-        // configured, because older models reject the field outright.
+        // so effort is the dial that actually moves the bill.
+        //
+        // Sent on every request, because `effort()` has a default. Only models
+        // from Opus 4.5 and Sonnet 4.6 onward accept the field; anything older
+        // rejects the whole request with a 400. `LLM_EFFORT=default` is the way
+        // out — it drops the field rather than setting a level.
         ...(effort() ? { output_config: { effort: effort() } } : {}),
         messages: [{ role: 'user', content: req.prompt }],
       }),
     })
 
     if (!res.ok) {
-      throw new LLMError(`Anthropic API error ${res.status}`, await res.text())
+      const body = await res.text()
+      throw new LLMError(describeApiError('Anthropic', res.status, body), body)
     }
 
     const body = (await res.json()) as {
@@ -157,7 +196,10 @@ class OpenAIProvider implements LLMProvider {
       }),
     })
 
-    if (!res.ok) throw new LLMError(`OpenAI API error ${res.status}`, await res.text())
+    if (!res.ok) {
+      const body = await res.text()
+      throw new LLMError(describeApiError('OpenAI', res.status, body), body)
+    }
 
     const body = (await res.json()) as { choices: Array<{ message: { content: string } }> }
     const raw = body.choices[0]?.message.content
