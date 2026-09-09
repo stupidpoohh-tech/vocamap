@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import type { Actor } from '@/lib/auth/session'
@@ -136,17 +136,78 @@ export async function createSet(
   return row.id
 }
 
-/** Sets reference vocabularies; the same word is never duplicated per set. */
+/**
+ * The set a teacher means when they type a name they have typed before.
+ *
+ * Pasting the second page of a range under the same title is one range in two
+ * goes, not two ranges — and a second set with the same name is worse than
+ * useless: the words are split across two of them and neither is the range.
+ *
+ * Matched on the name as typed, ignoring case and surrounding space, and only
+ * within the teacher's own sets. Two teachers both having a "1과" is two
+ * different 1과.
+ *
+ * Nothing stops two imports racing to create the same name — there is no
+ * unique index, because sets with duplicate names already exist and an index
+ * could not be added over them. A teacher pressing a button twice at once is
+ * not the failure worth a migration.
+ */
+export async function findOrCreateSet(
+  input: { ownerId: string; title: string; description?: string | null },
+  db: Db = defaultDb,
+): Promise<{ id: string; created: boolean }> {
+  const title = input.title.trim()
+
+  const [existing] = await db
+    .select({ id: vocabularySets.id })
+    .from(vocabularySets)
+    .where(
+      and(
+        eq(vocabularySets.ownerId, input.ownerId),
+        sql`lower(trim(${vocabularySets.title})) = ${title.toLowerCase()}`,
+      ),
+    )
+    // The oldest, when a duplicate pair predates this. Later pastes then keep
+    // landing in one of them rather than alternating.
+    .orderBy(asc(vocabularySets.createdAt))
+    .limit(1)
+
+  if (existing) return { id: existing.id, created: false }
+  return { id: await createSet({ ...input, title }, db), created: true }
+}
+
+/**
+ * Sets reference vocabularies; the same word is never duplicated per set.
+ *
+ * Returns how many were actually new to the set. Pasting a range twice is a
+ * normal thing to do — the second paste adds nothing and should say so rather
+ * than report fifty words added.
+ */
 export async function addToSet(
   setId: string,
   vocabularyIds: string[],
   db: Db = defaultDb,
-): Promise<void> {
-  if (!vocabularyIds.length) return
-  await db
+): Promise<number> {
+  if (!vocabularyIds.length) return 0
+  const inserted = await db
     .insert(vocabularySetItems)
-    .values(vocabularyIds.map((vocabularyId, i) => ({ setId, vocabularyId, sortOrder: i })))
+    .values(
+      vocabularyIds.map((vocabularyId, i) => ({
+        setId,
+        vocabularyId,
+        // Continues where the set left off rather than restarting at zero, so
+        // a second paste does not sit on top of the first. Read in the same
+        // statement — nothing here is worth a round trip of its own.
+        sortOrder: sql<number>`(
+          select coalesce(max(existing.sort_order), -1) + 1 + ${i}
+          from vocabulary_set_items existing
+          where existing.set_id = ${setId}
+        )`,
+      })),
+    )
     .onConflictDoNothing()
+    .returning({ vocabularyId: vocabularySetItems.vocabularyId })
+  return inserted.length
 }
 
 export async function assignSet(

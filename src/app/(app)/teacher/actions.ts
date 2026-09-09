@@ -10,7 +10,7 @@ import {
   addToSet,
   assignSet,
   assertCanAccessStudent,
-  createSet,
+  findOrCreateSet,
   deleteWordSet,
   linkStudent,
 } from '@/lib/data/teacher'
@@ -56,7 +56,8 @@ export async function importWords(_prev: ImportState, formData: FormData): Promi
   if (!rows.length) return { error: '단어를 한 줄에 하나씩 입력해 주세요.' }
 
   const result = await importVocabularyList(rows)
-  const setId = await createSet({ ownerId: actor.id, title })
+  // Same name, same set — see `findOrCreateSet`.
+  const { id: setId } = await findOrCreateSet({ ownerId: actor.id, title })
   await addToSet(setId, [...result.created, ...result.reused])
 
   if (studentId) {
@@ -173,7 +174,14 @@ export async function importWordbookPage(
   revalidatePath('/study')
   revalidatePath('/map')
 
+  // Which set the words landed in is the first thing the teacher needs to know
+  // when the name was one they had used before — otherwise "50개 단어"
+  // reads as a new set of fifty.
+  const already = summary.words - summary.addedToSet
   const notes = [
+    summary.setCreated
+      ? `'${title}' 세트를 만들었어요`
+      : `기존 '${title}' 세트에 넣었어요${already ? ` (이미 있던 ${already}개는 그대로)` : ''}`,
     `${summary.words}개 단어 · 새로 ${summary.created}개, 기존 ${summary.reused}개`,
     summary.synonymsSkipped ? `유의어 ${summary.synonymsSkipped}개는 넣지 않았어요` : null,
     summary.withoutQuestions.length

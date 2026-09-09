@@ -1,7 +1,7 @@
 import 'server-only'
 import type { Actor } from '@/lib/auth/session'
 import { writeDraft } from '@/lib/data/brain-map'
-import { addToSet, assignSet, assertCanAccessStudent, createSet } from '@/lib/data/teacher'
+import { addToSet, assignSet, assertCanAccessStudent, findOrCreateSet } from '@/lib/data/teacher'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
 import { parseWordbook, type ParseProblem } from './wordbook'
 import { draftHasQuestions, toBrainMapDraft } from './to-draft'
@@ -9,7 +9,11 @@ import { WRITE_CONCURRENCY, inBatches } from './batches'
 
 export type ImportSummary = {
   setId: string
+  /** False when the paste joined a set of the same name that already existed. */
+  setCreated: boolean
   words: number
+  /** Words the set did not already hold. */
+  addedToSet: number
   created: number
   reused: number
   /** Synonyms read but not imported — see `toBrainMapDraft`. */
@@ -38,7 +42,9 @@ export async function importWordbook(
   if (!entries.length) {
     return {
       setId: '',
+      setCreated: false,
       words: 0,
+      addedToSet: 0,
       created: 0,
       reused: 0,
       synonymsSkipped: 0,
@@ -53,7 +59,14 @@ export async function importWordbook(
   const rivalDefinitions =
     entries.filter((entry) => entry.senses.some((sense) => sense.enDefinition)).length >= 2
 
-  const setId = await createSet({ ownerId: input.actor.id, title: input.title })
+  // A name the teacher has typed before means the set they typed it for. The
+  // second half of a range pasted under the same title is that range continuing,
+  // not a second range — and two sets of one name is the worst outcome of the
+  // three: the words are split and neither set is the range.
+  const { id: setId, created: setCreated } = await findOrCreateSet({
+    ownerId: input.actor.id,
+    title: input.title,
+  })
 
   // Words are written several at a time rather than one after another.
   //
@@ -98,13 +111,15 @@ export async function importWordbook(
     }
   })
 
-  // In the order they were typed, whatever order they finished in.
-  const ids = written.map((word) => word.id)
+  // In the order they were typed, whatever order they finished in. Deduped
+  // because a page that lists a word twice is one word: both lines resolved to
+  // the same vocabulary row, and the count of what the set gained has to agree.
+  const ids = [...new Set(written.map((word) => word.id))]
   const created = written.filter((word) => word.created).length
   const synonymsSkipped = written.reduce((n, word) => n + word.synonyms, 0)
   const withoutQuestions = written.filter((word) => !word.askable).map((word) => word.lemma)
 
-  await addToSet(setId, ids)
+  const addedToSet = await addToSet(setId, ids)
 
   if (input.studentId) {
     await assertCanAccessStudent(input.actor, input.studentId)
@@ -113,7 +128,9 @@ export async function importWordbook(
 
   return {
     setId,
+    setCreated,
     words: entries.length,
+    addedToSet,
     created,
     reused: ids.length - created,
     synonymsSkipped,

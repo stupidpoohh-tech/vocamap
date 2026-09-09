@@ -12,6 +12,10 @@ export default defineConfig({
     testTimeout: 20_000,
   },
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // See tests/helpers/server-only.ts.
+      'server-only': fileURLToPath(new URL('./tests/helpers/server-only.ts', import.meta.url)),
+    },
   },
 })
