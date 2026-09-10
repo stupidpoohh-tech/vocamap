@@ -1,10 +1,13 @@
 'use server'
 
 import { getActor } from '@/lib/auth/session'
-import { recordRecallAnswer } from '@/lib/data/study'
+import { recordExtendedAnswer, recordRecallAnswer } from '@/lib/data/study'
+import { questionStillStands } from '@/lib/data/brain-map'
 import { grade, plausibleResponseTime, verifyQuestion } from '@/lib/learning/question-token'
-import type { QuestionKind } from '@/lib/learning/questions'
+import { RECORD_AS } from '@/lib/learning/questions'
 import { relativeKo } from '@/lib/utils'
+
+export type RejectReason = 'unknown_question' | 'option_not_offered' | 'content_changed'
 
 export type AnswerResult =
   | {
@@ -15,7 +18,7 @@ export type AnswerResult =
       brainMapRecommended: boolean
       recommendationMessage: string | null
     }
-  | { status: 'rejected'; reason: 'unknown_question' | 'option_not_offered' }
+  | { status: 'rejected'; reason: RejectReason }
   | { status: 'failed'; correct: boolean; message: string }
 
 /**
@@ -63,7 +66,52 @@ export async function submitAnswer(input: {
   // re-attributed.
   if (claims.userId !== actor.id) return { status: 'rejected', reason: 'unknown_question' }
 
+  // A map question whose map has moved on is not answerable any more.
+  if (claims.contentVersion !== null && claims.contentVersion !== undefined) {
+    const stands = await questionStillStands({
+      vocabularyId: claims.vocabularyId,
+      version: claims.contentVersion,
+      itemId: claims.itemId,
+    })
+    if (!stands) return { status: 'rejected', reason: 'content_changed' }
+  }
+
+  const payload = {
+    choice: input.choice,
+    kind: claims.kind,
+    ...(claims.contentVersion ? { mapVersion: claims.contentVersion } : {}),
+  }
+  const record = RECORD_AS[claims.kind] ?? { fsrs: true as const }
+
   try {
+    // A map question is not basic recall and does not move the recall card.
+    // Splitting the questions without splitting the write left the schedule
+    // being advanced by collocation answers and the event log calling them
+    // gloss answers.
+    if (!record.fsrs) {
+      const outcome = await recordExtendedAnswer({
+        userId: actor.id,
+        vocabularyId: claims.vocabularyId,
+        node: record.node,
+        questionType: record.questionType,
+        correct,
+        responseTimeMs: plausibleResponseTime(input.responseTimeMs),
+        itemId: claims.itemId ?? null,
+        submissionId: claims.submissionId,
+        payload,
+      })
+      return {
+        status: outcome.recorded ? 'saved' : 'duplicate',
+        correct,
+        // Nothing was scheduled, so there is no next review to name. Saying one
+        // would be reporting a date this answer did not set.
+        nextReviewLabel: '',
+        retentionPercent: 0,
+        brainMapRecommended: false,
+        recommendationMessage: null,
+      }
+    }
+
     const outcome = await recordRecallAnswer({
       userId: actor.id,
       vocabularyId: claims.vocabularyId,
@@ -72,15 +120,7 @@ export async function submitAnswer(input: {
       responseTimeMs: plausibleResponseTime(input.responseTimeMs),
       questionType: 'recall_choice',
       submissionId: claims.submissionId,
-      // What was actually asked, kept beside the answer. The card and the
-      // question type say "recall, multiple choice"; this says which of the
-      // ways a mapped word can be asked it was, and which version of the map it
-      // came from.
-      payload: {
-        choice: input.choice,
-        kind: claims.kind satisfies QuestionKind,
-        ...(claims.contentVersion ? { mapVersion: claims.contentVersion } : {}),
-      },
+      payload,
     })
 
     return {

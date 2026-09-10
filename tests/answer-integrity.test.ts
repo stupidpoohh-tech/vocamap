@@ -27,7 +27,12 @@ describe('a question token', () => {
 
   it('comes back as it went out', async () => {
     const token = await signQuestion(claims)
-    expect(await verifyQuestion(token)).toEqual({ ...claims, contentVersion: null })
+    expect(await verifyQuestion(token)).toEqual({
+      ...claims,
+      contentVersion: null,
+      itemId: null,
+      node: null,
+    })
   })
 
   it('refuses a token this server did not sign', async () => {
