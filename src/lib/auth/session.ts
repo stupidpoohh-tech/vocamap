@@ -212,6 +212,64 @@ export async function requireRole(...roles: Role[]): Promise<Actor> {
   return actor
 }
 
+/**
+ * The gate on everything that writes what other people study.
+ *
+ * `requireRole('teacher', 'admin')` asks what the account calls itself. That
+ * was enough while the role could only come from an admin — but sign-up read
+ * the role off the form, so `teacher` on its own means someone chose the word
+ * "teacher" in a dropdown. Curator powers are not something to hand out on that
+ * basis: a Brain Map is public, shared, and studied by every reader of that
+ * word.
+ *
+ * So a teacher also has to be verified. The check itself is
+ * `assertVerifiedCurator`, which takes an actor and reads the database — kept
+ * separate from the cookie so it can be tested directly, and so it is the one
+ * place the rule lives.
+ */
+export async function requireCurator(): Promise<Actor> {
+  const actor = await requireRole('teacher', 'admin')
+  await assertVerifiedCurator(actor)
+  return actor
+}
+
+/**
+ * Whether this account may write public content, read from the database rather
+ * than from the session.
+ *
+ * The session is a signed cookie that lasts thirty days and carries the role it
+ * was minted with. Reading the row on every call is what makes revoking a
+ * teacher take effect on their next action instead of whenever they happen to
+ * sign in again — and it is why a role taken away mid-session stops working
+ * immediately.
+ *
+ * Admins pass without a verification stamp. Sign-up has never been able to make
+ * one, so the role is evidence in their case.
+ */
+export async function assertVerifiedCurator(actor: Actor, database = db): Promise<void> {
+  if (actor.role === 'student') throw new AuthError('Insufficient permissions')
+
+  const [row] = await database
+    .select({ role: users.role, verifiedAt: users.teacherVerifiedAt })
+    .from(users)
+    .where(eq(users.id, actor.id))
+    .limit(1)
+
+  if (!row || row.role === 'student') throw new AuthError('Insufficient permissions')
+  if (row.role === 'admin') return
+  if (!row.verifiedAt) throw new AuthError('Teacher account is not verified')
+}
+
+/** The same question without the throw, for drawing a screen. */
+export async function isVerifiedCurator(actor: Actor, database = db): Promise<boolean> {
+  try {
+    await assertVerifiedCurator(actor, database)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export class AuthError extends Error {
   readonly code = 'AUTH'
 }

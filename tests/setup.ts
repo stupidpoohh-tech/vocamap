@@ -14,3 +14,8 @@ if (testUrl) {
 } else {
   delete process.env.DATABASE_URL
 }
+
+// Signing in and out is part of what the auth tests exercise, and `createSession`
+// refuses to run without this. A fixed test value keeps those paths reachable
+// without reaching for whatever is in the developer's environment.
+process.env.AUTH_SECRET ??= 'test-only-secret-value-not-used-anywhere-real'

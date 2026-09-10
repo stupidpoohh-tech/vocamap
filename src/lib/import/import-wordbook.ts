@@ -1,8 +1,12 @@
 import 'server-only'
 import type { Actor } from '@/lib/auth/session'
-import { writeDraft } from '@/lib/data/brain-map'
+// Deliberately not `writeDraft`. That function replaces a map, which is the
+// right thing behind a curator's "regenerate" button and the wrong thing behind
+// a paste box — importing a word must never be able to overwrite the public map
+// somebody already reviewed. See `createMapIfAbsent`.
+import { createMapIfAbsent } from '@/lib/data/brain-map'
 import { addToSet, assignSet, assertCanAccessStudent, findOrCreateSet } from '@/lib/data/teacher'
-import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
+import { addTranslations, findOrCreateVocabulary } from '@/lib/data/vocabulary'
 import { parseWordbook, type ParseProblem } from './wordbook'
 import { draftHasQuestions, toBrainMapDraft } from './to-draft'
 import { WRITE_CONCURRENCY, inBatches } from './batches'
@@ -16,6 +20,11 @@ export type ImportSummary = {
   addedToSet: number
   created: number
   reused: number
+  /**
+   * Words that already had a Brain Map. Their map was left exactly as it was
+   * and this paste's version of them was not written anywhere.
+   */
+  keptExistingMap: string[]
   /** Synonyms read but not imported — see `toBrainMapDraft`. */
   synonymsSkipped: number
   /** Words whose example had no translation, so it makes no question. */
@@ -47,6 +56,7 @@ export async function importWordbook(
       addedToSet: 0,
       created: 0,
       reused: 0,
+      keptExistingMap: [],
       synonymsSkipped: 0,
       withoutQuestions: [],
       problems,
@@ -89,20 +99,31 @@ export async function importWordbook(
     const vocabulary = await findOrCreateVocabulary({
       lemma: entry.lemma,
       partOfSpeech: entry.senses[0]?.partOfSpeech ?? null,
-      translations: draft.primaryTranslations,
+      // No translations here. `findOrCreateVocabulary` adds them to a word it
+      // merely found, and the glosses of an existing public word are part of
+      // what this import must not edit. They are written below instead, in the
+      // one branch that owns a brand-new map.
       createdBy: input.actor.id,
     })
 
-    await writeDraft(vocabulary.id, draft, {
+    // Writes only if this word has no map. A word that already has one is left
+    // completely alone — status, version, item ids, translations, revisions and
+    // every student's progress against it.
+    const map = await createMapIfAbsent(vocabulary.id, draft, {
       status: 'approved',
       createdBy: input.actor.id,
       model: null,
       reviewNote: '단어장 직접 입력',
     })
 
+    if (map.created && draft.primaryTranslations.length) {
+      await addTranslations(vocabulary.id, draft.primaryTranslations)
+    }
+
     return {
       id: vocabulary.id,
       created: vocabulary.created,
+      keptMap: !map.created,
       synonyms: entry.synonyms.length,
       // Worth naming: a word the list gave nothing askable for still gets a
       // map, but every node on it is a card with no question under it.
@@ -117,7 +138,10 @@ export async function importWordbook(
   const ids = [...new Set(written.map((word) => word.id))]
   const created = written.filter((word) => word.created).length
   const synonymsSkipped = written.reduce((n, word) => n + word.synonyms, 0)
-  const withoutQuestions = written.filter((word) => !word.askable).map((word) => word.lemma)
+  const withoutQuestions = written
+    .filter((word) => !word.askable && !word.keptMap)
+    .map((word) => word.lemma)
+  const keptExistingMap = written.filter((word) => word.keptMap).map((word) => word.lemma)
 
   const addedToSet = await addToSet(setId, ids)
 
@@ -133,6 +157,7 @@ export async function importWordbook(
     addedToSet,
     created,
     reused: ids.length - created,
+    keptExistingMap,
     synonymsSkipped,
     withoutQuestions,
     problems,

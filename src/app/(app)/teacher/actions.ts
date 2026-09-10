@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { fillDefinitionReadings } from '@/lib/data/definition-reading'
 import { eq, sql } from 'drizzle-orm'
-import { requireRole } from '@/lib/auth/session'
+import { requireCurator } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import {
@@ -12,7 +12,7 @@ import {
   assertCanAccessStudent,
   findOrCreateSet,
   deleteWordSet,
-  linkStudent,
+  requestStudentLink,
 } from '@/lib/data/teacher'
 import { ForbiddenError, NotFoundError } from '@/lib/data/errors'
 import { importVocabularyList } from '@/lib/data/vocabulary'
@@ -30,7 +30,7 @@ export type ImportState = { error?: string; message?: string }
  * the Brain Maps we already own come along for free.
  */
 export async function importWords(_prev: ImportState, formData: FormData): Promise<ImportState> {
-  const actor = await requireRole('teacher', 'admin')
+  const actor = await requireCurator()
 
   const title = String(formData.get('title') ?? '').trim()
   const raw = String(formData.get('words') ?? '')
@@ -74,7 +74,7 @@ export async function importWords(_prev: ImportState, formData: FormData): Promi
 export type LinkState = { error?: string; message?: string }
 
 export async function addStudent(_prev: LinkState, formData: FormData): Promise<LinkState> {
-  const actor = await requireRole('teacher', 'admin')
+  const actor = await requireCurator()
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
   if (!email) return { error: '학생 이메일을 입력해 주세요.' }
 
@@ -87,13 +87,31 @@ export async function addStudent(_prev: LinkState, formData: FormData): Promise<
   if (!student) return { error: '해당 이메일로 가입한 사용자가 없습니다.' }
   if (student.role !== 'student') return { error: '학생 계정만 추가할 수 있습니다.' }
 
-  await linkStudent(actor.id, student.id)
+  // A request, not an addition. The teacher does not get the student's record
+  // until the student says yes on their own screen.
+  const { outcome } = await requestStudentLink(actor.id, student.id)
   revalidatePath('/teacher')
-  return { message: `${student.displayName} 학생을 추가했습니다.` }
+
+  switch (outcome) {
+    case 'already_active':
+      return { message: `${student.displayName} 학생은 이미 연결되어 있습니다.` }
+    case 'already_pending':
+      return { message: `${student.displayName} 학생의 수락을 기다리는 중입니다.` }
+    case 'revoked':
+      // Saying so plainly, and not re-requesting. A student who disconnected
+      // does not get re-linked because the teacher retyped their address.
+      return {
+        message: `${student.displayName} 학생이 연결을 해제한 상태입니다. 학생이 직접 다시 수락해야 합니다.`,
+      }
+    default:
+      return {
+        message: `${student.displayName} 학생에게 연결을 요청했습니다. 학생이 수락하면 기록을 볼 수 있어요.`,
+      }
+  }
 }
 
 export async function flagImportant(studentId: string, vocabularyId: string): Promise<void> {
-  const actor = await requireRole('teacher', 'admin')
+  const actor = await requireCurator()
   await assertCanAccessStudent(actor, studentId)
   await markImportant({
     userId: studentId,
@@ -115,7 +133,7 @@ export async function flagImportant(studentId: string, vocabularyId: string): Pr
 export async function removeWordSet(
   input: { setId: string },
 ): Promise<{ ok: true; title: string } | { ok: false; message: string }> {
-  const actor = await requireRole('teacher', 'admin')
+  const actor = await requireCurator()
 
   try {
     const { title } = await deleteWordSet({ setId: input.setId, actor })
@@ -145,7 +163,7 @@ export async function importWordbookPage(
   _prev: WordbookState,
   formData: FormData,
 ): Promise<WordbookState> {
-  const actor = await requireRole('teacher', 'admin')
+  const actor = await requireCurator()
 
   const title = String(formData.get('title') ?? '').trim()
   const text = String(formData.get('text') ?? '')
@@ -184,6 +202,12 @@ export async function importWordbookPage(
       : `기존 '${title}' 세트에 넣었어요${already ? ` (이미 있던 ${already}개는 그대로)` : ''}`,
     `${summary.words}개 단어 · 새로 ${summary.created}개, 기존 ${summary.reused}개`,
     summary.synonymsSkipped ? `유의어 ${summary.synonymsSkipped}개는 넣지 않았어요` : null,
+    // Said plainly, because the alternative is a teacher believing the new
+    // wording went in. Nothing was merged and nothing was replaced: the map
+    // that was already there is the one students still see.
+    summary.keptExistingMap.length
+      ? `이미 맵이 있는 단어는 기존 맵을 그대로 두었어요 (이번 입력 미반영): ${summary.keptExistingMap.join(', ')}`
+      : null,
     summary.withoutQuestions.length
       ? `낼 문제가 없는 단어: ${summary.withoutQuestions.join(', ')}`
       : null,
@@ -204,7 +228,7 @@ export type ReadingState = { error?: string; message?: string }
  * definitions that have never been read.
  */
 export async function fillDefinitionReadingBatch(): Promise<ReadingState> {
-  await requireRole('teacher', 'admin')
+  await requireCurator()
   try {
     const result = await fillDefinitionReadings()
     if (result.attempted === 0) return { message: '해석이 없는 영영 풀이가 없어요.' }

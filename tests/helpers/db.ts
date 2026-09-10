@@ -48,3 +48,30 @@ export async function createUser(role: 'student' | 'teacher' | 'admin' = 'studen
   if (!row) throw new Error('failed to create user')
   return { id: row.id, email: row.email, displayName: row.displayName, role }
 }
+
+/**
+ * A teacher and student who have actually agreed.
+ *
+ * Most tests care about what an accepted link permits, not about how it comes
+ * to exist, and writing `status: 'active'` by hand in a fixture would quietly
+ * skip the consent this codebase now requires. So the fixture plays out the
+ * real path: the teacher asks, the student says yes.
+ */
+export async function linkAccepted(teacherId: string, studentId: string): Promise<string> {
+  const { requestStudentLink, listPendingLinkRequests, acceptTeacherLink } = await import(
+    '@/lib/data/teacher'
+  )
+  await requestStudentLink(teacherId, studentId)
+  const [pending] = await listPendingLinkRequests(studentId)
+  if (!pending) throw new Error('link request was not created')
+  if (!(await acceptTeacherLink(pending.id, studentId))) throw new Error('accept failed')
+  return pending.id
+}
+
+/** Marks a teacher account as vouched for, the way an admin would. */
+export async function verifyTeacher(teacherId: string): Promise<void> {
+  const { db } = await import('@/lib/db')
+  const { users } = await import('@/lib/db/schema')
+  const { eq } = await import('drizzle-orm')
+  await db.update(users).set({ teacherVerifiedAt: new Date() }).where(eq(users.id, teacherId))
+}

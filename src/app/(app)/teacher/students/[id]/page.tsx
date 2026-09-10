@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { eq } from 'drizzle-orm'
-import { requireRole } from '@/lib/auth/session'
+import { requireCurator } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import {
@@ -17,7 +17,7 @@ import { StudyLogView } from './study-log'
 
 export default async function StudentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const actor = await requireRole('teacher', 'admin')
+  const actor = await requireCurator()
 
   // Throws before any student data is read if there is no active link.
   await assertCanAccessStudent(actor, id)
