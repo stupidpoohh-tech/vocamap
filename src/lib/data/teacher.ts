@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import type { Actor } from '@/lib/auth/session'
@@ -418,4 +419,61 @@ export async function studentProgressSummary(studentId: string, db: Db = default
     .from(userVocabularyCards)
     .where(eq(userVocabularyCards.userId, studentId))
   return row ?? { cards: 0, lapses: 0, reps: 0 }
+}
+
+/**
+ * Every teacher account and whether anybody vouched for it. Admin screens only.
+ *
+ * Deliberately not filtered to unverified ones: an admin deciding whether to
+ * trust an account needs to see the ones already trusted beside it, and needs a
+ * way to reach them to take it back.
+ */
+export async function listTeacherAccounts(db: Db = defaultDb) {
+  return db
+    .select({
+      id: users.id,
+      email: users.email,
+      displayName: users.displayName,
+      verifiedAt: users.teacherVerifiedAt,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.role, 'teacher'))
+    .orderBy(asc(users.teacherVerifiedAt), asc(users.createdAt))
+}
+
+/** Students who could be made teachers. Admin screens only. */
+export async function listStudentAccounts(limit = 100, db: Db = defaultDb) {
+  return db
+    .select({ id: users.id, email: users.email, displayName: users.displayName })
+    .from(users)
+    .where(eq(users.role, 'student'))
+    .orderBy(asc(users.displayName))
+    .limit(limit)
+}
+
+/**
+ * Link requests nobody has answered, across all students. Admin screens only.
+ *
+ * The student's own screen is the normal way these are settled; this is for the
+ * ones that will not be — a student who cannot reach their account, or the
+ * backlog left by the migration that sent existing links back for confirmation.
+ */
+export async function listUnansweredLinks(db: Db = defaultDb) {
+  const teacher = alias(users, 'teacher_user')
+  const student = alias(users, 'student_user')
+  return db
+    .select({
+      id: teacherStudentLinks.id,
+      teacherName: teacher.displayName,
+      teacherEmail: teacher.email,
+      studentName: student.displayName,
+      studentEmail: student.email,
+      requestedAt: teacherStudentLinks.createdAt,
+    })
+    .from(teacherStudentLinks)
+    .innerJoin(teacher, eq(teacher.id, teacherStudentLinks.teacherId))
+    .innerJoin(student, eq(student.id, teacherStudentLinks.studentId))
+    .where(eq(teacherStudentLinks.status, 'pending'))
+    .orderBy(asc(teacherStudentLinks.createdAt))
 }

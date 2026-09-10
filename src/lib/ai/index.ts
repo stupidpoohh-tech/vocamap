@@ -12,6 +12,7 @@ export {
   brainMapPrompt,
   MAP_NODE_BUDGET,
   MAP_NODE_TARGET,
+  DEFINITION_READING_PROMPT_VERSION,
   PROMPT_VERSION,
 } from './prompts'
 export {

@@ -6,6 +6,12 @@
 export const PROMPT_VERSION = 'brain-map/2026-09-02'
 
 /**
+ * Versioned separately from the map prompt: the two change for different
+ * reasons, and a reading is traced back to the wording that produced it.
+ */
+export const DEFINITION_READING_PROMPT_VERSION = 'definition-reading/2026-09-08'
+
+/**
  * The density rule, in one place.
  *
  * A Brain Map is not a page that shows everything known about a word. It is the

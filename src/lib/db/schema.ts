@@ -266,7 +266,22 @@ export const brainMapMeanings = pgTable(
      * correctly — which is the whole point of putting the definition in front
      * of them.
      */
+    /** The reviewed reading students and guests see. Only a human writes this. */
     enDefinitionKo: text(),
+    /**
+     * What the model proposed, waiting for a curator.
+     *
+     * Kept beside the live text rather than replacing it: a suggestion must not
+     * reach a reader before somebody has read it, and generating one must not
+     * take away the reading that is already published. Approval copies this
+     * across; rejecting clears it. Neither touches the other field until then.
+     */
+    enDefinitionKoDraft: text(),
+    enDefinitionKoModel: text(),
+    enDefinitionKoPromptVersion: text(),
+    enDefinitionKoGeneratedAt: timestamp({ withTimezone: true }),
+    enDefinitionKoApprovedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    enDefinitionKoApprovedAt: timestamp({ withTimezone: true }),
     /** How this sense follows from the meaning core. The teaching payload. */
     connectionNote: text(),
     exampleChunk: text(),
@@ -575,11 +590,30 @@ export const reviewEvents = pgTable(
     responseTimeMs: integer(),
     /** Free-form context: chosen option, typed answer, pair id, sentence id... */
     payload: jsonb(),
+    /**
+     * The one asking of one question, from the token the server issued.
+     *
+     * A resent answer — a retry after a timeout, a double tap, a page that
+     * replayed its queue — carries the same id and lands once, because of the
+     * unique index below. A deliberate second attempt is a new question with a
+     * new id and is recorded as its own event.
+     *
+     * Null for rows written before this existed, and for the paths that do not
+     * issue tokens; the index is partial so those do not collide with one
+     * another.
+     */
+    submissionId: uuid(),
     reviewedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('review_events_user_time_idx').on(t.userId, t.reviewedAt),
     index('review_events_vocab_idx').on(t.vocabularyId, t.reviewedAt),
+    // Not a partial index. Postgres treats nulls as distinct here, so the rows
+    // that carry no submission id — everything written before this existed, and
+    // the map's node answers, which issue no token — never collide with each
+    // other. Keeping it whole also lets `on conflict (submission_id)` name it
+    // without repeating a predicate.
+    uniqueIndex('review_events_submission_key').on(t.submissionId),
   ],
 )
 

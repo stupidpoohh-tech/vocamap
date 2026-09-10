@@ -36,6 +36,13 @@
       "when": 1789000108946,
       "tag": "0004_consent_and_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789001472063,
+      "tag": "0005_answer_integrity_and_reading_review",
+      "breakpoints": true
     }
   ]
 }
