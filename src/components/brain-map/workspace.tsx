@@ -25,16 +25,7 @@ const CARD =
  * not an answer at all, and the two now travel as different things.
  */
 export type WorkspaceOutcome =
-  | {
-      kind: 'graded'
-      node: SemanticNode
-      /** The page's own reading of the tap, for the screen. The server regrades. */
-      correct: boolean
-      /** The server's signed record of the card. See `question-token.ts`. */
-      token: string
-      choice: string
-      responseTimeMs: number
-    }
+  | { kind: 'graded'; node: SemanticNode; correct: boolean; responseTimeMs: number; payload: Record<string, unknown> }
   | { kind: 'revealed'; node: SemanticNode; payload: Record<string, unknown> }
 
 export type WorkspaceAnswer = (outcome: WorkspaceOutcome) => void
@@ -154,15 +145,12 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
   const submit = (given: string, correct: boolean) => {
     if (answered) return
     setAnswered({ correct, given })
-    // A card with no token was not gradable — nothing to send.
-    if (exercise.kind !== 'choice' || !exercise.token) return
     onAnswer({
       kind: 'graded',
       node,
       correct,
-      token: exercise.token,
-      choice: given,
       responseTimeMs: Date.now() - startedAt.current,
+      payload: { itemId: node.itemId, kind: node.kind, given },
     })
   }
 

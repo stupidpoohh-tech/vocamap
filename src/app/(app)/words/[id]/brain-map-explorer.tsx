@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState } from 'react'
 import { MapLegend, MapOverflow, SemanticMap } from '@/components/brain-map/semantic-map'
 import { Workspace, type WorkspaceAnswer } from '@/components/brain-map/workspace'
 import type { SemanticNode } from '@/lib/data/semantic-map'
@@ -39,14 +39,6 @@ export function BrainMapExplorer({
   // Dimming the rest of the map is a response to a choice, not a starting
   // state — a map that arrives with four of five nodes faded is not a map.
   const [chosen, setChosen] = useState(false)
-  /**
-   * Answers the server did not take. They live in this page only — a refresh
-   * loses them, and the notice says so rather than implying a queue.
-   */
-  const [unsaved, setUnsaved] = useState<
-    Array<{ token: string; choice: string; responseTimeMs: number; nodeId: string }>
-  >([])
-  const [retrying, startRetry] = useTransition()
 
   // Opening the map is what settles a recommendation, so this has to fire
   // whenever there is a recommendation it could settle — not only on the very
@@ -79,56 +71,24 @@ export function BrainMapExplorer({
       return
     }
 
-    const attempt = {
-      token: outcome.token,
-      choice: outcome.choice,
+    // Reflect the node's new state straight away, then persist.
+    void answerNode({
+      vocabularyId,
+      node: outcome.node.progressNode,
+      questionType: questionTypeFor(outcome.node.kind),
+      correct: outcome.correct,
       responseTimeMs: outcome.responseTimeMs,
-    }
-    void send(attempt, outcome.node.id)
-  }
-
-  /**
-   * Sends one graded answer, and keeps it if the server did not take it.
-   *
-   * The verdict is already on screen — that is the page's own reading of the
-   * tap and it does not wait. What waits is the record, and a failure here has
-   * to be visible rather than silent, with the same token available to try
-   * again. The token carries the id of this one asking, so retrying records it
-   * once.
-   */
-  const send = async (
-    attempt: { token: string; choice: string; responseTimeMs: number },
-    nodeId: string,
-  ) => {
-    let result: Awaited<ReturnType<typeof answerNode>>
-    try {
-      result = await answerNode(attempt)
-    } catch {
-      result = { status: 'failed', correct: false }
-    }
-
-    const stuck = result.status === 'failed' || result.status === 'rejected'
-    setUnsaved((prev) => {
-      const rest = prev.filter((u) => u.token !== attempt.token)
-      return stuck ? [...rest, { ...attempt, nodeId }] : rest
-    })
-
-    if (result.status === 'saved' || result.status === 'duplicate') {
+      payload: outcome.payload,
+    }).then(() => {
       setNodes((prev) =>
         prev.map((n) =>
-          n.id === nodeId
-            ? { ...n, status: result.correct ? 'learning' : 'weak' }
+          n.id === outcome.node.id
+            ? { ...n, status: outcome.correct ? 'learning' : 'weak' }
             : n,
         ),
       )
-    }
-    return result
-  }
-
-  const retryUnsaved = () =>
-    startRetry(async () => {
-      for (const attempt of unsaved) await send(attempt, attempt.nodeId)
     })
+  }
 
   // Straight to the map. The two strips that used to sit here — the memory
   // state of each direction, and a paragraph explaining why the word was
@@ -178,27 +138,6 @@ export function BrainMapExplorer({
           of a wide screen ending halfway down. */}
       <div className="min-[1120px]:col-start-2 min-[1120px]:row-start-1">
         <Workspace node={selected} onAnswer={handleAnswer} />
-
-        {/* Said out loud. The verdict on the card is the page's own, so a
-            failed save is invisible unless the screen says so. */}
-        {unsaved.length ? (
-          <div className="mt-3 rounded-panel bg-warn-soft px-4 py-3">
-            <p className="numeral text-[0.8125rem] text-warn break-keep">
-              {unsaved.length}개의 답을 저장하지 못했어요. 학습 기록에 아직 반영되지 않았습니다.
-            </p>
-            <button
-              type="button"
-              disabled={retrying}
-              onClick={retryUnsaved}
-              className="mt-2 text-sm text-warn underline underline-offset-2 disabled:opacity-60"
-            >
-              {retrying ? '다시 저장하는 중…' : '다시 저장하기'}
-            </button>
-            <p className="mt-1.5 text-xs text-warn break-keep">
-              새로고침하면 이 답들은 사라집니다.
-            </p>
-          </div>
-        ) : null}
       </div>
 
       <div className="pb-2 min-[1120px]:col-start-2 min-[1120px]:row-start-2">

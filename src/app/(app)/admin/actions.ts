@@ -6,11 +6,7 @@ import { requireCurator, requireRole } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { ensureBrainMap, setBrainMapStatus } from '@/lib/data/brain-map'
-import {
-  approveReading,
-  confirmExistingReading,
-  rejectReading,
-} from '@/lib/data/definition-reading'
+import { approveReading, rejectReading } from '@/lib/data/definition-reading'
 
 export async function reviewBrainMap(
   brainMapId: string,
@@ -126,21 +122,4 @@ export async function discardReading(
   const ok = await rejectReading(meaningId)
   revalidatePath('/admin/readings')
   return ok ? { ok: true } : { ok: false, error: '이미 처리된 항목입니다.' }
-}
-
-/**
- * Confirming a reading that was already public.
- *
- * The text does not change unless the reviewer changes it; what is written is
- * the record that a person has now read it. Existing readings are left visible
- * throughout — nothing is taken off the screen to be reviewed.
- */
-export async function confirmReading(
-  meaningId: string,
-  text: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const actor = await requireCurator()
-  const ok = await confirmExistingReading({ meaningId, text, approvedBy: actor.id })
-  revalidatePath('/admin/readings')
-  return ok ? { ok: true } : { ok: false, error: '이미 확인된 항목입니다.' }
 }

@@ -10,8 +10,6 @@ import {
   wordFamilyExercises,
   type Exercise,
 } from '@/lib/learning/exercises'
-import { randomUUID } from 'node:crypto'
-import { signQuestion } from '@/lib/learning/question-token'
 import { MAP_NODE_BUDGET, MAP_NODE_TARGET } from '@/lib/ai'
 import { getMasterBrainMap, listRivalDefinitions, type MasterBrainMap } from './brain-map'
 import { collectWordState, type Awaitable, type WordAnswer, type WordStateRead } from './study'
@@ -36,9 +34,6 @@ export type NodeStatus = 'unseen' | 'learning' | 'needsReview' | 'weak' | 'compl
  * `@/lib/learning/exercises`, which knows nothing about the database.
  */
 export type { Exercise }
-
-/** A choice exercise as it goes out, with the server's signed record of it. */
-export type IssuedExercise = Exercise & { token?: string }
 
 export type SemanticNode = {
   id: string
@@ -67,7 +62,7 @@ export type SemanticNode = {
   onMap: boolean
   /** Carried into `review_events.payload` so per-item status can be derived. */
   itemId: string
-  exercises: IssuedExercise[]
+  exercises: Exercise[]
 }
 
 export type SemanticMap = {
@@ -301,33 +296,6 @@ export async function buildSemanticMap(
       node.exercises = forMastery(node.exercises)
     }
   }
-
-  // Every gradable exercise goes out with the server's signed record of it.
-  //
-  // The map's cards were the one answer path still grading itself: the page
-  // computed `correct` and posted it, so anything that could call the action
-  // could mark any node of any word right, as often as it liked. The reveal
-  // cards are not signed because they are not graded — see `revealNode`.
-  await Promise.all(
-    nodes.flatMap((node) =>
-      node.exercises.map(async (exercise, index) => {
-        if (exercise.kind !== 'choice') return
-        exercise.token = await signQuestion({
-          userId,
-          vocabularyId,
-          direction: 'en_ko',
-          kind: 'gloss',
-          answer: exercise.answer,
-          options: exercise.options,
-          submissionId: randomUUID(),
-          contentVersion: master.version,
-          itemId: node.itemId,
-          node: node.progressNode,
-        })
-        void index
-      }),
-    ),
-  )
 
   selectMapNodes(nodes)
 

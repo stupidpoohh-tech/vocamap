@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Textarea } from '@/components/ui'
-import { confirmReading, discardReading, publishReading } from '../actions'
+import { discardReading, publishReading } from '../actions'
 
 export type Candidate = {
   id: string
@@ -90,74 +90,6 @@ export function ReadingCandidate({ candidate }: { candidate: Candidate }) {
           버리기
         </Button>
       </div>
-    </Card>
-  )
-}
-
-const ORIGIN_LABEL: Record<string, string> = {
-  ai_map: 'AI가 쓴 맵에서 나온 해석',
-  typed_in: '단어장에 사람이 입력한 해석',
-  ai_batch: 'AI 일괄 보충으로 추정',
-}
-
-/**
- * A reading that is already public and that nobody signed off.
- *
- * It is not taken down while it waits. Confirming records who read it; editing
- * first is fine and is the point of showing the text in a box.
- */
-export function ExistingReading({
-  reading,
-}: {
-  reading: {
-    id: string
-    lemma: string
-    gloss: string
-    definition: string | null
-    reading: string | null
-    origin: string
-  }
-}) {
-  const router = useRouter()
-  const [text, setText] = useState(reading.reading ?? '')
-  const [pending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-
-  return (
-    <Card>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[1.0625rem] font-semibold">{reading.lemma}</span>
-        <span className="text-xs text-ink-3 break-keep">{reading.gloss}</span>
-      </div>
-
-      {reading.definition ? (
-        <p className="mt-2 rounded-control bg-sunken px-3 py-2 text-[0.8125rem] leading-relaxed">
-          {reading.definition}
-        </p>
-      ) : null}
-
-      <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} className="mt-3" />
-
-      <p className="mt-2 text-xs text-ink-3 break-keep">
-        출처: {ORIGIN_LABEL[reading.origin] ?? '알 수 없음'}
-        {reading.origin === 'ai_batch' ? ' (기록이 없어 코드 경로로 추정한 것)' : ''}
-      </p>
-
-      {error ? <p className="mt-2 text-xs text-bad break-keep">{error}</p> : null}
-
-      <Button
-        className="mt-3 w-full"
-        disabled={pending || !text.trim()}
-        onClick={() =>
-          startTransition(async () => {
-            const result = await confirmReading(reading.id, text)
-            setError(result.ok ? null : result.error)
-            if (result.ok) router.refresh()
-          })
-        }
-      >
-        {pending ? '처리 중…' : '확인함으로 기록'}
-      </Button>
     </Card>
   )
 }

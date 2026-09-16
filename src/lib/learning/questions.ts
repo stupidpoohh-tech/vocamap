@@ -14,7 +14,6 @@ import {
 import { randomUUID } from 'node:crypto'
 import type { QueueItem } from '@/lib/data/study'
 import type { Direction } from './scheduler'
-import type { NodeType } from './nodes'
 import { signQuestion } from './question-token'
 
 /**
@@ -57,36 +56,6 @@ export type RecallQuestion = {
 }
 
 const OPTION_COUNT = 4
-
-/**
- * Where an answer to each kind of question belongs in the record.
- *
- * `gloss` is basic recall and is the only one that advances an FSRS card. The
- * rest are the map's questions: they are recorded as what they were, against
- * the map's own node progress, and schedule nothing. See
- * `recordExtendedAnswer`.
- */
-export const RECORD_AS: Record<
-  QuestionKind,
-  | { fsrs: true }
-  | {
-      fsrs: false
-      questionType:
-        | 'sentence_translation'
-        | 'collocation_cloze'
-        | 'word_family_cloze'
-      node: NodeType
-    }
-> = {
-  gloss: { fsrs: true },
-  definition: { fsrs: false, questionType: 'sentence_translation', node: 'meaning_core' },
-  sense: { fsrs: false, questionType: 'sentence_translation', node: 'meaning_core' },
-  context: { fsrs: false, questionType: 'sentence_translation', node: 'sentences' },
-  collocation: { fsrs: false, questionType: 'collocation_cloze', node: 'collocations' },
-  collocationSense: { fsrs: false, questionType: 'collocation_cloze', node: 'collocations' },
-  family: { fsrs: false, questionType: 'word_family_cloze', node: 'word_family' },
-  familySense: { fsrs: false, questionType: 'word_family_cloze', node: 'word_family' },
-}
 
 /**
  * Turns a due queue into answerable multiple-choice questions.
@@ -135,7 +104,7 @@ export async function buildQuestions(
     mapMaterial(queueIds, db),
   ])
 
-  const questions: Array<Omit<RecallQuestion, 'token'> & { itemId?: string | null }> = []
+  const questions: Array<Omit<RecallQuestion, 'token'>> = []
 
   for (const item of queue) {
     const isEnKo = item.direction === 'en_ko'
@@ -160,12 +129,7 @@ export async function buildQuestions(
       ? mapQuestion(item, material.get(item.vocabularyId), neighbours, material)
       : null
     if (richer) {
-      questions.push({
-        ...richer,
-        vocabularyId: item.vocabularyId,
-        direction: item.direction,
-        isNew: item.isNew,
-      })
+      questions.push({ ...richer, vocabularyId: item.vocabularyId, direction: item.direction, isNew: item.isNew })
       continue
     }
 
@@ -197,8 +161,6 @@ export async function buildQuestions(
         options: question.options,
         submissionId: randomUUID(),
         contentVersion: material.get(question.vocabularyId)?.version ?? null,
-        itemId: question.itemId ?? null,
-        node: nodeOf(question.kind),
       }),
     })),
   )
@@ -213,19 +175,12 @@ export type MapMaterial = {
    * the text a map holds now or about a version since rewritten.
    */
   version: number
-  /** Senses, with the row each came from so an answer can name its item. */
-  senses: Array<{ id: string; ko: string }>
+  senses: string[]
   /** English definitions of this word's senses, where the list printed them. */
-  definitions: Array<{ id: string; text: string }>
-  sentences: Array<{
-    id: string
-    text: string
-    ko: string
-    highlight: string | null
-    targetMeaning: string | null
-  }>
-  collocations: Array<{ id: string; expression: string; ko: string }>
-  family: Array<{ id: string; lemma: string; ko: string }>
+  definitions: string[]
+  sentences: Array<{ text: string; ko: string; highlight: string | null; targetMeaning: string | null }>
+  collocations: Array<{ expression: string; ko: string }>
+  family: Array<{ lemma: string; ko: string }>
 }
 
 /**
@@ -263,7 +218,6 @@ async function mapMaterial(
     db
       .select({
         brainMapId: brainMapMeanings.brainMapId,
-        id: brainMapMeanings.id,
         ko: brainMapMeanings.ko,
         enDefinition: brainMapMeanings.enDefinition,
       })
@@ -273,7 +227,6 @@ async function mapMaterial(
     db
       .select({
         brainMapId: brainMapSentences.brainMapId,
-        id: brainMapSentences.id,
         text: brainMapSentences.text,
         ko: brainMapSentences.ko,
         highlight: brainMapSentences.highlight,
@@ -285,7 +238,6 @@ async function mapMaterial(
     db
       .select({
         brainMapId: brainMapCollocations.brainMapId,
-        id: brainMapCollocations.id,
         expression: brainMapCollocations.expression,
         ko: brainMapCollocations.ko,
       })
@@ -295,7 +247,6 @@ async function mapMaterial(
     db
       .select({
         brainMapId: brainMapWordFamily.brainMapId,
-        id: brainMapWordFamily.id,
         lemma: brainMapWordFamily.lemma,
         ko: brainMapWordFamily.ko,
       })
@@ -320,8 +271,8 @@ async function mapMaterial(
   const into = (mapId: string) => byWord.get(wordOf.get(mapId) ?? '')
   for (const row of meanings) {
     const material = into(row.brainMapId)
-    material?.senses.push({ id: row.id, ko: row.ko })
-    if (row.enDefinition) material?.definitions.push({ id: row.id, text: row.enDefinition })
+    material?.senses.push(row.ko)
+    if (row.enDefinition) material?.definitions.push(row.enDefinition)
   }
   for (const row of sentences) into(row.brainMapId)?.sentences.push(row)
   for (const row of collocations) into(row.brainMapId)?.collocations.push(row)
@@ -419,24 +370,12 @@ async function libraryPool(db: Db): Promise<PoolWord[]> {
  * already tracks: producing the English form belongs with `ko_en`, choosing a
  * Korean meaning with `en_ko`. Nothing new is scheduled.
  */
-/** Which progress bucket a kind belongs to, or null for basic recall. */
-function nodeOf(kind: QuestionKind): NodeType | null {
-  const record = RECORD_AS[kind]
-  return record.fsrs ? null : record.node
-}
-
-/** A built question plus the row it came from. */
-type BuiltQuestion = Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> & {
-  /** The map row this question is about. Carried into the token and the event. */
-  itemId?: string | null
-}
-
 function mapQuestion(
   item: QueueItem,
   material: MapMaterial | undefined,
   neighbours: Map<string, PoolWord[]>,
   everything: Map<string, MapMaterial>,
-): BuiltQuestion | null {
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
   if (!material) return null
 
   const seed = `${item.vocabularyId}:${item.dueAt.toISOString()}`
@@ -489,7 +428,7 @@ function definitionQuestion(
   item: QueueItem,
   material: MapMaterial,
   neighbours: Map<string, PoolWord[]>,
-): BuiltQuestion | null {
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
   const own = material.definitions
   if (!own.length) return null
   const definition = own[hash(item.vocabularyId) % own.length]!
@@ -503,8 +442,7 @@ function definitionQuestion(
 
   return {
     kind: 'definition',
-    itemId: definition.id,
-    prompt: definition.text,
+    prompt: definition,
     answer: item.lemma,
     options: shuffle([item.lemma, ...distractors]),
     note: `${item.lemma} — ${item.translation}`,
@@ -515,8 +453,8 @@ function definitionQuestion(
 function senseQuestion(
   item: QueueItem,
   material: MapMaterial,
-): BuiltQuestion | null {
-  const senses = [...new Set(material.senses.map((s) => s.ko))]
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
+  const senses = [...new Set(material.senses)]
   if (senses.length < 2) return null
 
   const sentence = material.sentences.find(
@@ -526,8 +464,6 @@ function senseQuestion(
 
   return {
     kind: 'sense',
-    // The sense being asked about, not the sentence carrying it.
-    itemId: material.senses.find((s) => s.ko === sentence.targetMeaning)?.id ?? null,
     prompt: sentence.text,
     answer: sentence.targetMeaning!,
     options: shuffle(senses.slice(0, OPTION_COUNT)),
@@ -547,7 +483,7 @@ function contextQuestion(
   item: QueueItem,
   material: MapMaterial,
   neighbours: Map<string, PoolWord[]>,
-): BuiltQuestion | null {
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
   const sentence = material.sentences.find((s) => s.highlight && s.text.includes(s.highlight))
   if (!sentence) return null
 
@@ -561,7 +497,6 @@ function contextQuestion(
 
   return {
     kind: 'context',
-    itemId: sentence.id,
     prompt: sentence.text.replace(sentence.highlight!, '______'),
     answer: item.lemma,
     options: shuffle([item.lemma, ...distractors]),
@@ -575,7 +510,7 @@ function collocationQuestion(
   material: MapMaterial,
   everything: Map<string, MapMaterial>,
   neighbours: Map<string, PoolWord[]>,
-): BuiltQuestion | null {
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
   const own = material.collocations
   if (!own.length) return null
   const target = own[hash(item.vocabularyId) % own.length]!
@@ -594,7 +529,6 @@ function collocationQuestion(
 
   return {
     kind: 'collocation',
-    itemId: target.id,
     prompt: `'${target.ko}' — 알맞은 표현은?`,
     answer: target.expression,
     options: shuffle([target.expression, ...distractors]),
@@ -607,7 +541,7 @@ function familyQuestion(
   material: MapMaterial,
   everything: Map<string, MapMaterial>,
   neighbours: Map<string, PoolWord[]>,
-): BuiltQuestion | null {
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
   const own = material.family
   if (!own.length) return null
   const target = own[hash(item.vocabularyId) % own.length]!
@@ -623,7 +557,6 @@ function familyQuestion(
 
   return {
     kind: 'family',
-    itemId: target.id,
     prompt: `'${target.ko}' — 알맞은 형태는?`,
     answer: target.lemma,
     options: shuffle([target.lemma, ...distractors]),
@@ -635,7 +568,7 @@ function collocationSenseQuestion(
   item: QueueItem,
   material: MapMaterial,
   everything: Map<string, MapMaterial>,
-): BuiltQuestion | null {
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
   const own = material.collocations
   if (!own.length) return null
   const target = own[hash(item.vocabularyId) % own.length]!
@@ -649,7 +582,6 @@ function collocationSenseQuestion(
 
   return {
     kind: 'collocationSense',
-    itemId: target.id,
     prompt: target.expression,
     answer: target.ko,
     options: shuffle([target.ko, ...distractors]),
@@ -661,7 +593,7 @@ function familySenseQuestion(
   item: QueueItem,
   material: MapMaterial,
   everything: Map<string, MapMaterial>,
-): BuiltQuestion | null {
+): Pick<RecallQuestion, 'kind' | 'prompt' | 'answer' | 'options' | 'note'> | null {
   const own = material.family
   if (!own.length) return null
   const target = own[hash(item.vocabularyId) % own.length]!
@@ -675,7 +607,6 @@ function familySenseQuestion(
 
   return {
     kind: 'familySense',
-    itemId: target.id,
     prompt: target.lemma,
     answer: target.ko,
     options: shuffle([target.ko, ...distractors]),

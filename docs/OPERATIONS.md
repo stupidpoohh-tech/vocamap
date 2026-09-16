@@ -197,38 +197,18 @@ P0 때와 같은 이유로 마이그레이션이 먼저다. 새 코드는
 운영자가 손으로 해야 할 일은 없다. P0와 달리 잠기는 기능도, 사용자에게 보낼
 안내도 없다.
 
-## 2. 검수 절차 이전의 해석
+## 2. 이미 공개된 AI 해석은 그대로 둔다
 
-**공개 상태는 유지하고, 검수 상태는 따로 표시한다.** 두 가지는 별개다.
+`en_definition_ko`에 이미 들어 있는 해석은 승인된 콘텐츠로 취급하고 건드리지
+않는다. 그중 상당수는 사람이 검수하지 않고 모델이 직접 쓴 것이지만, 지금
+와서 일괄로 내리면 학생이 보던 화면에서 글이 사라진다. 앞으로 만들어지는
+후보만 검수를 거친다.
 
-`en_definition_ko`에 이미 들어 있는 해석은 학생에게 계속 보인다. 일괄로
-내리면 학생이 보던 글이 사라지는데, 그 대가로 얻는 것이 없다.
-
-동시에, 이 행들을 **승인된 콘텐츠로 표시하지 않는다.**
-`en_definition_ko_approved_at`은 `NULL`로 남아 있고, 마이그레이션은 여기에
-아무 값도 넣지 않는다. 사람이 읽었다는 기록이 없는 것을 있는 것처럼
-만들지 않는다는 뜻이다.
-
-`/admin/readings` 화면 아래쪽 **확인 기록이 없는 기존 해석** 구역이 이
-목록이다. 검수자가 하나씩 읽고 필요하면 고친 뒤 확인을 누르면, 그때 누가
-언제 확인했는지가 남는다. 확인 전에도 학생 화면은 그대로다.
-
-각 항목에는 출처가 함께 표시되며, 추측이 아니라 근거에서 나온다.
-
-| 표시 | 근거 |
-| --- | --- |
-| AI가 쓴 맵에서 나온 해석 | `brain_maps.generated_by_model`이 있음 |
-| 단어장에 사람이 입력한 해석 | 가져오기로 만든 맵(`review_note = '단어장 직접 입력'`)이고 모델 기록 없음 |
-| AI 일괄 보충으로 추정 | 위 둘 다 아님. 이 컬럼을 쓴 적 있는 나머지 경로가 그것뿐이라는 추론 |
-
-세 번째는 저장된 사실이 아니라 코드 경로에서 나온 추론이며, 화면에도 추정임을
-적어 둔다. **출처를 추정으로 덮어쓰지 않는다.**
-
-목록을 직접 보려면:
+이미 공개된 것 중 모델이 쓴 것을 골라내고 싶다면, 승인 기록이 없는 행이
+후보다.
 
 ```sql
-SELECT m.id, v.lemma, m.ko, m.en_definition_ko,
-       b.generated_by_model, b.review_note
+SELECT m.id, v.lemma, m.ko, m.en_definition_ko
 FROM brain_map_meanings m
 JOIN brain_maps b ON b.id = m.brain_map_id
 JOIN vocabularies v ON v.id = b.vocabulary_id
@@ -237,132 +217,54 @@ WHERE m.en_definition_ko IS NOT NULL
 ORDER BY v.lemma;
 ```
 
+이 목록을 비우려면 검수 화면에서 다시 볼 수 있게 해당 행의
+`en_definition_ko`를 `en_definition_ko_draft`로 옮기면 된다. **권장하지
+않는다** — 학생 화면에서 글이 사라지는 대가로 얻는 것이 크지 않다.
+
 ## 3. 과거 '해석 확인' 기록
 
-**이전 판 정정.** 앞선 보고서는 이 기록이 FSRS 카드를 전진시켜 "다음 복습이
-늦게 잡히고", "다음 오답 한 번으로 복구되며", "영향 기간은 하루 남짓"이라고
-적었다. **세 주장 모두 틀렸다.** 근거 없이 쓴 것이라 철회한다.
+`bcc28ad`(2026-09-09 배포)부터 이번 수정 전까지, 맵 학습 화면의 **해석 확인**
+버튼이 정답 제출로 기록됐다. 그 기간에 눌린 해석 확인은 `review_events`에
+`correct = true`인 행을 만들고 FSRS 카드를 전진시켰다.
 
-### 실제로 무엇이 바뀌었나
+### 식별 가능한 범위
 
-`bcc28ad`부터 이번 수정 전까지, 해석 확인 버튼은 `answerNode` →
-`recordNodeAnswer` 경로를 탔다. 그 함수가 쓰는 것은 다음이 전부다.
-
-| 테이블 | 무엇이 바뀌었나 |
-| --- | --- |
-| `review_events` | `correct = true` 행 1건. `question_type`은 노드 종류, `node_type`은 해당 노드 |
-| `brain_map_node_progress` | `attempts` +1, `correct` +1, 그 결과 `status` 재계산 |
-| `user_vocabulary_state` | `refreshRecommendation`이 추천 상태를 다시 계산 |
-| `user_confusions` | `pairId`가 있을 때만. 해석 확인 경로에는 없음 |
-
-`user_vocabulary_cards`는 **건드리지 않는다.** `recordNodeAnswer`는 FSRS 카드를
-쓰는 코드를 갖고 있지 않다. 복습 일정은 `recordRecallAnswer`만 움직이고, 그
-경로는 시험 화면 전용이다. 이 사실은 `tests/answer-boundary.test.ts`의
-"never touches an FSRS card"가 고정한다.
-
-### 그래서 남은 영향
-
-- **정답률**: 노드별 정답 수가 실제보다 높다.
-- **노드 숙련도**: `status`가 `learning`/`completed`로 앞당겨졌을 수 있다. 그
-  결과 `forMastery`가 그 노드의 문제 수를 줄여 보여준다.
-- **맵 추천**: 추천이 실제보다 일찍 해소되었을 수 있다.
-- **복습 일정**: 영향 없음.
-
-### 영향 기간
-
-시작은 `bcc28ad` 배포 시점(2026-09-09 13:20 UTC)이다. **끝은 아직 없다.**
-이번 수정이 배포되지 않았으므로 창은 열려 있다. 앞선 "하루 남짓"은 그
-시점의 경과 시간을 기간으로 잘못 적은 것이다. 실제 기간은 배포 시각으로
-확정된다.
-
-### 식별 가능 여부
-
-선택형 카드는 보기 문구를 `given`으로 보낸다. 보기가 빈 문자열인 경우는 없고,
-이는 `tests/answer-boundary.test.ts`가 확인한다. 해석 확인은 입력란 내용을
-그대로 보냈다.
-
-- `given = ''` → **해석 확인이 확실하다.**
-- `given`이 비어 있지 않음 → 학생이 해석을 입력하고 확인을 눌렀을 수도,
-  선택형에 답했을 수도 있다. **구별 불가능하다.**
-
-해석 확인 카드는 의미 노드에만 존재하므로 `node_type`이
-`meaning_core` 또는 `sentences`인 것으로 범위를 더 좁힐 수 있다. 그래도 위의
-모호함은 남는다.
+선택형 문제의 `given`은 항상 보기 문구이므로 비어 있을 수 없다. 해석 확인은
+입력란 내용을 그대로 보냈고 대개 비어 있다. 따라서 **해당 기간의
+`given = ''`인 행은 해석 확인이 확실하다.**
 
 ```sql
--- 확실한 것만. <배포시각>은 이번 수정의 실제 배포 시각으로 채운다.
-SELECT id, user_id, vocabulary_id, node_type, reviewed_at
+SELECT id, user_id, vocabulary_id, question_type, reviewed_at
 FROM review_events
 WHERE reviewed_at >= timestamptz '2026-09-09 13:20+00'
-  AND reviewed_at <  timestamptz '<배포시각>'
   AND correct = true
-  AND node_type IN ('meaning_core', 'sentences')
+  AND question_type IN ('sentence_translation', 'collocation_cloze', 'word_family_cloze')
   AND payload ->> 'given' = ''
 ORDER BY reviewed_at;
 ```
 
-### 교정 절차
+### 식별 불가능한 범위
 
-**자동으로 지우거나 되돌리지 않는다.** 추정으로 과거 답안을 건드리면 진짜
-정답까지 없앤다.
+같은 기간에 학생이 해석을 **입력하고** 확인을 누른 경우, `given`이 비어 있지
+않아 선택형 정답과 구별되지 않는다. 이 행들은 확실하게 골라낼 수 없다.
 
-확실한 행만 되돌리고 싶다면 두 단계다. FSRS는 관계없으므로 재생은 필요 없다.
+### 조치
 
-```sql
--- 1) 되돌릴 행을 임시 테이블에 고정한다 (위 SELECT와 동일한 조건).
-CREATE TEMP TABLE reveal_rows AS
-SELECT id, user_id, vocabulary_id, node_type
-FROM review_events
-WHERE reviewed_at >= timestamptz '2026-09-09 13:20+00'
-  AND reviewed_at <  timestamptz '<배포시각>'
-  AND correct = true
-  AND node_type IN ('meaning_core', 'sentences')
-  AND payload ->> 'given' = '';
+**자동으로 지우거나 고치지 않는다.** 추정으로 과거 답안을 건드리면 진짜
+정답까지 없앨 수 있고, 그쪽 손해가 더 크다.
 
--- 2) 노드 진행도에서 그만큼 뺀다.
-UPDATE brain_map_node_progress p
-SET attempts = GREATEST(p.attempts - c.n, 0),
-    correct  = GREATEST(p.correct  - c.n, 0)
-FROM (
-  SELECT user_id, vocabulary_id, node_type, count(*) AS n
-  FROM reveal_rows GROUP BY 1, 2, 3
-) c
-WHERE p.user_id = c.user_id AND p.vocabulary_id = c.vocabulary_id AND p.node = c.node_type;
+지우더라도 FSRS 카드는 되돌아가지 않는다. 카드는 이벤트에서 파생되는 것이
+아니라 답변마다 앞으로 밀린 상태값이라, 정확히 되돌리려면 해당 사용자·단어의
+이벤트 로그를 처음부터 다시 재생해야 한다. 이번 범위에서는 하지 않는다.
 
--- 3) 이벤트를 지운다.
-DELETE FROM review_events WHERE id IN (SELECT id FROM reveal_rows);
-```
+영향 범위는 좁다. 해당 기간은 하루 남짓이고, 결과는 그 단어의 다음 복습이
+실제보다 늦게 잡히는 것이다. 다음 오답 한 번으로 일정이 다시 당겨진다.
 
-`status`는 다음 답변 때 다시 계산된다. 추천 상태는 되돌리지 않는다 — 추천을
-다시 켜는 것이 학생에게 유익한지 판단할 근거가 없다.
-
-**모호한 행(`given`이 비어 있지 않은 것)은 손대지 않는다.**
-
-## 4. 브라우저 회귀 테스트
-
-`tests/browser/save-recovery.mjs`는 저장 실패·응답 유실·늦은 응답을 실제
-브라우저에서 확인한다. 실패는 Playwright가 페이지 밖에서 Server Action 요청을
-가로채 주입하며, **애플리케이션에는 실패 주입 경로도 테스트 전용 인증도
-없다.**
-
-실행하려면 앱과 테스트용 DB가 떠 있어야 한다.
-
-```
-node tests/browser/save-recovery.mjs <baseUrl> <testDbUrl> <mappedWordId>
-```
-
-CI에는 넣지 않았다. 빌드된 서버와 브라우저가 필요해 실행 시간이 길고, 지금은
-배포 전 수동 확인용이다.
-
-## 5. CI
+## 4. CI
 
 `.github/workflows/deploy.yml`이 실행마다 임시 Postgres 컨테이너를 띄우고,
 마이그레이션을 적용한 뒤 전체 테스트를 돌린다. DB 테스트가 skip되면 **실행을
 실패시킨다** — skip된 결과가 통과처럼 보이던 것이 이번에 고친 것 중 하나다.
-
-**이 설정은 아직 원격에서 실행된 적이 없다.** push하지 않았으므로 GitHub
-Actions에서의 동작은 미검증이다. 로컬에서는 동일한 명령(마이그레이션 후 전체
-테스트, skip 0)이 통과한다.
 
 CI가 쓰는 것은 그 실행에서만 존재하는 빈 DB이며, 운영 비밀값은 테스트에
 쓰이지 않는다. `resetDatabase`가 이름에 "test"가 없는 DB의 truncate를 거부하는

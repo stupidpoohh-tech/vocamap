@@ -3,11 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getActor, requireCurator } from '@/lib/auth/session'
 import { NEEDS_LOGIN, WROTE, type WriteResult } from '@/lib/auth/write-result'
-import { logLearningEvent, markImportant, recordExtendedAnswer } from '@/lib/data/study'
-import { questionStillStands } from '@/lib/data/brain-map'
-import { grade, plausibleResponseTime, verifyQuestion } from '@/lib/learning/question-token'
-import { NODE_TYPES } from '@/lib/learning/nodes'
-import type { RejectReason } from '@/app/(app)/study/session/actions'
+import { logLearningEvent, markImportant, recordNodeAnswer } from '@/lib/data/study'
 import { markBrainMapOpened } from '@/lib/data/personal'
 import { ensureBrainMap } from '@/lib/data/brain-map'
 import type { NodeType } from '@/lib/learning/nodes'
@@ -32,87 +28,30 @@ export async function openBrainMap(vocabularyId: string): Promise<void> {
   })
 }
 
-/**
- * An answer to one of the map's own questions.
- *
- * The same boundary the study session has, for the same reason. This used to
- * take `correct`, `vocabularyId`, `node` and `questionType` from the request:
- * anything that could reach the action could mark any node of any word correct,
- * for anyone's account, as many times as it liked, and the node's mastery and
- * the word's recommendation both moved on the strength of it.
- *
- * Now the only thing the page chooses is which option it tapped. Everything
- * else — whose answer it is, which word, which item, which node, and whether it
- * is right — comes out of the token the server signed when it built the card.
- */
 export async function answerNode(input: {
-  token: string
-  choice: string
-  responseTimeMs?: number
-}): Promise<
-  | { status: 'saved' | 'duplicate' | 'guest'; correct: boolean; nodeStatus: string | null }
-  | { status: 'rejected'; reason: RejectReason }
-  | { status: 'failed'; correct: boolean }
-> {
-  const claims = await verifyQuestion(input.token)
-  if (!claims) return { status: 'rejected', reason: 'unknown_question' }
-
-  const { offered, correct } = grade(claims, input.choice)
-  if (!offered) return { status: 'rejected', reason: 'option_not_offered' }
-
+  vocabularyId: string
+  node: NodeType
+  questionType: 'sentence_translation' | 'similar_battle' | 'collocation_cloze' | 'word_family_cloze'
+  correct: boolean
+  responseTimeMs: number
+  pairId?: string
+  payload?: Record<string, unknown>
+}): Promise<{ nodeStatus: string }> {
   const actor = await getActor()
   // Nothing to record against, but the answer still stands on screen.
-  if (!actor) return { status: 'guest', correct, nodeStatus: null }
-  if (claims.userId !== actor.id) return { status: 'rejected', reason: 'unknown_question' }
+  if (!actor) return { nodeStatus: input.correct ? 'learning' : 'weak' }
 
-  const node = claims.node
-  if (!node || !NODE_TYPES.includes(node as NodeType)) {
-    return { status: 'rejected', reason: 'unknown_question' }
-  }
-
-  // The card was built from a map that has since changed, or from an item a
-  // curator has deleted. Refusing is the honest answer: there is nothing left
-  // to be right or wrong about.
-  const stands = await questionStillStands({
-    vocabularyId: claims.vocabularyId,
-    version: claims.contentVersion ?? null,
-    itemId: claims.itemId,
+  const result = await recordNodeAnswer({
+    userId: actor.id,
+    vocabularyId: input.vocabularyId,
+    node: input.node,
+    questionType: input.questionType,
+    correct: input.correct,
+    responseTimeMs: input.responseTimeMs,
+    pairId: input.pairId ?? null,
+    payload: input.payload,
   })
-  if (!stands) return { status: 'rejected', reason: 'content_changed' }
-
-  try {
-    const result = await recordExtendedAnswer({
-      userId: actor.id,
-      vocabularyId: claims.vocabularyId,
-      node: node as NodeType,
-      questionType: QUESTION_TYPE_FOR_NODE[node as NodeType],
-      correct,
-      responseTimeMs: plausibleResponseTime(input.responseTimeMs),
-      itemId: claims.itemId ?? null,
-      submissionId: claims.submissionId,
-      payload: { choice: input.choice, mapVersion: claims.contentVersion ?? null },
-    })
-    return {
-      status: result.recorded ? 'saved' : 'duplicate',
-      correct,
-      nodeStatus: result.nodeStatus,
-    }
-  } catch (error) {
-    console.error('[map:answerNode]', error)
-    return { status: 'failed', correct }
-  }
-}
-
-/** Which question type each node's cards are recorded as. */
-const QUESTION_TYPE_FOR_NODE: Record<
-  NodeType,
-  'sentence_translation' | 'similar_battle' | 'collocation_cloze' | 'word_family_cloze'
-> = {
-  meaning_core: 'sentence_translation',
-  sentences: 'sentence_translation',
-  similar_words: 'similar_battle',
-  collocations: 'collocation_cloze',
-  word_family: 'word_family_cloze',
+  return { nodeStatus: result.nodeStatus }
 }
 
 /**

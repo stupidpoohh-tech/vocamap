@@ -92,20 +92,11 @@ export function SessionRunner({
    */
   const send = useCallback(
     async (attempt: Unsaved): Promise<AnswerResult> => {
-      // A dropped request rejects here rather than returning a result. Without
-      // this catch the whole transition rejects, which loses the verdict the
-      // reader is already looking at and takes the retry with it — the failure
-      // mode this screen exists to handle.
-      let result: AnswerResult
-      try {
-        result = await submitAnswer({
-          token: attempt.token,
-          choice: attempt.choice,
-          responseTimeMs: attempt.responseTimeMs,
-        })
-      } catch {
-        result = { status: 'failed', correct: false, message: '결과를 저장하지 못했어요.' }
-      }
+      const result = await submitAnswer({
+        token: attempt.token,
+        choice: attempt.choice,
+        responseTimeMs: attempt.responseTimeMs,
+      })
       setUnsaved((prev) => {
         const rest = prev.filter((u) => u.token !== attempt.token)
         return result.status === 'saved' ||
