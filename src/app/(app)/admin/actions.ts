@@ -6,6 +6,7 @@ import { requireCurator, requireRole } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { ensureBrainMap, setBrainMapStatus } from '@/lib/data/brain-map'
+import { issueTemporaryPassword as issue } from '@/lib/data/account'
 import {
   approveReading,
   confirmExistingReading,
@@ -95,6 +96,38 @@ export async function revokeTeacherVerification(
 
   revalidatePath('/admin/teachers')
   return { ok: true }
+}
+
+/**
+ * A one-off password for someone who cannot sign in, handed over in person.
+ *
+ * Admins only — the same rule as granting a curator, and for the same reason:
+ * whoever can issue a password for an account can read everything that account
+ * can, and a teacher being able to do that for another teacher would put the
+ * gate back where it started. There is no email in this app, so there is no
+ * self-service path; a person who knows the student is the check.
+ *
+ * The plaintext comes back exactly once, in this return value. It is never
+ * stored and never logged.
+ */
+export async function issueTemporaryPassword(
+  userId: string,
+): Promise<{ ok: true; password: string } | { ok: false; error: string }> {
+  const admin = await requireRole('admin')
+  try {
+    const { password } = await issue({ userId, issuedBy: admin.id })
+    revalidatePath('/admin/teachers')
+    return { ok: true, password }
+  } catch (error) {
+    console.error('[admin:issueTemporaryPassword]', error)
+    const message =
+      error instanceof Error && error.message.includes('themselves')
+        ? '자기 자신에게는 발급할 수 없습니다.'
+        : error instanceof Error && error.message.includes('Admin passwords')
+          ? '관리자 계정은 이 화면에서 재발급하지 않습니다.'
+          : '발급에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+    return { ok: false, error: message }
+  }
 }
 
 /* ────────────────────── AI definition readings ────────────────────── */

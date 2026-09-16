@@ -43,6 +43,13 @@
       "when": 1789001472063,
       "tag": "0005_answer_integrity_and_reading_review",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789550419807,
+      "tag": "0006_temporary_password",
+      "breakpoints": true
     }
   ]
 }
