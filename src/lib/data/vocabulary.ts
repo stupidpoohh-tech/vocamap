@@ -303,3 +303,65 @@ export async function brainMapStates(
   }
   return states
 }
+
+/**
+ * Gives a word a Korean meaning when it has none that is actually Korean.
+ *
+ * Import refuses to edit an existing word's glosses — they are public, shared,
+ * and a curator may have written them. That rule left no way to fix a word
+ * uploaded without a meaning, and sets pasted from a table with no 의미 column
+ * ended up with the English definition sitting in the Korean gloss field.
+ *
+ * So "has none" means "has nothing containing Hangul". A `language: 'ko'` row
+ * with no Korean letters in it was never a Korean meaning, and filling that is
+ * not overwriting one. A word that already says something in Korean is left
+ * completely alone.
+ *
+ * Nothing is deleted. An English placeholder that was standing in as the
+ * meaning is demoted below the real one rather than removed, so the row a map
+ * or a revision may refer to is still there.
+ *
+ * The condition is evaluated inside the write, so two pastes racing cannot both
+ * find the word empty and both fill it.
+ */
+export async function fillMissingKoreanMeaning(
+  vocabularyId: string,
+  texts: string[],
+  db: Db = defaultDb,
+): Promise<boolean> {
+  const cleaned = [...new Set(texts.map((t) => t.trim()).filter(Boolean))].filter((t) =>
+    /[가-힣]/.test(t),
+  )
+  if (!cleaned.length) return false
+
+  return db.transaction(async (tx) => {
+    const values = sql.join(
+      cleaned.map((text, i) => sql`(${text}, ${i === 0}, ${i}::smallint)`),
+      sql`, `,
+    )
+
+    const inserted = (await tx.execute(sql`
+      insert into vocabulary_translations (vocabulary_id, text, language, is_primary, sort_order)
+      select ${vocabularyId}::uuid, v.text, 'ko', v.is_primary, v.sort_order
+      from (values ${values}) as v(text, is_primary, sort_order)
+      where not exists (
+        select 1 from vocabulary_translations existing
+        where existing.vocabulary_id = ${vocabularyId}::uuid
+          and existing.text ~ '[가-힣]'
+      )
+      on conflict do nothing
+      returning id
+    `)) as unknown as unknown[]
+
+    if (!inserted.length) return false
+
+    // The English stand-in stops being the word's meaning, without being lost.
+    await tx.execute(sql`
+      update vocabulary_translations
+      set is_primary = false, sort_order = sort_order + 100
+      where vocabulary_id = ${vocabularyId}::uuid
+        and text !~ '[가-힣]'
+    `)
+    return true
+  })
+}

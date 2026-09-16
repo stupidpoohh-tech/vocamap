@@ -289,3 +289,149 @@ describe.skipIf(!hasDatabase)('the curator’s own replace path', () => {
     expect(map!.meanings.map((m) => m.ko)).toEqual(['고쳐 쓴 뜻'])
   })
 })
+
+/* ═══ filling a meaning that was never uploaded ══════════════════════════ */
+
+describe.skipIf(!hasDatabase)('a word uploaded without a Korean meaning', () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  const NO_MEANING = `어휘 | 영영 풀이
+resilient | able to recover quickly
+tangible | able to be touched`
+
+  const WITH_MEANING = `어휘 | 영영 풀이 | 의미
+resilient | able to recover quickly | 회복력 있는
+tangible | able to be touched | 실체가 있는`
+
+  async function meaningsOf(lemma: string) {
+    const { vocabularies, vocabularyTranslations } = await import('@/lib/db/schema')
+    const [word] = await db
+      .select({ id: vocabularies.id })
+      .from(vocabularies)
+      .where(eq(vocabularies.lemma, lemma))
+    return db
+      .select({ text: vocabularyTranslations.text, isPrimary: vocabularyTranslations.isPrimary })
+      .from(vocabularyTranslations)
+      .where(eq(vocabularyTranslations.vocabularyId, word!.id))
+  }
+
+  it('does not put the English definition in the Korean gloss', async () => {
+    // What actually happened to a set uploaded without the 의미 column: the
+    // definition became the word's primary translation, so every list showed
+    // an English sentence where the Korean meaning belongs.
+    const teacher = await createUser('teacher')
+    await importWordbook({ text: NO_MEANING, title: 'J2', actor: actorFrom(teacher) })
+    expect(await meaningsOf('resilient')).toEqual([])
+  })
+
+  it('still gives the map a label to hang the sense on', async () => {
+    const teacher = await createUser('teacher')
+    await importWordbook({ text: NO_MEANING, title: 'J2', actor: actorFrom(teacher) })
+    const { vocabularies } = await import('@/lib/db/schema')
+    const [word] = await db
+      .select({ id: vocabularies.id })
+      .from(vocabularies)
+      .where(eq(vocabularies.lemma, 'resilient'))
+    const map = await getMasterBrainMap(word!.id, { approvedOnly: false })
+    expect(map!.meanings[0]!.ko).toBe('able to recover quickly')
+  })
+
+  it('gets its meaning from a later paste, without a second map', async () => {
+    // The gap this closes. Import refuses to edit an existing word's glosses,
+    // which left a word uploaded without one with no route to ever get one.
+    const teacher = await createUser('teacher')
+    const actor = actorFrom(teacher)
+
+    await importWordbook({ text: NO_MEANING, title: 'J2', actor })
+    expect(await meaningsOf('resilient')).toEqual([])
+    const [mapBefore] = await db.select().from(brainMaps)
+
+    const second = await importWordbook({ text: WITH_MEANING, title: 'J2', actor })
+
+    expect(second.filledMeanings.sort()).toEqual(['resilient', 'tangible'])
+    expect(await meaningsOf('resilient')).toEqual([{ text: '회복력 있는', isPrimary: true }])
+
+    // The map is untouched — same row, same version.
+    const [mapAfter] = await db.select().from(brainMaps).where(eq(brainMaps.id, mapBefore!.id))
+    expect(mapAfter).toEqual(mapBefore)
+  })
+
+  it('leaves a word that already has a meaning alone', async () => {
+    const teacher = await createUser('teacher')
+    const actor = actorFrom(teacher)
+
+    await importWordbook({ text: WITH_MEANING, title: 'J2', actor })
+    const before = await meaningsOf('resilient')
+
+    const different = `어휘 | 영영 풀이 | 의미
+resilient | able to recover quickly | 전혀 다른 뜻`
+    const second = await importWordbook({ text: different, title: 'J2', actor })
+
+    expect(await meaningsOf('resilient')).toEqual(before)
+    expect(second.filledMeanings).toEqual([])
+    expect(second.keptExistingMap).toContain('resilient')
+  })
+
+  it('demotes an English stand-in rather than deleting it', async () => {
+    // Sets uploaded before the parser fix have the definition sitting in the
+    // gloss field. The Korean one takes over as the meaning; the old row stays,
+    // because a map or a revision may point at it.
+    const { vocabularies, vocabularyTranslations } = await import('@/lib/db/schema')
+    const teacher = await createUser('teacher')
+    const [word] = [
+      await importWordbook({ text: NO_MEANING, title: 'J2', actor: actorFrom(teacher) }),
+    ]
+    void word
+    const [vocab] = await db
+      .select({ id: vocabularies.id })
+      .from(vocabularies)
+      .where(eq(vocabularies.lemma, 'resilient'))
+
+    // Put the old, wrong state back by hand.
+    await db.insert(vocabularyTranslations).values({
+      vocabularyId: vocab!.id,
+      text: 'able to recover quickly',
+      language: 'ko',
+      isPrimary: true,
+      sortOrder: 0,
+    })
+
+    await importWordbook({ text: WITH_MEANING, title: 'J2', actor: actorFrom(teacher) })
+
+    const rows = await db
+      .select({ text: vocabularyTranslations.text, isPrimary: vocabularyTranslations.isPrimary })
+      .from(vocabularyTranslations)
+      .where(eq(vocabularyTranslations.vocabularyId, vocab!.id))
+    expect(rows).toHaveLength(2)
+    expect(rows.find((r) => r.text === '회복력 있는')!.isPrimary).toBe(true)
+    expect(rows.find((r) => r.text === 'able to recover quickly')!.isPrimary).toBe(false)
+  })
+
+  it('fills once when two pastes race', async () => {
+    const teacher = await createUser('teacher')
+    const actor = actorFrom(teacher)
+    await importWordbook({ text: NO_MEANING, title: 'J2', actor })
+
+    await Promise.all([
+      importWordbook({ text: WITH_MEANING, title: 'A', actor }),
+      importWordbook({ text: WITH_MEANING, title: 'B', actor }),
+    ])
+
+    expect(await meaningsOf('resilient')).toHaveLength(1)
+  })
+
+  it('does not report it as a map that was left unchanged', async () => {
+    // Two different outcomes, and conflating them would tell the teacher their
+    // meanings were ignored when they were written.
+    const teacher = await createUser('teacher')
+    const actor = actorFrom(teacher)
+    await importWordbook({ text: NO_MEANING, title: 'J2', actor })
+
+    const second = await importWordbook({ text: WITH_MEANING, title: 'J2', actor })
+
+    expect(second.keptExistingMap).toEqual([])
+    expect(second.filledMeanings).toHaveLength(2)
+  })
+})

@@ -6,7 +6,11 @@ import type { Actor } from '@/lib/auth/session'
 // somebody already reviewed. See `createMapIfAbsent`.
 import { createMapIfAbsent } from '@/lib/data/brain-map'
 import { addToSet, assignSet, assertCanAccessStudent, findOrCreateSet } from '@/lib/data/teacher'
-import { addTranslations, findOrCreateVocabulary } from '@/lib/data/vocabulary'
+import {
+  addTranslations,
+  fillMissingKoreanMeaning,
+  findOrCreateVocabulary,
+} from '@/lib/data/vocabulary'
 import { parseWordbook, type ParseProblem } from './wordbook'
 import { draftHasQuestions, toBrainMapDraft } from './to-draft'
 import { WRITE_CONCURRENCY, inBatches } from './batches'
@@ -25,6 +29,11 @@ export type ImportSummary = {
    * and this paste's version of them was not written anywhere.
    */
   keptExistingMap: string[]
+  /**
+   * Words that were already here with no Korean meaning, and now have one from
+   * this paste. Nothing else about them changed.
+   */
+  filledMeanings: string[]
   /** Synonyms read but not imported — see `toBrainMapDraft`. */
   synonymsSkipped: number
   /** Words whose example had no translation, so it makes no question. */
@@ -57,6 +66,7 @@ export async function importWordbook(
       created: 0,
       reused: 0,
       keptExistingMap: [],
+      filledMeanings: [],
       synonymsSkipped: 0,
       withoutQuestions: [],
       problems,
@@ -116,8 +126,15 @@ export async function importWordbook(
       reviewNote: '단어장 직접 입력',
     })
 
+    let filledMeaning = false
     if (map.created && draft.primaryTranslations.length) {
       await addTranslations(vocabulary.id, draft.primaryTranslations)
+    } else if (!map.created && draft.primaryTranslations.length) {
+      // The word is already here and keeps its map — but if it has no Korean
+      // meaning at all, this paste is the first one to carry one and there is
+      // no other way to get it in. Filling a blank is not overwriting; a word
+      // that already says something is left alone.
+      filledMeaning = await fillMissingKoreanMeaning(vocabulary.id, draft.primaryTranslations)
     }
 
     return {
@@ -128,6 +145,7 @@ export async function importWordbook(
       // Worth naming: a word the list gave nothing askable for still gets a
       // map, but every node on it is a card with no question under it.
       askable: draftHasQuestions(draft, { rivalDefinitions }),
+      filledMeaning,
       lemma: entry.lemma,
     }
   })
@@ -141,7 +159,10 @@ export async function importWordbook(
   const withoutQuestions = written
     .filter((word) => !word.askable && !word.keptMap)
     .map((word) => word.lemma)
-  const keptExistingMap = written.filter((word) => word.keptMap).map((word) => word.lemma)
+  const keptExistingMap = written
+    .filter((word) => word.keptMap && !word.filledMeaning)
+    .map((word) => word.lemma)
+  const filledMeanings = written.filter((word) => word.filledMeaning).map((word) => word.lemma)
 
   const addedToSet = await addToSet(setId, ids)
 
@@ -158,6 +179,7 @@ export async function importWordbook(
     created,
     reused: ids.length - created,
     keptExistingMap,
+    filledMeanings,
     synonymsSkipped,
     withoutQuestions,
     problems,

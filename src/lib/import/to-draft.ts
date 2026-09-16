@@ -13,6 +13,8 @@ import type { ParsedEntry } from './wordbook'
  * Nothing here invents. Fields the book does not print stay empty, which is
  * what keeps a wordbook map honest about being a wordbook map.
  */
+const HANGUL = /[가-힣]/
+
 export function toBrainMapDraft(entry: ParsedEntry): BrainMapDraft {
   const senses = entry.senses.filter((sense) => sense.ko.trim())
 
@@ -23,7 +25,20 @@ export function toBrainMapDraft(entry: ParsedEntry): BrainMapDraft {
     // telling students things nobody checked.
     meaningCoreKo: senses[0]?.ko ?? entry.lemma,
     meaningCoreEn: senses[0]?.enDefinition ?? null,
-    primaryTranslations: senses.slice(0, 4).map((sense) => sense.ko),
+    // Only the glosses that are actually Korean.
+    //
+    // A row with no 의미 column falls back to the English definition as the
+    // sense label (see `wordbook.ts`), which is right for the map — the node
+    // needs something to be called. It is not right for the word's meaning: it
+    // becomes the primary translation, so every list shows an English sentence
+    // where the Korean gloss belongs and the 한→영 question answers with it.
+    //
+    // The map keeps the label either way. The word simply has no meaning yet,
+    // which is the truth, and a later paste that carries the column fills it.
+    primaryTranslations: senses
+      .slice(0, 4)
+      .map((sense) => sense.ko)
+      .filter((ko) => HANGUL.test(ko)),
 
     meanings: senses.map((sense) => ({
       ko: sense.ko,
