@@ -40,11 +40,24 @@ export type QuestionClaims = {
    */
   submissionId: string
   /**
-   * Which map the question was built from, when it was built from one. Lets a
-   * later reader of the event log tell an answer about content that has since
-   * been rewritten from one about the current text.
+   * Which map the question was built from, when it was built from one.
+   *
+   * Checked on submission, not merely recorded: a map edited or deleted between
+   * asking and answering means the question no longer describes anything, and
+   * grading against a remembered answer would write a verdict about text that
+   * is gone.
    */
   contentVersion?: number | null
+  /**
+   * The row the question is about — a meaning, a collocation, a sentence.
+   *
+   * The map's own cards are per-item, so without this two questions from the
+   * same word are indistinguishable in the event log, and an answer cannot be
+   * checked against the item it claims to be about.
+   */
+  itemId?: string | null
+  /** Which of the five progress buckets a map answer belongs to. */
+  node?: string | null
 }
 
 const ISSUER = 'vocamap/question'
@@ -73,6 +86,8 @@ export async function signQuestion(claims: QuestionClaims): Promise<string> {
     opt: claims.options,
     sid: claims.submissionId,
     ver: claims.contentVersion ?? null,
+    itm: claims.itemId ?? null,
+    nod: claims.node ?? null,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuer(ISSUER)
@@ -114,6 +129,8 @@ export async function verifyQuestion(token: string): Promise<QuestionClaims | nu
       options,
       submissionId: payload.sid,
       contentVersion: typeof payload.ver === 'number' ? payload.ver : null,
+      itemId: typeof payload.itm === 'string' ? payload.itm : null,
+      node: typeof payload.nod === 'string' ? payload.nod : null,
     }
   } catch {
     return null

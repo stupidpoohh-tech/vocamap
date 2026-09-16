@@ -258,3 +258,106 @@ export async function rejectReading(meaningId: string, db: Db = defaultDb): Prom
     .returning({ id: brainMapMeanings.id })
   return updated.length > 0
 }
+
+/**
+ * Readings that are already public but that nobody is recorded as having
+ * approved.
+ *
+ * Everything written before the review pipeline existed is in this state, and
+ * it is left exactly where it is: visible to students, unchanged. What this
+ * adds is the ability to find it and say where it came from, so a curator can
+ * work through it deliberately rather than the app quietly implying somebody
+ * already did.
+ *
+ * The origin is read off evidence, not guessed:
+ *
+ * - `ai_map` — the map itself was written by a model, so its readings were too.
+ * - `typed_in` — the map came from a pasted wordbook whose table carried a
+ *   해석 column, so a person typed it.
+ * - `ai_batch` — neither of those, which leaves the batch filler, the only
+ *   other thing that has ever written this column.
+ *
+ * `ai_batch` is an inference from what the code can do, not from a stored fact,
+ * and is labelled as the weakest of the three wherever it is shown.
+ */
+export type ReadingOrigin = 'ai_map' | 'typed_in' | 'ai_batch'
+
+export async function listReadingsNeedingReview(limit = 200, db: Db = defaultDb) {
+  const rows = await db
+    .select({
+      id: brainMapMeanings.id,
+      lemma: vocabularies.lemma,
+      gloss: brainMapMeanings.ko,
+      definition: brainMapMeanings.enDefinition,
+      reading: brainMapMeanings.enDefinitionKo,
+      generatedByModel: brainMaps.generatedByModel,
+      reviewNote: brainMaps.reviewNote,
+    })
+    .from(brainMapMeanings)
+    .innerJoin(brainMaps, eq(brainMaps.id, brainMapMeanings.brainMapId))
+    .innerJoin(vocabularies, eq(vocabularies.id, brainMaps.vocabularyId))
+    .where(
+      and(
+        isNotNull(brainMapMeanings.enDefinitionKo),
+        isNull(brainMapMeanings.enDefinitionKoApprovedAt),
+      ),
+    )
+    .orderBy(asc(vocabularies.lemma))
+    .limit(limit)
+
+  return rows.map((row) => ({
+    ...row,
+    origin: (row.generatedByModel
+      ? 'ai_map'
+      : row.reviewNote === '단어장 직접 입력'
+        ? 'typed_in'
+        : 'ai_batch') satisfies ReadingOrigin as ReadingOrigin,
+  }))
+}
+
+export async function countReadingsNeedingReview(db: Db = defaultDb): Promise<number> {
+  const [row] = await db
+    .select({ value: sql<number>`count(*)::int` })
+    .from(brainMapMeanings)
+    .where(
+      and(
+        isNotNull(brainMapMeanings.enDefinitionKo),
+        isNull(brainMapMeanings.enDefinitionKoApprovedAt),
+      ),
+    )
+  return row?.value ?? 0
+}
+
+/**
+ * A curator vouching for a reading that was already public.
+ *
+ * Publishes nothing new — the text is already on screen. What it records is
+ * that a person has now read it, which is the fact that was missing. Editing
+ * while confirming is allowed and is the point: the reviewer submits what the
+ * reading should say.
+ */
+export async function confirmExistingReading(
+  input: { meaningId: string; text: string; approvedBy: string },
+  db: Db = defaultDb,
+): Promise<boolean> {
+  const text = input.text.trim()
+  if (!text) return false
+  const updated = await db
+    .update(brainMapMeanings)
+    .set({
+      enDefinitionKo: text,
+      enDefinitionKoApprovedBy: input.approvedBy,
+      enDefinitionKoApprovedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(brainMapMeanings.id, input.meaningId),
+        isNotNull(brainMapMeanings.enDefinitionKo),
+        // Only the un-vouched-for ones. A second curator cannot silently
+        // re-stamp a row the first already signed.
+        isNull(brainMapMeanings.enDefinitionKoApprovedAt),
+      ),
+    )
+    .returning({ id: brainMapMeanings.id })
+  return updated.length > 0
+}

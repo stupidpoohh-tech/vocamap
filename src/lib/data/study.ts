@@ -743,7 +743,146 @@ async function currentOutcome(
   }
 }
 
-/** Records a graded answer from inside a Brain Map node. */
+/**
+ * An answer to one of the map's richer questions.
+ *
+ * Recorded as what it was — the real question type, the real node, the real
+ * item — and deliberately not against an FSRS card.
+ *
+ * Splitting the questions was only half of it. `scope=mapped` stopped asking
+ * plain recall, but every answer still went through `recordRecallAnswer`,
+ * stored as `recall_choice` and advanced the direction card. So the schedule
+ * that claims to measure "can this person still produce this word's meaning"
+ * was being moved by a collocation question, and the event log said it was a
+ * gloss question. Two students with the same card had answered different
+ * things.
+ *
+ * Nothing is scheduled in its place. The map's own progress is what it has
+ * always had — `brain_map_node_progress` — and giving these their own FSRS
+ * track would be a new learning mode, which this is deliberately not.
+ */
+export async function recordExtendedAnswer(
+  input: {
+    userId: string
+    vocabularyId: string
+    node: NodeType
+    questionType:
+      | 'sentence_translation'
+      | 'similar_battle'
+      | 'collocation_cloze'
+      | 'word_family_cloze'
+    correct: boolean
+    responseTimeMs?: number | null
+    itemId?: string | null
+    submissionId?: string | null
+    payload?: Record<string, unknown>
+    now?: Date
+  },
+  db: Db = defaultDb,
+): Promise<{ recorded: boolean; nodeStatus: ReturnType<typeof deriveNodeStatus> | null }> {
+  const now = input.now ?? new Date()
+
+  return db.transaction(async (tx) => {
+    // Same lock as the recall path, on the same key, so a map answer and a
+    // recall answer for one word cannot interleave either.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`${input.userId}:${input.vocabularyId}:node`}, 0))`,
+    )
+
+    const inserted = await tx
+      .insert(reviewEvents)
+      .values({
+        userId: input.userId,
+        vocabularyId: input.vocabularyId,
+        questionType: input.questionType,
+        nodeType: input.node,
+        correct: input.correct,
+        responseTimeMs: input.responseTimeMs ?? null,
+        payload: { ...(input.payload ?? {}), itemId: input.itemId ?? null },
+        submissionId: input.submissionId ?? null,
+        reviewedAt: now,
+      })
+      .onConflictDoNothing({ target: reviewEvents.submissionId })
+      .returning({ id: reviewEvents.id })
+
+    if (input.submissionId && !inserted.length) {
+      const [existing] = await tx
+        .select({ status: brainMapNodeProgress.status })
+        .from(brainMapNodeProgress)
+        .where(
+          and(
+            eq(brainMapNodeProgress.userId, input.userId),
+            eq(brainMapNodeProgress.vocabularyId, input.vocabularyId),
+            eq(brainMapNodeProgress.node, input.node),
+          ),
+        )
+        .limit(1)
+      return { recorded: false, nodeStatus: existing?.status ?? null }
+    }
+
+    const [progress] = await tx
+      .insert(brainMapNodeProgress)
+      .values({
+        userId: input.userId,
+        vocabularyId: input.vocabularyId,
+        node: input.node,
+        attempts: 1,
+        correct: input.correct ? 1 : 0,
+        lastStudiedAt: now,
+        status: 'learning',
+      })
+      .onConflictDoUpdate({
+        target: [
+          brainMapNodeProgress.userId,
+          brainMapNodeProgress.vocabularyId,
+          brainMapNodeProgress.node,
+        ],
+        set: {
+          attempts: sql`${brainMapNodeProgress.attempts} + 1`,
+          correct: sql`${brainMapNodeProgress.correct} + ${input.correct ? 1 : 0}`,
+          lastStudiedAt: now,
+          updatedAt: now,
+        },
+      })
+      .returning()
+    if (!progress) throw new Error('Failed to record node progress')
+
+    const status = deriveNodeStatus({
+      attempts: progress.attempts,
+      correct: progress.correct,
+      available: true,
+    })
+    await tx
+      .update(brainMapNodeProgress)
+      .set({ status })
+      .where(
+        and(
+          eq(brainMapNodeProgress.userId, input.userId),
+          eq(brainMapNodeProgress.vocabularyId, input.vocabularyId),
+          eq(brainMapNodeProgress.node, input.node),
+        ),
+      )
+
+    await tx
+      .insert(userVocabularyState)
+      .values({ userId: input.userId, vocabularyId: input.vocabularyId })
+      .onConflictDoNothing()
+    await refreshRecommendation(input.userId, input.vocabularyId, now, tx as unknown as Db)
+
+    return { recorded: true, nodeStatus: status }
+  })
+}
+
+/**
+ * Records a graded answer from inside a Brain Map node, taking the grade as
+ * given.
+ *
+ * No screen calls this any more. The map's cards go through
+ * `recordExtendedAnswer` behind `answerNode`, which grades from a signed token
+ * rather than from the request; this stays as the pair-aware variant the tests
+ * drive directly and as the one path that still writes `user_confusions`.
+ * Anything reached from a browser must take the token route.
+ */
 export async function recordNodeAnswer(
   input: {
     userId: string

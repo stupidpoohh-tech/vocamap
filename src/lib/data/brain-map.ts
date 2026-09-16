@@ -776,3 +776,50 @@ export async function setBrainMapStatus(
     })
     .onConflictDoNothing()
 }
+
+/**
+ * Whether a question built from this word's map still describes it.
+ *
+ * A token remembers the map's version at the moment the question went out. If
+ * the map has been edited, re-approved, unapproved or deleted since, the
+ * remembered answer is about text that no longer exists, and grading against it
+ * would write a verdict on content nobody can look up. The answer is refused
+ * instead — the reader is told the question went stale, not that they were
+ * wrong.
+ *
+ * `itemId` is checked the same way: an item a curator deleted takes its
+ * questions with it.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export async function questionStillStands(
+  input: { vocabularyId: string; version: number | null; itemId?: string | null },
+  db: Db = defaultDb,
+): Promise<boolean> {
+  const [head] = await db
+    .select({ id: brainMaps.id, version: brainMaps.version, status: brainMaps.status })
+    .from(brainMaps)
+    .where(eq(brainMaps.vocabularyId, input.vocabularyId))
+    .limit(1)
+
+  if (!head) return false
+  if (head.status !== 'approved') return false
+  if (input.version !== null && head.version !== input.version) return false
+  if (!input.itemId) return true
+
+  // The core-meaning node has no row of its own: its id is derived from the map
+  // head (`core:<mapId>`), which the version check above has already settled.
+  // Looking it up in the item tables would find nothing and refuse every answer
+  // to the one card every mapped word has.
+  if (!UUID.test(input.itemId)) return true
+
+  // The item can be any of the four kinds of row a map holds, so all four are
+  // asked at once rather than the caller having to say which it was.
+  const [meaning, sentence, collocation, family] = await Promise.all([
+    db.select({ id: brainMapMeanings.id }).from(brainMapMeanings).where(eq(brainMapMeanings.id, input.itemId)).limit(1),
+    db.select({ id: brainMapSentences.id }).from(brainMapSentences).where(eq(brainMapSentences.id, input.itemId)).limit(1),
+    db.select({ id: brainMapCollocations.id }).from(brainMapCollocations).where(eq(brainMapCollocations.id, input.itemId)).limit(1),
+    db.select({ id: brainMapWordFamily.id }).from(brainMapWordFamily).where(eq(brainMapWordFamily.id, input.itemId)).limit(1),
+  ])
+  return Boolean(meaning[0] ?? sentence[0] ?? collocation[0] ?? family[0])
+}
