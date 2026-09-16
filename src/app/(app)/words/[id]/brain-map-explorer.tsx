@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { MapLegend, MapOverflow, SemanticMap } from '@/components/brain-map/semantic-map'
 import { Workspace, type WorkspaceAnswer } from '@/components/brain-map/workspace'
 import type { SemanticNode } from '@/lib/data/semantic-map'
-import { answerNode, openBrainMap, revealNode } from './actions'
+import { answerNode, openBrainMap } from './actions'
 
 /**
  * Map above, workspace below, on one page.
@@ -17,17 +17,14 @@ export function BrainMapExplorer({
   lemma,
   nodes: initialNodes,
   recommendedNodeId,
-  recordOpen,
+  alreadyOpened,
 }: {
   vocabularyId: string
   lemma: string
   nodes: SemanticNode[]
   recommendedNodeId: string | null
-  /**
-   * Whether this visit is worth writing down. Decided on the server, where the
-   * two timestamps that answer it already are.
-   */
-  recordOpen: boolean
+  /** Whether this student has opened this word's map before. */
+  alreadyOpened: boolean
 }) {
   const [nodes, setNodes] = useState(initialNodes)
   // Opens on the recommended node rather than on an empty panel telling the
@@ -40,50 +37,31 @@ export function BrainMapExplorer({
   // state — a map that arrives with four of five nodes faded is not a map.
   const [chosen, setChosen] = useState(false)
 
-  // Opening the map is what settles a recommendation, so this has to fire
-  // whenever there is a recommendation it could settle — not only on the very
-  // first visit.
-  //
-  // It used to skip every visit after the first, while the recommendation was
-  // only considered answered by an open *later than* the recommendation. A
-  // student who had read a word's map and then started getting it wrong was
-  // recommended that map and could never clear it: reopening wrote nothing, so
-  // the word sat in 추천 for good. Now the server says whether this visit tells
-  // us anything, and a visit that does not still costs no round trip.
+  // Opening the map is itself a signal — it tells us the recommendation
+  // landed. That is a fact about the first time, so it is recorded once. It
+  // used to fire on every visit: a server round trip, a session lookup and two
+  // writes each time a student reopened a word they were revising.
   useEffect(() => {
-    if (!recordOpen) return
+    if (alreadyOpened) return
     void openBrainMap(vocabularyId)
-  }, [recordOpen, vocabularyId])
+  }, [alreadyOpened, vocabularyId])
 
   const selected = nodes.find((n) => n.id === selectedId) ?? null
 
-  const handleAnswer: WorkspaceAnswer = (outcome) => {
-    // Reading a translation is not answering a question about it. It used to
-    // be sent as a correct answer, which moved the node towards mastered and
-    // counted towards the reader's accuracy for pressing the only button on
-    // the card. It is recorded as what it is, and changes no status.
-    if (outcome.kind === 'revealed') {
-      void revealNode({
-        vocabularyId,
-        node: outcome.node.progressNode,
-        payload: outcome.payload,
-      })
-      return
-    }
-
+  const handleAnswer: WorkspaceAnswer = (input) => {
     // Reflect the node's new state straight away, then persist.
     void answerNode({
       vocabularyId,
-      node: outcome.node.progressNode,
-      questionType: questionTypeFor(outcome.node.kind),
-      correct: outcome.correct,
-      responseTimeMs: outcome.responseTimeMs,
-      payload: outcome.payload,
+      node: input.node.progressNode,
+      questionType: questionTypeFor(input.node.kind),
+      correct: input.correct,
+      responseTimeMs: input.responseTimeMs,
+      payload: input.payload,
     }).then(() => {
       setNodes((prev) =>
         prev.map((n) =>
-          n.id === outcome.node.id
-            ? { ...n, status: outcome.correct ? 'learning' : 'weak' }
+          n.id === input.node.id
+            ? { ...n, status: input.correct ? 'learning' : 'weak' }
             : n,
         ),
       )

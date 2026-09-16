@@ -54,30 +54,6 @@ export async function answerNode(input: {
   return { nodeStatus: result.nodeStatus }
 }
 
-/**
- * The reader looked at a translation. Recorded as that, and only that.
- *
- * There is no grade here to record: nothing was asked and nothing was judged.
- * It goes to the learning-event log — which exists for exactly this, things
- * that happened without being scored — and touches neither `review_events`,
- * nor the node's progress, nor any FSRS card. Reading a card must not be able
- * to move a schedule.
- */
-export async function revealNode(input: {
-  vocabularyId: string
-  node: NodeType
-  payload?: Record<string, unknown>
-}): Promise<void> {
-  const actor = await getActor()
-  if (!actor) return
-  await logLearningEvent({
-    userId: actor.id,
-    vocabularyId: input.vocabularyId,
-    kind: 'map_reading_revealed',
-    payload: { node: input.node, ...(input.payload ?? {}) },
-  })
-}
-
 export async function toggleImportant(
   vocabularyId: string,
   important: boolean,

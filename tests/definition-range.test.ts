@@ -107,7 +107,7 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
   it('sets the paper\'s own question in the test session', async () => {
     const { student, setId, ids } = await importRange()
     const queue = await buildScopedQueue(student.id, { scope: 'all', setId, wordLimit: 50 })
-    const questions = await buildQuestions(student.id, queue, { extended: true })
+    const questions = await buildQuestions(student.id, queue)
 
     const definition = questions.filter((q) => q.kind === 'definition')
     expect(definition.length).toBeGreaterThan(0)
@@ -136,7 +136,7 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
       wordLimit: 50,
       directions: ['en_ko'],
     })
-    const questions = await buildQuestions(student.id, queue, { extended: true })
+    const questions = await buildQuestions(student.id, queue)
 
     const fromTheMap = questions.filter((q) => q.kind !== 'gloss')
     expect(fromTheMap.length).toBeGreaterThan(0)
@@ -164,7 +164,7 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
         wordLimit: 50,
         directions: [direction],
       })
-      const definitions = (await buildQuestions(student.id, queue, { extended: true })).filter(
+      const definitions = (await buildQuestions(student.id, queue)).filter(
         (q) => q.kind === 'definition',
       )
       expect(definitions.length, direction).toBeGreaterThan(0)
@@ -186,7 +186,7 @@ describe.skipIf(!hasDatabase)('a range of definitions', () => {
     })
     expect(new Set(queue.map((item) => item.vocabularyId)).size).toBe(ids.length)
 
-    const questions = await buildQuestions(student.id, queue, { extended: true })
+    const questions = await buildQuestions(student.id, queue)
     expect(new Set(questions.map((q) => q.vocabularyId)).size).toBe(ids.length)
   })
 })

@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { requireActor } from '@/lib/auth/session'
 import { listReviewQueue } from '@/lib/data/brain-map'
 import { listStudyWords, mapCounts } from '@/lib/data/library'
-import { countReadingCandidates } from '@/lib/data/definition-reading'
 import { Badge, EmptyState, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { DeleteWordButton } from '@/components/words/delete-word-button'
 
@@ -28,13 +27,12 @@ export default async function AdminPage({
   const missing = tab === 'missing'
   const pageIndex = Math.max(0, Number(page ?? 0) || 0)
 
-  const [queue, counts, words, readingCandidates] = await Promise.all([
+  const [queue, counts, words] = await Promise.all([
     missing ? Promise.resolve([]) : listReviewQueue(),
     mapCounts(actor.id),
     missing
       ? listStudyWords({ userId: actor.id, scope: 'mapMissing', page: pageIndex })
       : Promise.resolve(null),
-    countReadingCandidates(),
   ])
 
   return (
@@ -55,14 +53,6 @@ export default async function AdminPage({
         <TabLink href="/admin?tab=missing" active={missing} count={counts.missing}>
           맵 없음
         </TabLink>
-        <TabLink href="/admin/readings" active={false} count={readingCandidates}>
-          해석 검수
-        </TabLink>
-        {actor.role === 'admin' ? (
-          <TabLink href="/admin/teachers" active={false}>
-            계정 관리
-          </TabLink>
-        ) : null}
       </TabBar>
 
       {missing && words ? (

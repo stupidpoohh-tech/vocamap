@@ -98,49 +98,18 @@ describe.skipIf(!hasDatabase)('filling in the readings', () => {
     expect(await countMissingReadings()).toBe(ids.length)
   })
 
-  it('proposes a reading for each definition without publishing it', async () => {
-    // The model's output waits for a curator. It used to go straight onto the
-    // meaning row, which put text nobody had read in front of every student.
+  it('writes a reading onto each definition and stops counting it', async () => {
     const ids = await importTable()
     const result = await fillDefinitionReadings()
 
     expect(result.attempted).toBe(2)
     expect(result.filled).toBe(2)
-    // Nothing is left to generate — the two are proposed, not published.
     expect(result.remaining).toBe(0)
 
     const map = (await getMasterBrainMap(ids[0]!.id))!
-    expect(map.meanings[0]!.enDefinitionKo).toBeNull()
-
-    const { countReadingCandidates, listReadingCandidates } = await import(
-      '@/lib/data/definition-reading'
-    )
-    expect(await countReadingCandidates()).toBe(2)
-
-    const [candidate] = await listReadingCandidates()
-    expect(candidate!.draft).toBeTruthy()
-    // The reading, not the gloss — which is the whole reason it exists.
-    expect(candidate!.draft).not.toBe(candidate!.gloss)
-  })
-
-  it('publishes it once a curator approves', async () => {
-    const ids = await importTable()
-    await fillDefinitionReadings()
-
-    const { approveReading, listReadingCandidates } = await import(
-      '@/lib/data/definition-reading'
-    )
-    const curator = await createUser('teacher')
-    for (const candidate of await listReadingCandidates()) {
-      await approveReading({
-        meaningId: candidate.id,
-        text: candidate.draft!,
-        approvedBy: curator.id,
-      })
-    }
-
-    const map = (await getMasterBrainMap(ids[0]!.id))!
     expect(map.meanings[0]!.enDefinitionKo).toBeTruthy()
+    // The reading, not the gloss — which is the whole reason it exists.
+    expect(map.meanings[0]!.enDefinitionKo).not.toBe(map.meanings[0]!.ko)
   })
 
   it('never overwrites one the teacher typed in', async () => {

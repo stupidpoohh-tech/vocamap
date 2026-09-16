@@ -48,7 +48,7 @@ describe.skipIf(!hasDatabase)('questions for a mapped word', () => {
   async function ask(directions: Array<'en_ko' | 'ko_en'>) {
     const { student, setId } = await importedSet()
     const queue = await buildScopedQueue(student.id, { scope: 'all', setId, directions })
-    return buildQuestions(student.id, queue, { extended: true })
+    return buildQuestions(student.id, queue)
   }
 
   it('asks mapped words in more than one way', async () => {
@@ -104,8 +104,8 @@ describe.skipIf(!hasDatabase)('questions for a mapped word', () => {
       setId,
       directions: ['ko_en'],
     })
-    const first = await buildQuestions(student.id, queue, { extended: true })
-    const second = await buildQuestions(student.id, queue, { extended: true })
+    const first = await buildQuestions(student.id, queue)
+    const second = await buildQuestions(student.id, queue)
 
     expect(first.map((q) => [q.vocabularyId, q.kind, q.prompt, q.answer])).toEqual(
       second.map((q) => [q.vocabularyId, q.kind, q.prompt, q.answer]),
@@ -132,7 +132,7 @@ describe.skipIf(!hasDatabase)('questions for a mapped word', () => {
       setId,
       directions: ['en_ko'],
     })
-    const questions = await buildQuestions(student.id, queue, { extended: true })
+    const questions = await buildQuestions(student.id, queue)
     expect(questions.length).toBeGreaterThan(0)
     expect(questions.every((q) => q.kind === 'gloss')).toBe(true)
   })

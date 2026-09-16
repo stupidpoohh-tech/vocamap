@@ -11,10 +11,8 @@ import {
   vocabularySetItems,
   vocabularyTranslations,
 } from '@/lib/db/schema'
-import { randomUUID } from 'node:crypto'
 import type { QueueItem } from '@/lib/data/study'
 import type { Direction } from './scheduler'
-import { signQuestion } from './question-token'
 
 /**
  * How a word is being asked about.
@@ -40,11 +38,6 @@ export type RecallQuestion = {
   direction: Direction
   isNew: boolean
   kind: QuestionKind
-  /**
-   * The server's signed record of this question. Posted back with the chosen
-   * option so the server can grade it itself — see `question-token.ts`.
-   */
-  token: string
   /** What the student is shown. */
   prompt: string
   /** The correct response. */
@@ -75,23 +68,6 @@ const OPTION_COUNT = 4
 export async function buildQuestions(
   userId: string,
   queue: QueueItem[],
-  opts: {
-    /**
-     * Whether to ask the richer questions a Brain Map makes possible.
-     *
-     * Off by default, and that is the point. Basic recall is supposed to
-     * measure one thing — can this person still produce this word's meaning —
-     * and it was quietly becoming a different measurement for exactly the words
-     * that had a map: the same card, the same schedule, but the question was a
-     * collocation or a blank in a sentence. Two students with identical
-     * histories were being asked different things and scored the same way.
-     *
-     * The map's own questions are still there, on the path where the reader
-     * asked for them: the set screen's map test (`scope=mapped`) and the word's
-     * own map screen. Having a map is not itself a request.
-     */
-    extended?: boolean
-  } = {},
   db: Db = defaultDb,
 ): Promise<RecallQuestion[]> {
   if (!queue.length) return []
@@ -104,7 +80,7 @@ export async function buildQuestions(
     mapMaterial(queueIds, db),
   ])
 
-  const questions: Array<Omit<RecallQuestion, 'token'>> = []
+  const questions: RecallQuestion[] = []
 
   for (const item of queue) {
     const isEnKo = item.direction === 'en_ko'
@@ -125,9 +101,7 @@ export async function buildQuestions(
     // A word with a Brain Map is asked a different way each time it comes
     // round. The map is not extra homework — it is a better question about the
     // word that was due anyway, so the schedule is untouched.
-    const richer = opts.extended
-      ? mapQuestion(item, material.get(item.vocabularyId), neighbours, material)
-      : null
+    const richer = mapQuestion(item, material.get(item.vocabularyId), neighbours, material)
     if (richer) {
       questions.push({ ...richer, vocabularyId: item.vocabularyId, direction: item.direction, isNew: item.isNew })
       continue
@@ -146,35 +120,12 @@ export async function buildQuestions(
 
   // Interleave rather than grouping by direction: seeing `maintain → 유지하다`
   // immediately followed by `유지하다 → maintain` tests recognition, not recall.
-  const ordered = interleave(questions, queueIds.length)
-
-  // Signed last, so the token covers the question exactly as it goes out.
-  return Promise.all(
-    ordered.map(async (question) => ({
-      ...question,
-      token: await signQuestion({
-        userId,
-        vocabularyId: question.vocabularyId,
-        direction: question.direction,
-        kind: question.kind,
-        answer: question.answer,
-        options: question.options,
-        submissionId: randomUUID(),
-        contentVersion: material.get(question.vocabularyId)?.version ?? null,
-      }),
-    })),
-  )
+  return interleave(questions, queueIds.length)
 }
 
 type PoolWord = { vocabularyId: string; lemma: string; translation: string }
 
 export type MapMaterial = {
-  /**
-   * The map's version at the moment the question was built, carried into the
-   * token. It tells a later reader of the event log whether an answer was about
-   * the text a map holds now or about a version since rewritten.
-   */
-  version: number
   senses: string[]
   /** English definitions of this word's senses, where the list printed them. */
   definitions: string[]
@@ -208,11 +159,7 @@ async function mapMaterial(
 
   const [maps, meanings, sentences, collocations, family] = await Promise.all([
     db
-      .select({
-        id: brainMaps.id,
-        vocabularyId: brainMaps.vocabularyId,
-        version: brainMaps.version,
-      })
+      .select({ id: brainMaps.id, vocabularyId: brainMaps.vocabularyId })
       .from(brainMaps)
       .where(and(inArray(brainMaps.vocabularyId, vocabularyIds), eq(brainMaps.status, 'approved'))),
     db
@@ -259,7 +206,6 @@ async function mapMaterial(
   const wordOf = new Map(maps.map((m) => [m.id, m.vocabularyId]))
   for (const m of maps) {
     byWord.set(m.vocabularyId, {
-      version: m.version,
       senses: [],
       definitions: [],
       sentences: [],
@@ -645,10 +591,10 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 /** Spreads the two directions of the same word apart within the session. */
-function interleave<T extends { direction: Direction }>(questions: T[], _wordCount: number): T[] {
+function interleave(questions: RecallQuestion[], _wordCount: number): RecallQuestion[] {
   const enKo = questions.filter((q) => q.direction === 'en_ko')
   const koEn = questions.filter((q) => q.direction === 'ko_en')
-  const result: T[] = []
+  const result: RecallQuestion[] = []
   const half = Math.max(enKo.length, koEn.length)
   for (let i = 0; i < half; i += 1) {
     if (enKo[i]) result.push(enKo[i]!)

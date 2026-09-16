@@ -15,20 +15,12 @@ import { cn } from '@/lib/utils'
 const CARD =
   'rounded-panel bg-surface px-4 py-3.5 shadow-panel ring-1 ring-line-soft sm:px-6 sm:py-4'
 
-/**
- * What happened on a card, which is not always a grade.
- *
- * A choice card is answered and can be right or wrong. A reveal card is read:
- * the reader presses 해석 확인 and the translation appears. That was being sent
- * as `correct: true` — so pressing the only button on the card counted as a
- * correct answer, moved the node towards mastered, and fed the schedule. It is
- * not an answer at all, and the two now travel as different things.
- */
-export type WorkspaceOutcome =
-  | { kind: 'graded'; node: SemanticNode; correct: boolean; responseTimeMs: number; payload: Record<string, unknown> }
-  | { kind: 'revealed'; node: SemanticNode; payload: Record<string, unknown> }
-
-export type WorkspaceAnswer = (outcome: WorkspaceOutcome) => void
+export type WorkspaceAnswer = (input: {
+  node: SemanticNode
+  correct: boolean
+  responseTimeMs: number
+  payload: Record<string, unknown>
+}) => void
 
 /**
  * Where a node is actually practised.
@@ -146,23 +138,9 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
     if (answered) return
     setAnswered({ correct, given })
     onAnswer({
-      kind: 'graded',
       node,
       correct,
       responseTimeMs: Date.now() - startedAt.current,
-      payload: { itemId: node.itemId, kind: node.kind, given },
-    })
-  }
-
-  /** The reader looked. Recorded as that and nothing more. */
-  const reveal = (given: string) => {
-    if (answered) return
-    // `correct` here is only what the card shows next; it is not sent anywhere
-    // and nothing grades it.
-    setAnswered({ correct: true, given })
-    onAnswer({
-      kind: 'revealed',
-      node,
       payload: { itemId: node.itemId, kind: node.kind, given },
     })
   }
@@ -189,7 +167,7 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
             answered={answered}
             draft={draft}
             onDraft={setDraft}
-            onReveal={reveal}
+            onSubmit={submit}
           />
         )}
       </div>
@@ -322,14 +300,13 @@ function TranslateExercise({
   answered,
   draft,
   onDraft,
-  onReveal,
+  onSubmit,
 }: {
   exercise: Extract<Exercise, { kind: 'translate' }>
   answered: { correct: boolean; given: string } | null
   draft: string
   onDraft: (value: string) => void
-  /** Not a submission. See `WorkspaceOutcome`. */
-  onReveal: (given: string) => void
+  onSubmit: (given: string, correct: boolean) => void
 }) {
   return (
     <>
@@ -358,7 +335,7 @@ function TranslateExercise({
               then ask 맞았어요 / 틀렸어요, which is a grade the app cannot
               check and the reader has no reason to file — they came to read the
               translation, and they have read it. */}
-          <Button variant="secondary" onClick={() => onReveal(draft)}>
+          <Button variant="secondary" onClick={() => onSubmit(draft, true)}>
             해석 확인
           </Button>
         </div>

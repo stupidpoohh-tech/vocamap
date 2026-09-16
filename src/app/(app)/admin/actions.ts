@@ -6,7 +6,6 @@ import { requireCurator, requireRole } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { ensureBrainMap, setBrainMapStatus } from '@/lib/data/brain-map'
-import { approveReading, rejectReading } from '@/lib/data/definition-reading'
 
 export async function reviewBrainMap(
   brainMapId: string,
@@ -91,35 +90,4 @@ export async function revokeTeacherVerification(
 
   revalidatePath('/admin/teachers')
   return { ok: true }
-}
-
-/* ────────────────────── AI definition readings ────────────────────── */
-
-/**
- * A curator publishing a model's proposed reading, as written or as edited.
- *
- * The text that gets published is whatever the reviewer submits, so correcting
- * a candidate and approving it are the same action — there is no way to approve
- * something other than what was on screen.
- */
-export async function publishReading(
-  meaningId: string,
-  text: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const actor = await requireCurator()
-  const ok = await approveReading({ meaningId, text, approvedBy: actor.id })
-  revalidatePath('/admin/readings')
-  return ok
-    ? { ok: true }
-    : { ok: false, error: '이미 처리된 항목입니다. 새로고침 후 확인해 주세요.' }
-}
-
-/** Throwing a candidate away. Any published reading is left alone. */
-export async function discardReading(
-  meaningId: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  await requireCurator()
-  const ok = await rejectReading(meaningId)
-  revalidatePath('/admin/readings')
-  return ok ? { ok: true } : { ok: false, error: '이미 처리된 항목입니다.' }
 }
