@@ -20,17 +20,6 @@ export type Actor = {
   email: string
   displayName: string
   role: Role
-  /**
-   * Set while this account is signed in with a password an admin issued.
-   *
-   * Carried on the actor rather than looked up where it is needed, because
-   * every screen in the app has to be able to say so — the whole point of the
-   * stamp is that it is visible until the owner replaces the password.
-   *
-   * Optional, so that a hand-built actor in a test that has nothing to do with
-   * passwords does not have to mention one. Absent reads the same as null.
-   */
-  mustChangePasswordAt?: Date | null
 }
 
 function secret(): Uint8Array {
@@ -113,7 +102,6 @@ export const getActor = cache(async function getActor(): Promise<Actor | null> {
       email: users.email,
       displayName: users.displayName,
       role: users.role,
-      mustChangePasswordAt: users.mustChangePasswordAt,
       expiresAt: sessions.expiresAt,
     })
     .from(sessions)
@@ -122,13 +110,7 @@ export const getActor = cache(async function getActor(): Promise<Actor | null> {
     .limit(1)
 
   if (!row || row.expiresAt.getTime() < Date.now()) return null
-  return {
-    id: row.id,
-    email: row.email,
-    displayName: row.displayName,
-    role: row.role,
-    mustChangePasswordAt: row.mustChangePasswordAt,
-  }
+  return { id: row.id, email: row.email, displayName: row.displayName, role: row.role }
 })
 
 /** Whoever is reading a screen — signed in or not. */
@@ -139,7 +121,6 @@ const GUEST: Viewer = {
   email: '',
   displayName: '',
   role: 'student',
-  mustChangePasswordAt: null,
   isGuest: true,
 }
 

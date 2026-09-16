@@ -93,17 +93,7 @@ async function Account() {
 
   return (
     <div className="flex items-center gap-3 text-[0.8125rem]">
-      {/* An account on a temporary password says so on every screen, in place
-          of its own name. Sign-in already sends it here once; this is what
-          stops "I'll do it later" from meaning never, without walling off an
-          app the reader is in the middle of using. */}
-      {actor.mustChangePasswordAt ? (
-        <Link href="/account/password?forced=1" className="font-medium text-brand">
-          비밀번호 변경
-        </Link>
-      ) : (
-        <span className="hidden text-ink-3 sm:inline">{actor.displayName}</span>
-      )}
+      <span className="hidden text-ink-3 sm:inline">{actor.displayName}</span>
       <form action={signOut}>
         <button className="text-ink-3 transition hover:text-ink-2">로그아웃</button>
       </form>

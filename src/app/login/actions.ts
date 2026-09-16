@@ -24,23 +24,6 @@ function destinationFrom(formData: FormData, role: string): string {
   return role === 'student' ? '/study' : '/teacher'
 }
 
-/**
- * The change screen comes before anywhere else, for an account signed in with
- * a password an admin issued.
- *
- * This is where the forced change is enforced, and it works because issuing a
- * temporary password deletes that account's sessions: the next thing the owner
- * does is sign in, and it lands here. It is a redirect rather than a wall —
- * the header keeps a link back to this screen until the stamp is cleared, so
- * navigating away postpones the change without hiding it.
- */
-function afterSignIn(formData: FormData, user: { role: string; mustChangePasswordAt: Date | null }) {
-  const destination = destinationFrom(formData, user.role)
-  if (!user.mustChangePasswordAt) return destination
-  const where = encodeURIComponent(destination)
-  return `/account/password?forced=1&next=${where}`
-}
-
 export async function signIn(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const password = String(formData.get('password') ?? '')
@@ -63,7 +46,7 @@ export async function signIn(_prev: AuthFormState, formData: FormData): Promise<
     }
 
     await createSession(user.id, user.role)
-    destination = afterSignIn(formData, user)
+    destination = destinationFrom(formData, user.role)
   } catch (error) {
     return { error: describeFailure(error, 'signIn') }
   }

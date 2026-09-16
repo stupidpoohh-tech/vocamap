@@ -1,7 +1,6 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import Link from 'next/link'
 import { Button, Card, Input } from '@/components/ui'
 import { signIn, signUp, type AuthFormState } from './actions'
 
@@ -81,20 +80,6 @@ export function LoginForm({
           {pending ? '잠시만요…' : mode === 'signin' ? '로그인' : '시작하기'}
         </Button>
       </form>
-
-      {/* Only under the sign-in form. On the sign-up tab there is no password
-          to have forgotten yet, and the link would only be one more thing to
-          read. */}
-      {mode === 'signin' ? (
-        <p className="mt-4 text-center">
-          <Link
-            href="/login/help"
-            className="text-[0.8125rem] text-ink-3 underline underline-offset-4 transition hover:text-ink-2"
-          >
-            비밀번호를 잊으셨나요?
-          </Link>
-        </p>
-      ) : null}
     </Card>
   )
 }

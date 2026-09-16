@@ -93,20 +93,6 @@ export const users = pgTable(
      */
     teacherVerifiedAt: timestamp({ withTimezone: true }),
     teacherVerifiedBy: uuid().references((): AnyPgColumn => users.id, { onDelete: 'set null' }),
-    /**
-     * Set when an admin hands out a temporary password, cleared when the owner
-     * picks their own.
-     *
-     * A password somebody else knows is a password that has to stop working,
-     * and the only thing that reliably ends it is the owner replacing it. So
-     * the fact that this one was issued is written down rather than assumed:
-     * sign-in sends the account straight to the change screen while it is set,
-     * and every screen carries a link back to it until it is cleared.
-     */
-    mustChangePasswordAt: timestamp({ withTimezone: true }),
-    /** Which admin issued the temporary password. Kept for the same reason
-     *  `teacher_verified_by` is: a reset is someone's decision, not an event. */
-    passwordResetBy: uuid().references((): AnyPgColumn => users.id, { onDelete: 'set null' }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('users_email_key').on(sql`lower(${t.email})`)],

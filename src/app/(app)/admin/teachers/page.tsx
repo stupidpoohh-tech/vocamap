@@ -5,9 +5,8 @@ import {
   listTeacherAccounts,
   listUnansweredLinks,
 } from '@/lib/data/teacher'
-import { listResettableAccounts } from '@/lib/data/account'
 import { Card, EmptyState, PageHeader } from '@/components/ui'
-import { AccountRow, LinkRow, ResetRow } from './controls'
+import { AccountRow, LinkRow } from './controls'
 
 /**
  * Who may write the public maps, and which students agreed to be followed.
@@ -24,11 +23,10 @@ export default async function TeacherAdminPage() {
   const actor = await requireActor()
   if (actor.role !== 'admin') redirect('/study')
 
-  const [teachers, students, links, resettable] = await Promise.all([
+  const [teachers, students, links] = await Promise.all([
     listTeacherAccounts(),
     listStudentAccounts(),
     listUnansweredLinks(),
-    listResettableAccounts(),
   ])
 
   const unverified = teachers.filter((t) => !t.verifiedAt)
@@ -96,7 +94,7 @@ export default async function TeacherAdminPage() {
         )}
       </section>
 
-      <section className="mb-8">
+      <section>
         <h2 className="mb-1 text-sm font-semibold">답하지 않은 연결 요청</h2>
         <p className="mb-3 text-xs text-ink-3 break-keep">
           학생이 직접 수락하는 것이 정상 경로입니다. 여기서 승인하면 학생이 아니라 관리자가
@@ -112,26 +110,6 @@ export default async function TeacherAdminPage() {
           </Card>
         ) : (
           <EmptyState title="기다리는 요청이 없어요" />
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-1 text-sm font-semibold">임시 비밀번호 발급</h2>
-        <p className="mb-3 text-xs text-ink-3 break-keep">
-          로그인하지 못하는 계정에 한 번 쓸 비밀번호를 만들어 직접 전달해 주세요. 발급하면 원래
-          비밀번호는 바로 막히고, 그 계정은 로그인한 모든 기기에서 로그아웃됩니다. 만들어진
-          비밀번호는 발급 직후 화면에만 나타납니다. 관리자 계정은 목록에 없습니다.
-        </p>
-        {resettable.length ? (
-          <Card className="p-0">
-            <ul className="divide-y divide-line-soft">
-              {resettable.map((account) => (
-                <ResetRow key={account.id} account={account} />
-              ))}
-            </ul>
-          </Card>
-        ) : (
-          <EmptyState title="발급할 계정이 없어요" />
         )}
       </section>
     </div>

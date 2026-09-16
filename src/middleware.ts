@@ -45,5 +45,5 @@ async function isOurs(token: string): Promise<boolean> {
 }
 
 export const config = {
-  matcher: ['/vault/:path*', '/teacher/:path*', '/admin/:path*', '/account/:path*'],
+  matcher: ['/vault/:path*', '/teacher/:path*', '/admin/:path*'],
 }
