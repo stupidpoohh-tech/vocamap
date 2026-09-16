@@ -7,7 +7,12 @@ import { Button, Tag } from '@/components/ui'
 import type { QuestionKind, RecallQuestion } from '@/lib/learning/questions'
 import { submitAnswer, type AnswerResult } from './actions'
 
-type Phase = { kind: 'asking' } | { kind: 'answered'; result: AnswerResult; chosen: string }
+type Phase =
+  | { kind: 'asking' }
+  | { kind: 'answered'; correct: boolean; chosen: string; result: AnswerResult | null }
+
+/** An answer the server did not accept, kept so it can be sent again. */
+type Unsaved = { token: string; choice: string; responseTimeMs: number; prompt: string }
 
 /**
  * What the question is actually testing, said plainly.
@@ -49,6 +54,16 @@ export function SessionRunner({
   const [correctCount, setCorrectCount] = useState(0)
   const [missed, setMissed] = useState<RecallQuestion[]>([])
   const [queue, setQueue] = useState(questions)
+  /**
+   * Answers the server did not accept.
+   *
+   * The verdict on screen is the page's own, so a failed save is invisible
+   * unless it is said out loud — and a session that quietly lost half its
+   * answers while showing "오늘 학습 완료" is worse than one that failed
+   * loudly. These survive until they are sent successfully or the page is
+   * closed; a refresh loses them, and the summary says so.
+   */
+  const [unsaved, setUnsaved] = useState<Unsaved[]>([])
   const [pending, startTransition] = useTransition()
   const shownAt = useRef(Date.now())
   /**
@@ -70,44 +85,69 @@ export function SessionRunner({
     shownAt.current = Date.now()
   }, [index])
 
+  /**
+   * Sends one answer and files it under "not saved" if the server did not take
+   * it. The token is what makes retrying safe: it carries the id of this one
+   * asking, so sending it twice records it once.
+   */
+  const send = useCallback(
+    async (attempt: Unsaved): Promise<AnswerResult> => {
+      const result = await submitAnswer({
+        token: attempt.token,
+        choice: attempt.choice,
+        responseTimeMs: attempt.responseTimeMs,
+      })
+      setUnsaved((prev) => {
+        const rest = prev.filter((u) => u.token !== attempt.token)
+        return result.status === 'saved' ||
+          result.status === 'duplicate' ||
+          result.status === 'guest'
+          ? rest
+          : [...rest, attempt]
+      })
+      return result
+    },
+    [],
+  )
+
   const choose = useCallback(
     (choice: string) => {
       if (!question || phase.kind === 'answered') return
+      // Shown at once, from the answer the page already has. The server decides
+      // what gets written; this is only what the reader sees while it does.
       const correct = choice === question.answer
       const responseTimeMs = Date.now() - shownAt.current
 
-      // Optimistic: the student sees the verdict instantly, the write follows.
-      setPhase({
-        kind: 'answered',
-        chosen: choice,
-        result: {
-          correct,
-          nextReviewLabel: '',
-          retentionPercent: 0,
-          brainMapRecommended: false,
-          recommendationMessage: null,
-        },
-      })
+      setPhase({ kind: 'answered', chosen: choice, correct, result: null })
       if (correct) setCorrectCount((n) => n + 1)
       else setMissed((prev) => (prev.some((m) => m === question) ? prev : [...prev, question]))
 
       const asked = turn.current
+      const attempt: Unsaved = {
+        token: question.token,
+        choice,
+        responseTimeMs,
+        prompt: question.prompt,
+      }
       startTransition(async () => {
-        const result = await submitAnswer({
-          vocabularyId: question.vocabularyId,
-          direction: question.direction,
-          correct,
-          responseTimeMs,
-          choice,
-        })
-        // Moved on already. The answer is recorded either way — this is only
-        // the verdict, and it belongs to a question that has left the screen.
+        const result = await send(attempt)
+        // Moved on already. Whatever the server said belongs to a question that
+        // has left the screen, and stamping it on the one showing now would put
+        // the wrong verdict under it.
         if (turn.current !== asked) return
-        setPhase({ kind: 'answered', chosen: choice, result })
+        setPhase({ kind: 'answered', chosen: choice, correct, result })
       })
     },
-    [phase.kind, question],
+    [phase.kind, question, send],
   )
+
+  /** Sends every answer the server has not taken, in the order they were given. */
+  const retryUnsaved = useCallback(() => {
+    const queued = unsaved
+    startTransition(async () => {
+      for (const attempt of queued) await send(attempt)
+    })
+  }, [send, unsaved])
 
   const advance = useCallback(() => {
     turn.current += 1
@@ -143,6 +183,9 @@ export function SessionRunner({
         total={queue.length}
         correct={correctCount}
         missed={missed}
+        unsaved={unsaved.length}
+        retrying={pending}
+        onRetryUnsaved={retryUnsaved}
         onRetryMissed={() => {
           turn.current += 1
           setQueue(missed)
@@ -181,7 +224,7 @@ export function SessionRunner({
 
       <div
         className={`mb-8 flex min-h-28 flex-col items-center justify-center text-center ${
-          phase.kind === 'answered' && !phase.result.correct ? 'animate-shake' : ''
+          phase.kind === 'answered' && !phase.correct ? 'animate-shake' : ''
         }`}
       >
         {question.isNew ? <Tag className="mb-3">새 단어</Tag> : null}
@@ -230,7 +273,12 @@ export function SessionRunner({
 
       {phase.kind === 'answered' ? (
         <div className="mt-6 animate-rise">
-          <Feedback result={phase.result} pending={pending} vocabularyId={question.vocabularyId} />
+          <Feedback
+            correct={phase.correct}
+            result={phase.result}
+            pending={pending}
+            vocabularyId={question.vocabularyId}
+          />
           {/* The sentence the blank came out of, whole. Without it a student
               who guessed right learns nothing and one who guessed wrong does
               not find out why. */}
@@ -248,27 +296,51 @@ export function SessionRunner({
   )
 }
 
+/**
+ * The verdict, and separately whether it was written down.
+ *
+ * `correct` is the page's own reading of the tap and appears immediately;
+ * everything else waits for the server. Keeping them apart is what lets the
+ * screen stay fast and still be honest — a saved answer and one the server
+ * refused look completely different here, where before both looked like a
+ * green tick.
+ */
 function Feedback({
+  correct,
   result,
   pending,
   vocabularyId,
 }: {
-  result: AnswerResult
+  correct: boolean
+  result: AnswerResult | null
   pending: boolean
   vocabularyId: string
 }) {
+  const scheduled = result && 'nextReviewLabel' in result ? result.nextReviewLabel : ''
+  const recommended = Boolean(result && 'brainMapRecommended' in result && result.brainMapRecommended)
+  const trouble =
+    result?.status === 'failed'
+      ? result.message
+      : result?.status === 'rejected'
+        ? '이 문제를 확인하지 못해 결과를 저장하지 않았어요.'
+        : null
+
   return (
     <div className="text-sm">
       <div className="flex items-baseline justify-between gap-3">
-        <span className={result.correct ? 'text-good' : 'text-bad'}>
-          {result.correct ? '정답이에요' : '다시 만나볼게요'}
+        <span className={correct ? 'text-good' : 'text-bad'}>
+          {correct ? '정답이에요' : '다시 만나볼게요'}
         </span>
-        {!pending && result.nextReviewLabel ? (
-          <span className="text-xs text-ink-3">다음 복습 {result.nextReviewLabel}</span>
+        {!pending && scheduled ? (
+          <span className="text-xs text-ink-3">다음 복습 {scheduled}</span>
         ) : null}
       </div>
 
-      {result.brainMapRecommended ? (
+      {trouble ? (
+        <p className="mt-2 text-xs text-warn break-keep">{trouble} 마지막 화면에서 다시 시도할 수 있어요.</p>
+      ) : null}
+
+      {recommended && result && 'recommendationMessage' in result ? (
         <Link
           href={`/words/${vocabularyId}`}
           className="mt-3 flex items-baseline justify-between gap-3 rounded-control bg-warn-soft px-3 py-2 text-[0.8125rem] text-warn"
@@ -287,12 +359,18 @@ function Summary({
   total,
   correct,
   missed,
+  unsaved,
+  retrying,
+  onRetryUnsaved,
   onRetryMissed,
   onDone,
 }: {
   total: number
   correct: number
   missed: RecallQuestion[]
+  unsaved: number
+  retrying: boolean
+  onRetryUnsaved: () => void
   onRetryMissed: () => void
   onDone: () => void
 }) {
@@ -301,12 +379,38 @@ function Summary({
   return (
     <div className="animate-rise">
       <div className="py-6 text-center">
-        <p className="text-[0.8125rem] text-ink-3">오늘 학습 완료</p>
+        {/* Not "완료" while anything is still unsaved. The number on this screen
+            is what the reader believes their record now says, and saying it is
+            finished when part of it never arrived is the one thing this screen
+            must not do. */}
+        <p className="text-[0.8125rem] text-ink-3">
+          {unsaved > 0 ? '아직 저장되지 않은 답이 있어요' : '오늘 학습 완료'}
+        </p>
         <p className="numeral mt-1.5 text-[3rem] font-semibold leading-none">{accuracy}%</p>
         <p className="numeral mt-1.5 text-[0.8125rem] text-ink-3">
           {total}문제 중 {correct}문제 정답
         </p>
       </div>
+
+      {unsaved > 0 ? (
+        <div className="mt-6 rounded-panel bg-warn-soft px-4 py-3.5">
+          <p className="numeral text-[0.8125rem] text-warn break-keep">
+            {unsaved}개의 답을 저장하지 못했어요. 복습 일정에 아직 반영되지 않았습니다.
+          </p>
+          <Button
+            variant="secondary"
+            className="mt-3 w-full"
+            disabled={retrying}
+            onClick={onRetryUnsaved}
+          >
+            {retrying ? '다시 저장하는 중…' : '다시 저장하기'}
+          </Button>
+          {/* Said plainly rather than implied: these live in this page only. */}
+          <p className="mt-2 text-xs text-warn break-keep">
+            새로고침하면 이 답들은 사라집니다. 그때는 다시 풀어 주세요.
+          </p>
+        </div>
+      ) : null}
 
       {missed.length > 0 ? (
         <>

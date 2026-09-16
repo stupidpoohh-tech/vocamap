@@ -140,7 +140,13 @@ export default async function WordPage({
           lemma={map.lemma}
           nodes={map.nodes}
           recommendedNodeId={map.recommendedNodeId}
-          alreadyOpened={personal.openedAt !== null}
+          // Whether opening this map now would tell us something we do not
+          // already know. Never opened, or recommended since the last time it
+          // was — see `BrainMapExplorer`.
+          recordOpen={
+            personal.openedAt === null ||
+            (personal.recommendedAt !== null && personal.openedAt < personal.recommendedAt)
+          }
         />
       ) : (
         <div className="mt-10 text-center">

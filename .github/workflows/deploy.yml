@@ -23,6 +23,37 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    # A throwaway Postgres, created for this run and destroyed with it.
+    #
+    # Without one the database-backed suites skipped themselves and the job went
+    # green: two thirds of the tests — every authorisation boundary, every
+    # consent check, every guarantee about not overwriting a public map — were
+    # not running at all, and nothing said so. A skipped test is not a passing
+    # test, and the only way to stop it reading like one is to give CI a
+    # database.
+    #
+    # It is empty, local to the runner, and its password is in this file
+    # because it protects nothing. The production secret is never used for
+    # tests; `resetDatabase` refuses to truncate a database whose name does not
+    # contain "test", which is a second lock on the same door.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vocamap_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vocamap_test
+
     steps:
       - uses: actions/checkout@v4
 
@@ -37,11 +68,30 @@ jobs:
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
-      # The database-backed tests skip themselves when there is no DATABASE_URL,
-      # so this runs the pure ones — layout geometry, the wordbook parser, the
-      # scheduler — and stays useful without putting a database in CI.
+      # Every migration, against an empty database. This is also the check that
+      # a new one applies at all: a file the journal does not list is skipped in
+      # silence, and that is how a column once shipped without ever existing.
+      - name: Prepare the test database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vocamap_test
+        run: pnpm db:migrate
+
+      # With TEST_DATABASE_URL set, the database-backed suites run for real —
+      # and the run is failed if any of them skipped anyway.
+      #
+      # A skipped suite reports success, so this checks the count rather than
+      # trusting the exit code: if Postgres were unreachable, every DB-backed
+      # file would quietly skip and the job would still go green, which is the
+      # state this repository was already in.
       - name: Test
-        run: pnpm test
+        run: |
+          set -o pipefail
+          pnpm test 2>&1 | tee /tmp/test.log
+          if grep -qE '[0-9]+ skipped' /tmp/test.log; then
+            echo "::error::Database-backed tests skipped. TEST_DATABASE_URL is not reaching Postgres."
+            grep -E 'Tests|Test Files' /tmp/test.log || true
+            exit 1
+          fi
 
       - name: Build
         run: pnpm run cf:build

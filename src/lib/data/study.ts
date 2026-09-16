@@ -521,6 +521,11 @@ export type RecallAnswer = {
   responseTimeMs?: number | null
   questionType?: 'recall_choice' | 'recall_typed'
   payload?: Record<string, unknown>
+  /**
+   * The one asking of one question. Given, this answer lands exactly once
+   * however many times it is sent — see `recordRecallAnswer`.
+   */
+  submissionId?: string | null
   now?: Date
 }
 
@@ -530,6 +535,12 @@ export type RecallOutcome = {
   band: ReturnType<typeof retentionBand>
   brainMapRecommended: boolean
   recommendationMessage: string | null
+  /**
+   * False when this submission had already been recorded, so nothing was
+   * written this time. The screen shows the same result either way; the caller
+   * uses it to avoid counting one answer twice.
+   */
+  recorded: boolean
 }
 
 /**
@@ -546,16 +557,40 @@ export async function recordRecallAnswer(
   const now = answer.now ?? new Date()
 
   return db.transaction(async (tx) => {
-    await tx.insert(reviewEvents).values({
-      userId: answer.userId,
-      vocabularyId: answer.vocabularyId,
-      direction: answer.direction,
-      questionType: answer.questionType ?? 'recall_choice',
-      correct: answer.correct,
-      responseTimeMs: answer.responseTimeMs ?? null,
-      payload: answer.payload ?? null,
-      reviewedAt: now,
-    })
+    // Two answers to the same card must not interleave.
+    //
+    // The card is read, advanced by FSRS, then written back. Two submissions
+    // racing — a double tap, two tabs, a retry crossing the original — both
+    // read the same state, both compute from it, and the second write silently
+    // discards the first review. The lock is on the card, not the table, so
+    // answers to different words still run side by side; it is released when
+    // the transaction ends either way.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`${answer.userId}:${answer.vocabularyId}:${answer.direction}`}, 0))`,
+    )
+
+    const inserted = await tx
+      .insert(reviewEvents)
+      .values({
+        userId: answer.userId,
+        vocabularyId: answer.vocabularyId,
+        direction: answer.direction,
+        questionType: answer.questionType ?? 'recall_choice',
+        correct: answer.correct,
+        responseTimeMs: answer.responseTimeMs ?? null,
+        payload: answer.payload ?? null,
+        submissionId: answer.submissionId ?? null,
+        reviewedAt: now,
+      })
+      // The unique index on `submission_id` is what makes a resend land once.
+      // Nothing below runs when it catches, so the schedule is not advanced a
+      // second time for one answer.
+      .onConflictDoNothing({ target: reviewEvents.submissionId })
+      .returning({ id: reviewEvents.id })
+
+    if (answer.submissionId && !inserted.length) {
+      return { ...(await currentOutcome(answer, now, tx as unknown as Db)), recorded: false }
+    }
 
     const [existing] = await tx
       .select()
@@ -645,8 +680,67 @@ export async function recordRecallAnswer(
       band: retentionBand(retention),
       brainMapRecommended: recommendation.recommend,
       recommendationMessage: recommendation.message,
+      recorded: true,
     }
   })
+}
+
+/**
+ * What to tell a caller whose answer was already recorded.
+ *
+ * Read from the card as it stands rather than recomputed, because the first
+ * write is the one that counts and this is a repeat of it. If there is no card
+ * — a resend of an answer whose original never made it past the event insert —
+ * the schedule is reported as due now, which is what it is.
+ */
+async function currentOutcome(
+  answer: RecallAnswer,
+  now: Date,
+  db: Db,
+): Promise<Omit<RecallOutcome, 'recorded'>> {
+  const [card] = await db
+    .select()
+    .from(userVocabularyCards)
+    .where(
+      and(
+        eq(userVocabularyCards.userId, answer.userId),
+        eq(userVocabularyCards.vocabularyId, answer.vocabularyId),
+        eq(userVocabularyCards.direction, answer.direction),
+      ),
+    )
+    .limit(1)
+
+  if (!card) {
+    return {
+      nextDueAt: now,
+      estimatedRetention: 0,
+      band: retentionBand(0),
+      brainMapRecommended: false,
+      recommendationMessage: null,
+    }
+  }
+
+  const state: CardState = {
+    stability: card.stability,
+    difficulty: card.difficulty,
+    fsrsState: card.fsrsState,
+    dueAt: card.dueAt,
+    lastReviewedAt: card.lastReviewedAt,
+    elapsedDays: card.elapsedDays,
+    scheduledDays: card.scheduledDays,
+    learningSteps: card.learningSteps,
+    reps: card.reps,
+    lapses: card.lapses,
+    consecutiveCorrect: card.consecutiveCorrect,
+  }
+  const retention = estimatedRetention(state, now)
+  return {
+    nextDueAt: card.dueAt,
+    estimatedRetention: retention,
+    band: retentionBand(retention),
+    brainMapRecommended: false,
+    recommendationMessage: null,
+  }
 }
 
 /** Records a graded answer from inside a Brain Map node. */

@@ -53,7 +53,13 @@ export default async function SessionPage({
 
   // Distractors are drawn on the server from the shared word list, so the wrong
   // options are always plausible rather than random noise.
-  const questions = await buildQuestions(actor.id, queue)
+  //
+  // The map's richer questions are asked only on the map test — the one the
+  // reader starts from the mapped-words view. Basic recall stays one
+  // measurement: a word having a map is not a request to be asked about it a
+  // different way, and it used to be treated as one, so two students with the
+  // same history were asked different questions against the same schedule.
+  const questions = await buildQuestions(actor.id, queue, { extended: scope === 'mapped' })
   return (
     <>
       {actor.isGuest ? (
