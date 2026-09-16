@@ -10,8 +10,6 @@ import {
   wordSetName,
 } from '@/lib/data/library'
 import { listRecommendedWords } from '@/lib/data/personal'
-import { listPendingLinkRequests } from '@/lib/data/teacher'
-import { LinkRequests } from '@/components/students/link-requests'
 import { Button, EmptyState, Input, Pager, PageHeader, TabBar, TabLink } from '@/components/ui'
 import { WordList, type ListDirection } from '@/components/words/word-list'
 import { SkeletonLine } from '@/components/ui/skeleton'
@@ -99,16 +97,6 @@ export default async function StudyPage({
             </Suspense>
           )}
 
-          {/* A teacher wanting to follow this student's work. It sits on the
-              shelf because this is the screen a student actually opens, and an
-              unanswered request is not something to go hunting for in a
-              settings page. */}
-          {saved || actor.isGuest ? null : (
-            <Suspense fallback={null}>
-              <PendingLinks userId={actor.id} confirm={confirm} />
-            </Suspense>
-          )}
-
           {/* The words that keep going wrong, and so are the ones worth
               opening a map on. This used to be the first thing on the 맵 tab;
               with that tab gone it belongs on the shelf, where a student
@@ -175,19 +163,6 @@ export default async function StudyPage({
  * mattered. It is a line of type now: the count leads at size, its unit and
  * label trail behind it, and the button is the screen's one filled control.
  */
-/**
- * Teacher requests waiting on this student.
- *
- * Read with the student's own id, so there is no shape of this query that
- * returns somebody else's requests. Streamed like everything else on the shelf
- * — it must not hold up the words.
- */
-async function PendingLinks({ userId, confirm }: { userId: string; confirm: Promise<void> }) {
-  const [requests] = await Promise.all([listPendingLinkRequests(userId), confirm])
-  if (!requests.length) return null
-  return <LinkRequests requests={requests} />
-}
-
 async function DueStrip({
   userId,
   direction,

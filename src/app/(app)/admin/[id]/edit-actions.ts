@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireCurator } from '@/lib/auth/session'
+import { requireRole } from '@/lib/auth/session'
 import {
   deleteBrainMap,
   deleteVocabulary,
@@ -29,7 +29,7 @@ export async function saveItem(input: {
   parentId?: string
   values: Record<string, string>
 }): Promise<EditResult> {
-  const actor = await requireCurator()
+  const actor = await requireRole('teacher', 'admin')
   try {
     await saveDraftItem({ ...input, actorId: actor.id })
     revalidateAll(input.brainMapId, input.vocabularyId)
@@ -45,7 +45,7 @@ export async function deleteItem(input: {
   kind: ItemKind
   itemId: string
 }): Promise<EditResult> {
-  const actor = await requireCurator()
+  const actor = await requireRole('teacher', 'admin')
   try {
     await removeDraftItem({ ...input, actorId: actor.id })
     revalidateAll(input.brainMapId, input.vocabularyId)
@@ -61,7 +61,7 @@ export async function saveCore(input: {
   ko: string
   en: string
 }): Promise<EditResult> {
-  const actor = await requireCurator()
+  const actor = await requireRole('teacher', 'admin')
   try {
     await saveMeaningCore({ ...input, actorId: actor.id })
     revalidateAll(input.brainMapId, input.vocabularyId)
@@ -81,7 +81,7 @@ export async function removeBrainMap(input: {
   brainMapId: string
   vocabularyId: string
 }): Promise<EditResult> {
-  const actor = await requireCurator()
+  const actor = await requireRole('teacher', 'admin')
   try {
     await deleteBrainMap({ brainMapId: input.brainMapId, actorId: actor.id })
     revalidateAll(input.brainMapId, input.vocabularyId)
@@ -99,7 +99,7 @@ export async function removeBrainMap(input: {
  * go with it. Curator-only, and the screen asks twice.
  */
 export async function removeWord(input: { vocabularyId: string }): Promise<EditResult> {
-  const actor = await requireCurator()
+  const actor = await requireRole('teacher', 'admin')
   try {
     await deleteVocabulary({ vocabularyId: input.vocabularyId, actorId: actor.id })
     revalidatePath('/study')

@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getActor, requireCurator } from '@/lib/auth/session'
+import { getActor, requireRole } from '@/lib/auth/session'
 import { NEEDS_LOGIN, WROTE, type WriteResult } from '@/lib/auth/write-result'
 import { logLearningEvent, markImportant, recordNodeAnswer } from '@/lib/data/study'
 import { markBrainMapOpened } from '@/lib/data/personal'
@@ -79,7 +79,7 @@ export async function toggleImportant(
 export async function generateBrainMap(
   vocabularyId: string,
 ): Promise<{ ok: true; outcome: string } | { ok: false; error: string }> {
-  const actor = await requireCurator()
+  const actor = await requireRole('teacher', 'admin')
   try {
     const result = await ensureBrainMap(vocabularyId, { requestedBy: actor.id })
     revalidatePath(`/words/${vocabularyId}`)
