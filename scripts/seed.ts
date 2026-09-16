@@ -12,7 +12,14 @@ import { SEED_WORDS } from '@/lib/seed/words'
 import { brainMapDraftSchema, validateDraftConsistency } from '@/lib/ai/schema'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
 import { writeDraft } from '@/lib/data/brain-map'
-import { addToSet, assignSet, createSet, linkStudent } from '@/lib/data/teacher'
+import {
+  acceptTeacherLink,
+  addToSet,
+  assignSet,
+  createSet,
+  listPendingLinkRequests,
+  requestStudentLink,
+} from '@/lib/data/teacher'
 import { hashPassword } from '@/lib/auth/password'
 
 /**
@@ -106,7 +113,24 @@ async function main() {
   const teacherId = accounts.get('teacher') ?? null
   const studentId = accounts.get('student') ?? null
 
-  if (teacherId && studentId) await linkStudent(teacherId, studentId)
+  // Demo data, so the student's acceptance is played out rather than skipped:
+  // seeding a consented link by hand would be the one place in the codebase
+  // where a link exists that nobody agreed to.
+  if (teacherId && studentId) {
+    await requestStudentLink(teacherId, studentId)
+    const [pending] = await listPendingLinkRequests(studentId)
+    if (pending) await acceptTeacherLink(pending.id, studentId)
+  }
+
+  // And the demo teacher is verified, by the demo admin. `teacher_verified_at`
+  // is null everywhere else on purpose — see drizzle/0004.
+  const adminId = accounts.get('admin') ?? null
+  if (teacherId && adminId) {
+    await db
+      .update(users)
+      .set({ teacherVerifiedAt: new Date(), teacherVerifiedBy: adminId })
+      .where(eq(users.id, teacherId))
+  }
 
   const vocabularyIds: string[] = []
   let mapsWritten = 0

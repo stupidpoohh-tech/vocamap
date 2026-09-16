@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { Actor } from '@/lib/auth/session'
 import { GUEST_ID } from '@/lib/auth/guest'
 import { ForbiddenError } from '@/lib/data/errors'
-import { assertCanAccessStudent, linkStudent, listStudents, listWeakWords } from '@/lib/data/teacher'
+import { assertCanAccessStudent, listStudents, listWeakWords } from '@/lib/data/teacher'
 import { findOrCreateVocabulary } from '@/lib/data/vocabulary'
 import { addToSet, assignSet, createSet } from '@/lib/data/teacher'
 import { recordRecallAnswer } from '@/lib/data/study'
 import { bookmarkedIds } from '@/lib/data/study'
 import { listStudyWords, listWordSets, mapCounts, vaultCounts } from '@/lib/data/library'
-import { createUser, hasDatabase, resetDatabase } from './helpers/db'
+import { createUser, hasDatabase, linkAccepted, resetDatabase } from './helpers/db'
 
 const asActor = (u: { id: string; email: string; displayName: string; role: string }): Actor => ({
   id: u.id,
@@ -44,7 +44,7 @@ describe.skipIf(!hasDatabase)('student data access control', () => {
   it('allows a teacher once an active link exists', async () => {
     const teacher = await createUser('teacher')
     const student = await createUser('student')
-    await linkStudent(teacher.id, student.id)
+    await linkAccepted(teacher.id, student.id)
     await expect(assertCanAccessStudent(asActor(teacher), student.id)).resolves.toBeUndefined()
   })
 
@@ -52,7 +52,7 @@ describe.skipIf(!hasDatabase)('student data access control', () => {
     const teacher = await createUser('teacher')
     const mine = await createUser('student')
     const theirs = await createUser('student')
-    await linkStudent(teacher.id, mine.id)
+    await linkAccepted(teacher.id, mine.id)
     await expect(assertCanAccessStudent(asActor(teacher), theirs.id)).rejects.toBeInstanceOf(
       ForbiddenError,
     )
@@ -69,8 +69,8 @@ describe.skipIf(!hasDatabase)('student data access control', () => {
     const other = await createUser('teacher')
     const a = await createUser('student')
     const b = await createUser('student')
-    await linkStudent(mine.id, a.id)
-    await linkStudent(other.id, b.id)
+    await linkAccepted(mine.id, a.id)
+    await linkAccepted(other.id, b.id)
 
     const listed = await listStudents(mine.id)
     expect(listed.map((s) => s.id)).toEqual([a.id])
@@ -80,7 +80,7 @@ describe.skipIf(!hasDatabase)('student data access control', () => {
     const teacher = await createUser('teacher')
     const alice = await createUser('student')
     const bob = await createUser('student')
-    await linkStudent(teacher.id, alice.id)
+    await linkAccepted(teacher.id, alice.id)
 
     const { id } = await findOrCreateVocabulary({ lemma: 'maintain', translations: ['유지하다'] })
     const setId = await createSet({ ownerId: teacher.id, title: 'set' })

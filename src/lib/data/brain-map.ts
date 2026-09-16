@@ -407,6 +407,73 @@ export async function ensureBrainMap(
 }
 
 /**
+ * Writes a map for a word that has none, and does nothing at all for a word
+ * that has one.
+ *
+ * This exists because `writeDraft` is a replacement. It is the right function
+ * behind a curator pressing "regenerate" — they are looking at the map and
+ * asking for a new one. It was also what bulk import called for every word it
+ * touched, including words it had merely found again, which made pasting a
+ * vocabulary list a way to delete an approved public map: the head row was
+ * updated in place, its version bumped, its approval reset, and every child row
+ * dropped and rebuilt with new ids.
+ *
+ * The guard is the unique index on `brain_maps.vocabulary_id`, not a look
+ * first. Two imports of the same new word run at the same time under a
+ * connection pool: both would see no map, both would decide to write one, and
+ * `writeDraft`'s upsert would let the second overwrite the first. Here the
+ * insert is the test — the loser's `on conflict do nothing` returns no row, and
+ * it stops before touching a single child table.
+ *
+ * Returns `created: false` when a map was already there. The caller reports
+ * that to the person importing rather than merging anything: the existing map
+ * has been reviewed and studied against, and a second opinion typed into a
+ * paste box is not grounds for replacing it.
+ */
+export async function createMapIfAbsent(
+  vocabularyId: string,
+  draft: BrainMapDraft,
+  meta: {
+    model?: string | null
+    createdBy?: string | null
+    status?: 'draft_ai' | 'approved'
+    reviewNote?: string | null
+  } = {},
+  db: Db = defaultDb,
+): Promise<{ created: boolean; brainMapId: string | null }> {
+  const [vocab] = await db
+    .select()
+    .from(vocabularies)
+    .where(eq(vocabularies.id, vocabularyId))
+    .limit(1)
+  if (!vocab) throw new NotFoundError(`Vocabulary ${vocabularyId} not found`)
+
+  return db.transaction(async (tx) => {
+    const [head] = await tx
+      .insert(brainMaps)
+      .values({
+        vocabularyId,
+        status: meta.status ?? 'draft_ai',
+        meaningCoreKo: draft.meaningCoreKo,
+        meaningCoreEn: draft.meaningCoreEn,
+        generatedByModel: meta.model ?? null,
+        promptVersion: PROMPT_VERSION,
+        reviewNote: meta.reviewNote ?? null,
+        createdBy: meta.createdBy ?? null,
+      })
+      .onConflictDoNothing({ target: brainMaps.vocabularyId })
+      .returning({ id: brainMaps.id, version: brainMaps.version })
+
+    // Somebody else owns this word's map. Nothing below this line runs, which
+    // is the whole guarantee: no delete, no translation, no revision row.
+    if (!head) return { created: false, brainMapId: null }
+
+    await writeDraftBody(head.id, vocabularyId, vocab.lemma, draft, head.version, meta, tx)
+    return { created: true, brainMapId: head.id }
+  })
+}
+
+/**
  * Persists a validated draft as `draft_ai`, replacing the previous body but
  * keeping the row identity — so `brain_map_node_progress` and `review_events`,
  * which reference the vocabulary rather than the content, survive untouched.
@@ -458,99 +525,119 @@ export async function writeDraft(
       .returning({ id: brainMaps.id, version: brainMaps.version })
 
     if (!head) throw new Error('Failed to write brain map head')
-    const id = head.id
 
-    await Promise.all([
-      tx.delete(brainMapMeanings).where(eq(brainMapMeanings.brainMapId, id)),
-      tx.delete(brainMapSentences).where(eq(brainMapSentences.brainMapId, id)),
-      tx.delete(brainMapCollocations).where(eq(brainMapCollocations.brainMapId, id)),
-      tx.delete(brainMapWordFamily).where(eq(brainMapWordFamily.brainMapId, id)),
-      tx.delete(brainMapSimilarWords).where(eq(brainMapSimilarWords.brainMapId, id)),
-    ])
+    await writeDraftBody(head.id, vocabularyId, vocab.lemma, draft, head.version, meta, tx)
+    return head.id
+  })
+}
 
-    if (draft.meanings.length) {
-      await tx.insert(brainMapMeanings).values(
-        draft.meanings.map((m, i) => ({
-          brainMapId: id,
-          ko: m.ko,
-          enDefinition: m.enDefinition,
-          enDefinitionKo: m.enDefinitionKo ?? null,
-          connectionNote: m.connectionNote,
-          exampleChunk: m.exampleChunk,
-          sortOrder: i,
-        })),
-      )
-    }
-    if (draft.sentences.length) {
-      await tx.insert(brainMapSentences).values(
-        draft.sentences.map((s, i) => ({
-          brainMapId: id,
-          text: s.text,
-          ko: s.ko,
-          targetMeaning: s.targetMeaning,
-          highlight: s.highlight,
-          difficulty: s.difficulty,
-          sortOrder: i,
-        })),
-      )
-    }
-    if (draft.collocations.length) {
-      await tx.insert(brainMapCollocations).values(
-        draft.collocations.map((c, i) => ({
-          brainMapId: id,
-          expression: c.expression,
-          ko: c.ko,
-          exampleSentence: c.exampleSentence,
-          importance: c.importance,
-          sortOrder: i,
-        })),
-      )
-    }
-    if (draft.wordFamily.length) {
-      await tx.insert(brainMapWordFamily).values(
-        draft.wordFamily.map((f, i) => ({
-          brainMapId: id,
-          lemma: f.lemma,
-          partOfSpeech: f.partOfSpeech,
-          ko: f.ko,
-          exampleSentence: f.exampleSentence,
-          sortOrder: i,
-        })),
-      )
-    }
+/**
+ * The children of a map: senses, sentences, collocations, derived forms, pairs,
+ * the word's translations, and the revision row that records what was written.
+ *
+ * Shared by the two ways a map gets a body — `writeDraft`, which replaces one,
+ * and `createMapIfAbsent`, which only ever fills a new one. Splitting it out
+ * keeps those two from drifting apart, and makes it obvious that the delete at
+ * the top belongs to replacement: on a freshly inserted head it matches
+ * nothing.
+ */
+async function writeDraftBody(
+  id: string,
+  vocabularyId: string,
+  lemma: string,
+  draft: BrainMapDraft,
+  version: number,
+  meta: { model?: string | null; createdBy?: string | null; status?: 'draft_ai' | 'approved' },
+  tx: Db,
+): Promise<void> {
+  await Promise.all([
+    tx.delete(brainMapMeanings).where(eq(brainMapMeanings.brainMapId, id)),
+    tx.delete(brainMapSentences).where(eq(brainMapSentences.brainMapId, id)),
+    tx.delete(brainMapCollocations).where(eq(brainMapCollocations.brainMapId, id)),
+    tx.delete(brainMapWordFamily).where(eq(brainMapWordFamily.brainMapId, id)),
+    tx.delete(brainMapSimilarWords).where(eq(brainMapSimilarWords.brainMapId, id)),
+  ])
 
-    for (const [i, similar] of draft.similarWords.entries()) {
-      const pairId = await upsertWordPair(
-        {
-          lemmaA: vocab.lemma,
-          lemmaB: similar.lemma,
-          coreDifference: similar.coreDifference,
-          usageRule: similar.usageRule,
-          status: meta.status ?? 'draft_ai',
-          model: meta.model ?? null,
-          questions: similar.questions,
-        },
-        tx as unknown as Db,
-      )
-      await tx
-        .insert(brainMapSimilarWords)
-        .values({ brainMapId: id, pairId, sortOrder: i })
-        .onConflictDoNothing()
-    }
+  if (draft.meanings.length) {
+    await tx.insert(brainMapMeanings).values(
+      draft.meanings.map((m, i) => ({
+        brainMapId: id,
+        ko: m.ko,
+        enDefinition: m.enDefinition,
+        enDefinitionKo: m.enDefinitionKo ?? null,
+        connectionNote: m.connectionNote,
+        exampleChunk: m.exampleChunk,
+        sortOrder: i,
+      })),
+    )
+  }
+  if (draft.sentences.length) {
+    await tx.insert(brainMapSentences).values(
+      draft.sentences.map((s, i) => ({
+        brainMapId: id,
+        text: s.text,
+        ko: s.ko,
+        targetMeaning: s.targetMeaning,
+        highlight: s.highlight,
+        difficulty: s.difficulty,
+        sortOrder: i,
+      })),
+    )
+  }
+  if (draft.collocations.length) {
+    await tx.insert(brainMapCollocations).values(
+      draft.collocations.map((c, i) => ({
+        brainMapId: id,
+        expression: c.expression,
+        ko: c.ko,
+        exampleSentence: c.exampleSentence,
+        importance: c.importance,
+        sortOrder: i,
+      })),
+    )
+  }
+  if (draft.wordFamily.length) {
+    await tx.insert(brainMapWordFamily).values(
+      draft.wordFamily.map((f, i) => ({
+        brainMapId: id,
+        lemma: f.lemma,
+        partOfSpeech: f.partOfSpeech,
+        ko: f.ko,
+        exampleSentence: f.exampleSentence,
+        sortOrder: i,
+      })),
+    )
+  }
 
-    if (draft.primaryTranslations.length) {
-      await addTranslations(vocabularyId, draft.primaryTranslations, tx as unknown as Db)
-    }
+  for (const [i, similar] of draft.similarWords.entries()) {
+    const pairId = await upsertWordPair(
+      {
+        lemmaA: lemma,
+        lemmaB: similar.lemma,
+        coreDifference: similar.coreDifference,
+        usageRule: similar.usageRule,
+        status: meta.status ?? 'draft_ai',
+        model: meta.model ?? null,
+        questions: similar.questions,
+      },
+      tx,
+    )
+    await tx
+      .insert(brainMapSimilarWords)
+      .values({ brainMapId: id, pairId, sortOrder: i })
+      .onConflictDoNothing()
+  }
 
-    await tx.insert(brainMapRevisions).values({
-      brainMapId: id,
-      version: head.version,
-      changeKind: meta.status === 'approved' ? 'seed' : 'ai_generated',
-      changedBy: meta.createdBy ?? null,
-      snapshot: draft,
-    })
+  if (draft.primaryTranslations.length) {
+    await addTranslations(vocabularyId, draft.primaryTranslations, tx)
+  }
 
-    return id
+  await tx.insert(brainMapRevisions).values({
+    brainMapId: id,
+    version,
+    changeKind: meta.status === 'approved' ? 'seed' : 'ai_generated',
+    changedBy: meta.createdBy ?? null,
+    snapshot: draft,
   })
 }
 

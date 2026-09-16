@@ -1,4 +1,5 @@
 import { relations, sql } from 'drizzle-orm'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import {
   boolean,
   index,
@@ -81,6 +82,17 @@ export const users = pgTable(
     passwordHash: text().notNull(),
     displayName: text().notNull(),
     role: userRole().notNull().default('student'),
+    /**
+     * When an admin vouched for this teacher.
+     *
+     * The role alone says what a row claims to be; this says who checked. It
+     * exists because sign-up used to take the role from the form, so a
+     * `teacher` row is not evidence of anything on its own. Null means the
+     * account cannot use the protected curator actions, whatever its role.
+     * Admins are not gated by it — they are not created by sign-up.
+     */
+    teacherVerifiedAt: timestamp({ withTimezone: true }),
+    teacherVerifiedBy: uuid().references((): AnyPgColumn => users.id, { onDelete: 'set null' }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('users_email_key').on(sql`lower(${t.email})`)],
@@ -113,7 +125,22 @@ export const teacherStudentLinks = pgTable(
     studentId: uuid()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    status: linkStatus().notNull().default('active'),
+    /**
+     * `pending` until the student says yes. A teacher naming an address is a
+     * request, not a relationship — knowing someone's email is not consent to
+     * read what they have been getting wrong.
+     */
+    status: linkStatus().notNull().default('pending'),
+    /** Who asked. Always the teacher today; recorded so the row explains itself. */
+    requestedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    /**
+     * When the student (or an admin acting for them) accepted, and who that
+     * was. `assertCanAccessStudent` requires both this and `active`: a row that
+     * is active with no consent behind it predates the rule and has to be
+     * asked again.
+     */
+    consentedAt: timestamp({ withTimezone: true }),
+    consentedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

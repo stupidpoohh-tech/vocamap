@@ -58,12 +58,10 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const password = String(formData.get('password') ?? '')
   const displayName = String(formData.get('displayName') ?? '').trim()
-  const role = String(formData.get('role') ?? 'student')
 
   if (!email.includes('@')) return { error: '올바른 이메일을 입력해 주세요.' }
   if (password.length < 8) return { error: '비밀번호는 8자 이상이어야 합니다.' }
   if (!displayName) return { error: '이름을 입력해 주세요.' }
-  if (role !== 'student' && role !== 'teacher') return { error: '역할이 올바르지 않습니다.' }
 
   let destination: string
   try {
@@ -79,7 +77,11 @@ export async function signUp(_prev: AuthFormState, formData: FormData): Promise<
       .values({
         email,
         displayName,
-        role,
+        // Not read from the form. This used to accept `role`, which made the
+        // curator's powers — writing, editing and approving the maps every
+        // other reader sees — a dropdown on a public sign-up page. A role is
+        // something an admin grants; see `grantTeacherRole`.
+        role: 'student',
         passwordHash: await hashPassword(password),
       })
       .returning({ id: users.id, role: users.role })

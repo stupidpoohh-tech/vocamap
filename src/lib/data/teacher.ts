@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db'
 import { db as defaultDb } from '@/lib/db'
 import type { Actor } from '@/lib/auth/session'
@@ -44,6 +44,11 @@ export async function assertCanAccessStudent(
         eq(teacherStudentLinks.teacherId, actor.id),
         eq(teacherStudentLinks.studentId, studentId),
         eq(teacherStudentLinks.status, 'active'),
+        // Active is not enough on its own. Links written before consent
+        // existed were made active by the teacher typing an address, so the
+        // status recorded that a teacher asked, not that a student agreed.
+        // Those rows are kept and re-confirmed rather than trusted.
+        isNotNull(teacherStudentLinks.consentedAt),
       ),
     )
     .limit(1)
@@ -64,23 +69,144 @@ export async function listStudents(teacherId: string, db: Db = defaultDb) {
       and(
         eq(teacherStudentLinks.teacherId, teacherId),
         eq(teacherStudentLinks.status, 'active'),
+        // The same condition `assertCanAccessStudent` applies, so the roster
+        // cannot list a student whose page would then refuse to open.
+        isNotNull(teacherStudentLinks.consentedAt),
       ),
     )
     .orderBy(users.displayName)
 }
 
-export async function linkStudent(
+/**
+ * A teacher asking to follow a student. Not the relationship itself.
+ *
+ * This used to insert `active`, and to force `active` on conflict — so knowing
+ * a student's email address was the whole of the access check, and a student
+ * who had revoked a teacher was re-linked the next time that teacher retyped
+ * the address. Both are gone: a new row is `pending`, and an existing row of
+ * any status is left exactly as it is.
+ *
+ * The student decides from here. See `acceptTeacherLink`.
+ */
+export async function requestStudentLink(
   teacherId: string,
   studentId: string,
   db: Db = defaultDb,
-): Promise<void> {
-  await db
+): Promise<{ outcome: 'requested' | 'already_pending' | 'already_active' | 'revoked' }> {
+  const inserted = await db
     .insert(teacherStudentLinks)
-    .values({ teacherId, studentId, status: 'active' })
-    .onConflictDoUpdate({
-      target: [teacherStudentLinks.teacherId, teacherStudentLinks.studentId],
-      set: { status: 'active' },
+    .values({ teacherId, studentId, status: 'pending', requestedBy: teacherId })
+    // Never `onConflictDoUpdate`. A row that exists already carries the
+    // student's answer, and a repeated request must not be able to change it.
+    .onConflictDoNothing()
+    .returning({ id: teacherStudentLinks.id })
+
+  if (inserted.length) return { outcome: 'requested' }
+
+  const [existing] = await db
+    .select({
+      status: teacherStudentLinks.status,
+      consentedAt: teacherStudentLinks.consentedAt,
     })
+    .from(teacherStudentLinks)
+    .where(
+      and(
+        eq(teacherStudentLinks.teacherId, teacherId),
+        eq(teacherStudentLinks.studentId, studentId),
+      ),
+    )
+    .limit(1)
+
+  if (existing?.status === 'revoked') return { outcome: 'revoked' }
+  if (existing?.status === 'active' && existing.consentedAt) return { outcome: 'already_active' }
+  return { outcome: 'already_pending' }
+}
+
+/**
+ * Requests waiting on this student's answer.
+ *
+ * Read by the student's own screen, so it is keyed on the student — there is no
+ * path here that lets one account list another's requests.
+ */
+export async function listPendingLinkRequests(studentId: string, db: Db = defaultDb) {
+  return db
+    .select({
+      id: teacherStudentLinks.id,
+      teacherName: users.displayName,
+      teacherEmail: users.email,
+      requestedAt: teacherStudentLinks.createdAt,
+    })
+    .from(teacherStudentLinks)
+    .innerJoin(users, eq(users.id, teacherStudentLinks.teacherId))
+    .where(
+      and(
+        eq(teacherStudentLinks.studentId, studentId),
+        eq(teacherStudentLinks.status, 'pending'),
+      ),
+    )
+    .orderBy(asc(teacherStudentLinks.createdAt))
+}
+
+/**
+ * The student saying yes.
+ *
+ * `studentId` is the signed-in account, and it is part of the WHERE rather than
+ * something checked beforehand: a teacher who guesses a link id still matches
+ * no row. An admin approving on a student's behalf goes through
+ * `approveLinkAsAdmin`, which records itself as the consenting party so the two
+ * are never confused in the record.
+ */
+export async function acceptTeacherLink(
+  linkId: string,
+  studentId: string,
+  db: Db = defaultDb,
+): Promise<boolean> {
+  const updated = await db
+    .update(teacherStudentLinks)
+    .set({ status: 'active', consentedAt: new Date(), consentedBy: studentId })
+    .where(
+      and(
+        eq(teacherStudentLinks.id, linkId),
+        eq(teacherStudentLinks.studentId, studentId),
+        eq(teacherStudentLinks.status, 'pending'),
+      ),
+    )
+    .returning({ id: teacherStudentLinks.id })
+  return updated.length > 0
+}
+
+/** The student saying no, or withdrawing an answer they gave before. */
+export async function revokeTeacherLink(
+  linkId: string,
+  studentId: string,
+  db: Db = defaultDb,
+): Promise<boolean> {
+  const updated = await db
+    .update(teacherStudentLinks)
+    .set({ status: 'revoked', consentedAt: null, consentedBy: null })
+    .where(and(eq(teacherStudentLinks.id, linkId), eq(teacherStudentLinks.studentId, studentId)))
+    .returning({ id: teacherStudentLinks.id })
+  return updated.length > 0
+}
+
+/**
+ * An admin approving a link for a student who cannot do it themselves.
+ *
+ * Kept separate from `acceptTeacherLink` so the caller has to be an admin path,
+ * and so `consented_by` names the admin rather than implying the student
+ * clicked something. A teacher has no route to either function.
+ */
+export async function approveLinkAsAdmin(
+  linkId: string,
+  adminId: string,
+  db: Db = defaultDb,
+): Promise<boolean> {
+  const updated = await db
+    .update(teacherStudentLinks)
+    .set({ status: 'active', consentedAt: new Date(), consentedBy: adminId })
+    .where(and(eq(teacherStudentLinks.id, linkId), eq(teacherStudentLinks.status, 'pending')))
+    .returning({ id: teacherStudentLinks.id })
+  return updated.length > 0
 }
 
 /** Words this student gets wrong most often. The teacher's main working view. */

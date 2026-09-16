@@ -44,14 +44,13 @@ export function LoginForm({
         {mode === 'signup' ? (
           <>
             <Input name="displayName" placeholder="이름" autoComplete="name" required />
-            <select
-              name="role"
-              defaultValue="student"
-              className="w-full rounded-control border border-line bg-surface px-3 py-2.5 text-[0.9375rem]"
-            >
-              <option value="student">학생</option>
-              <option value="teacher">선생님</option>
-            </select>
+            {/* No role picker. Signing up makes a student account; the server
+                ignores any role the form sends. Teaching accounts are granted
+                by an admin, because a teacher writes and approves the maps
+                every other reader studies from. */}
+            <p className="-mt-1 text-xs text-ink-3 break-keep">
+              학생 계정으로 가입됩니다. 선생님 계정이 필요하면 관리자에게 요청해 주세요.
+            </p>
           </>
         ) : null}
 
