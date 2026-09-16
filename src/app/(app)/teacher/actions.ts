@@ -202,9 +202,6 @@ export async function importWordbookPage(
       : `기존 '${title}' 세트에 넣었어요${already ? ` (이미 있던 ${already}개는 그대로)` : ''}`,
     `${summary.words}개 단어 · 새로 ${summary.created}개, 기존 ${summary.reused}개`,
     summary.synonymsSkipped ? `유의어 ${summary.synonymsSkipped}개는 넣지 않았어요` : null,
-    summary.filledMeanings.length
-      ? `뜻이 비어 있던 단어에 뜻을 채웠어요: ${summary.filledMeanings.join(', ')}`
-      : null,
     // Said plainly, because the alternative is a teacher believing the new
     // wording went in. Nothing was merged and nothing was replaced: the map
     // that was already there is the one students still see.
