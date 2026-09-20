@@ -1,6 +1,6 @@
 import 'server-only'
 import { cache } from 'react'
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { SignJWT, jwtVerify } from 'jose'
 import { eq } from 'drizzle-orm'
@@ -11,8 +11,7 @@ import { GUEST_ID } from './guest'
 
 export { SESSION_COOKIE } from './cookie'
 export { GUEST_ID } from './guest'
-export { SESSION_DAYS, RENEW_WHEN_LEFT_UNDER_DAYS, SIGNED_OUT } from './lifetime'
-import { PATH_HEADER, SESSION_DAYS, RENEW_WHEN_LEFT_UNDER_DAYS, SIGNED_OUT } from './lifetime'
+const SESSION_DAYS = 30
 
 export type Role = 'student' | 'teacher' | 'admin'
 
@@ -123,29 +122,6 @@ export const getActor = cache(async function getActor(): Promise<Actor | null> {
     .limit(1)
 
   if (!row || row.expiresAt.getTime() < Date.now()) return null
-
-  // Push the row's expiry back while it is being used.
-  //
-  // The cookie, the token inside it and this row all used to be stamped thirty
-  // days from the moment you signed in and never touched again, so somebody who
-  // opened the app every single day was still signed out on day thirty with no
-  // warning and no way to tell why. The cookie is renewed at the edge (see
-  // `middleware.ts`); this is the half that keeps the row it points at alive,
-  // and it only writes when there is little enough left to be worth a write.
-  const leftMs = row.expiresAt.getTime() - Date.now()
-  if (leftMs < RENEW_WHEN_LEFT_UNDER_DAYS * 86_400_000) {
-    const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000)
-    // Not awaited on the read path's critical section, and a failure here is
-    // not a reason to refuse a session that is still valid.
-    await db
-      .update(sessions)
-      .set({ expiresAt })
-      .where(eq(sessions.id, sid))
-      .catch((error) => {
-        console.error('[auth:renewSession]', error)
-      })
-  }
-
   return {
     id: row.id,
     email: row.email,
@@ -214,42 +190,12 @@ export async function readerFromCookie(): Promise<{
   }
 
   const reader: Reader = { id: claims.userId, role: claims.role, isGuest: false }
-  const back = await whereWeAre()
   const confirm = getActor().then((actual) => {
-    // Every bounce says which check failed. Without this a reader who lands
-    // back on the sign-in screen — and the person they report it to — has no
-    // way to tell an expired session from a revoked one from a changed role,
-    // and all three look identical from the outside.
-    if (!actual) return redirect(signInAgain('session', back))
-    if (actual.id !== reader.id) return redirect(signInAgain('mismatch', back))
     // The role is compared too: a cookie signed when this account was a
     // teacher must not keep showing unreviewed drafts after a demotion.
-    if (actual.role !== reader.role) return redirect(signInAgain('role', back))
+    if (actual?.id !== reader.id || actual.role !== reader.role) redirect('/login')
   })
   return { reader, confirm }
-}
-
-/**
- * The sign-in URL, saying why and remembering where.
- *
- * `next` is what makes a bounce recoverable rather than merely explained: the
- * reader signs in once and carries on reading the page they opened, instead of
- * being put back at the top of the app to find it again.
- */
-function signInAgain(reason: string, back: string | null): string {
-  const query = new URLSearchParams({ [SIGNED_OUT]: reason })
-  if (back) query.set('next', back)
-  return `/login?${query}`
-}
-
-/** The path being rendered, as the middleware saw it. Null if it is not there. */
-async function whereWeAre(): Promise<string | null> {
-  try {
-    const path = (await headers()).get(PATH_HEADER)
-    return path && path.startsWith('/') && !path.startsWith('//') ? path : null
-  } catch {
-    return null
-  }
 }
 
 /** What the cookie itself says. Signature-checked, but no database read. */
