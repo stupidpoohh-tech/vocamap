@@ -109,6 +109,37 @@ try {
     check('로그인은 그대로 유지된다', !page.url().includes('/login'), page.url())
   }
 
+  console.log('\n권한이 바뀐 뒤 (관리자 부여)')
+  {
+    // 이것이 admin 부여가 하는 일이다 — DB 의 역할만 바뀌고 브라우저의 쿠키는
+    // 예전 역할을 그대로 들고 있다. 이 불일치가 화면을 로그인으로 보내고,
+    // 로그인은 이미 로그인된 사람을 되돌려보내서 끝없이 돌았다. 주소가 하나도
+    // 바뀌지 않아 밖에서는 빈 화면이 깜빡이는 것으로만 보였다.
+    await sql`update users set role = 'admin' where email = 't@test.local'`
+
+    let moves = 0
+    const count = (f) => { if (f === page.mainFrame()) moves += 1 }
+    page.on('framenavigated', count)
+    await page.goto(`${baseUrl}/?t=${Date.now()}`, { waitUntil: 'domcontentloaded' }).catch(() => {})
+    await page.waitForTimeout(6000)
+    page.off('framenavigated', count)
+
+    check('화면이 끝없이 다시 열리지 않는다', moves < 8, `6초에 ${moves}번 이동`)
+    check('로그인 화면으로 쫓겨나지 않는다', !page.url().includes('/login'), page.url())
+
+    const cookie = await cookieOf(context)
+    const { jwtVerify } = await import('jose')
+    const { payload } = await jwtVerify(
+      cookie.value,
+      new TextEncoder().encode(process.env.AUTH_SECRET ?? ''),
+    )
+    check('쿠키가 새 권한으로 다시 쓰인다', payload.role === 'admin', String(payload.role))
+    check('보던 화면이 그대로 그려진다', (await page.textContent('body')).includes('단어'))
+
+    const rows = await sql`select count(*)::int as n from sessions`
+    check('세션을 새로 만들지 않는다 (같은 행을 고친다)', rows[0].n === 1, `${rows[0].n}개`)
+  }
+
   console.log('\n정말로 끝난 세션')
   {
     await sql`delete from sessions`

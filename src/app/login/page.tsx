@@ -29,7 +29,13 @@ export default async function LoginPage({
   const { mode, next } = params
   const why = WHY[params[SIGNED_OUT] as SignedOutReason]
   const actor = await getActor()
-  if (actor) redirect(safeNext(next) ?? '/')
+  /* Somebody already signed in is sent on to what they were opening — unless
+     they were sent *here* by a screen that could not use their session. Doing
+     it anyway is a loop with no exit and no address change: the screen bounces
+     here, here bounces back, and all the reader sees is a blank page flickering
+     for as long as they look at it. If a screen says the session did not work,
+     this one believes it and shows the form. */
+  if (actor && !why) redirect(safeNext(next) ?? '/')
 
   const initialMode = mode === 'signup' ? 'signup' : 'signin'
   // Only a path inside this app, so a crafted link cannot bounce someone off

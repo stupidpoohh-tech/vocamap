@@ -72,6 +72,46 @@ export async function createSession(userId: string, role: Role): Promise<void> {
   })
 }
 
+/**
+ * Rewrites the cookie's claims from the database, keeping the same session.
+ *
+ * The cookie carries the role it was minted with, and an admin changing
+ * somebody's role does not reach into their browser. That left the two
+ * disagreeing, and a disagreement used to mean "sign in again" — which turned
+ * into an endless bounce, because the sign-in screen sends an account that is
+ * already signed in back where it came from. See `readerFromCookie`.
+ *
+ * Nothing here trusts the cookie: the role written is the one the database
+ * gives now. The session row is the same row, so revoking still works and the
+ * reader is not signed out for a change they did not make.
+ */
+export async function reissueSessionCookie(): Promise<boolean> {
+  const claims = await sessionClaims()
+  if (!claims) return false
+
+  const actor = await getActor()
+  if (!actor || actor.id !== claims.userId) return false
+
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000)
+  await db.update(sessions).set({ expiresAt }).where(eq(sessions.id, claims.sid))
+
+  const token = await new SignJWT({ sid: claims.sid, uid: actor.id, role: actor.role })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(expiresAt)
+    .sign(secret())
+
+  const store = await cookies()
+  store.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    expires: expiresAt,
+  })
+  return true
+}
+
 export async function destroySession(): Promise<void> {
   const store = await cookies()
   const token = store.get(SESSION_COOKIE)?.value
@@ -224,10 +264,17 @@ export async function readerFromCookie(): Promise<{
     if (actual.id !== reader.id) return redirect(signInAgain('mismatch', back))
     // The role is compared too: a cookie signed when this account was a
     // teacher must not keep showing unreviewed drafts after a demotion.
-    if (actual.role !== reader.role) return redirect(signInAgain('role', back))
+    // A role that changed under a live session is not a reason to throw
+    // somebody out — the session is still theirs. The cookie is rewritten from
+    // the database and the reader carries on where they were.
+    if (actual.role !== reader.role) return redirect(REFRESH_PATH(back))
   })
   return { reader, confirm }
 }
+
+/** Where a stale cookie goes to be rewritten before the page is drawn again. */
+const REFRESH_PATH = (back: string | null) =>
+  `/session/refresh${back ? `?next=${encodeURIComponent(back)}` : ''}`
 
 /**
  * The sign-in URL, saying why and remembering where.
