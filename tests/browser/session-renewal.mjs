@@ -140,6 +140,22 @@ try {
     check('세션을 새로 만들지 않는다 (같은 행을 고친다)', rows[0].n === 1, `${rows[0].n}개`)
   }
 
+  console.log('\n세션이 안 통한다고 하며 보낸 화면에서 왔을 때')
+  {
+    // 되돌려보내면 끝이 없다. 화면은 「이 세션으로는 못 그린다」며 로그인으로
+    // 보내고, 로그인은 「로그인돼 있네」하며 되돌려보낸다. 둘 다 클라이언트
+    // 이동이라 주소는 그대로고, 밖에서는 빈 화면이 깜빡이는 것만 보인다.
+    // 2026-09-18 의 /study 조회 급증이 이것이었다.
+    await page.goto(`${baseUrl}/login?${'signed_out'}=session&next=%2Fstudy`, {
+      waitUntil: 'domcontentloaded',
+    })
+    await page.waitForTimeout(2500)
+
+    check('로그인된 사람이라도 되돌려보내지 않는다', page.url().includes('/login'), page.url())
+    check('로그인 폼을 보여 준다', (await page.locator('input[name="email"]').count()) > 0)
+    check('왜 보게 됐는지 말해 준다', (await page.textContent('body')).includes('다시 로그인이 필요합니다'))
+  }
+
   console.log('\n정말로 끝난 세션')
   {
     await sql`delete from sessions`
