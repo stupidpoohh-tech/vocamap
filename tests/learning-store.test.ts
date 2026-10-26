@@ -7,7 +7,13 @@ import { emptyCardState } from '@/lib/learning/scheduler'
  * 조용히 거짓이 되어 모든 단어가 '볼 때가 됐다'로 보인다. 그 왕복을 지킨다.
  */
 
-/** 브라우저가 아니므로 `localStorage` 를 세워 둔다. */
+/**
+ * 브라우저가 아니므로 `localStorage` 를 세워 둔다.
+ *
+ * `globalThis` 에는 이미 DOM 의 `Storage` 타입이 걸려 있어서 곧장 바꿔치기할
+ * 수 없다. `unknown` 을 한 번 거치는 것이 그래서다 — 이것을 빼면 타입 검사가
+ * 막히고, CI 는 타입 검사에서 멈추면 배포까지 가지 않는다.
+ */
 class MemoryStorage {
   private map = new Map<string, string>()
   getItem(k: string) { return this.map.get(k) ?? null }
@@ -115,7 +121,7 @@ describe('저장소를 못 쓸 때', () => {
   })
 
   it('망가진 내용이 들어 있어도 빈 기록으로 돌아간다', async () => {
-    ;(globalThis as { localStorage: MemoryStorage }).localStorage.setItem(
+    ;(globalThis as unknown as { localStorage: MemoryStorage }).localStorage.setItem(
       'vocamap.learning.v1', '{ 이건 JSON 이 아니다',
     )
     const { read } = await store()
@@ -126,10 +132,10 @@ describe('저장소를 못 쓸 때', () => {
     const { recordAnswer } = await store()
     recordAnswer('cave', 'en_ko', { correct: true, responseTimeMs: 1000 })
     const raw = JSON.parse(
-      (globalThis as { localStorage: MemoryStorage }).localStorage.getItem('vocamap.learning.v1')!,
+      (globalThis as unknown as { localStorage: MemoryStorage }).localStorage.getItem('vocamap.learning.v1')!,
     )
     raw.cards['broken:en_ko'] = { ...raw.cards['cave:en_ko'], dueAt: '날짜가 아님' }
-    ;(globalThis as { localStorage: MemoryStorage }).localStorage.setItem(
+    ;(globalThis as unknown as { localStorage: MemoryStorage }).localStorage.setItem(
       'vocamap.learning.v1', JSON.stringify(raw),
     )
     const { read, cardFor } = await store()
