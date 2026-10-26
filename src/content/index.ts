@@ -27,7 +27,21 @@ export type Word = {
   sets: string[]
 }
 
-export type Sense = { ko: string; en: string | null; note: string | null; chunk: string | null }
+export type Sense = {
+  ko: string
+  /** 영영 풀이. */
+  en: string | null
+  /**
+   * 그 영영 풀이 문장의 한국어 해석.
+   *
+   * 단어 뜻(`ko`)과 다른 것이다. "영영 뜻은 단어뜻이 아니라 영영 텍스트에
+   * 대한 해석"이라는 요구로 따로 만든 칸이고, 맵에서 영영 풀이를 눌렀을 때
+   * 열리는 것이 이것이다.
+   */
+  enKo: string | null
+  note: string | null
+  chunk: string | null
+}
 export type Sentence = { text: string; ko: string; highlight: string | null; target: string | null }
 export type Collocation = { expression: string; ko: string; example: string | null }
 export type FamilyMember = { lemma: string; pos: string | null; ko: string; example: string | null }
@@ -127,7 +141,13 @@ function load() {
         version: raw.version ?? 1,
         coreKo: raw.core_ko ?? null,
         coreEn: raw.core_en ?? null,
-        meanings: raw.meanings ?? [],
+        meanings: (raw.meanings ?? []).map((m: Record<string, unknown>) => ({
+          ko: (m.ko as string) ?? '',
+          en: (m.en as string) ?? null,
+          enKo: (m.en_ko as string) ?? null,
+          note: (m.note as string) ?? null,
+          chunk: (m.chunk as string) ?? null,
+        })),
         sentences: raw.sentences ?? [],
         collocations: raw.collocations ?? [],
         family: raw.family ?? [],

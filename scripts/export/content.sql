@@ -32,8 +32,12 @@ select json_build_object(
              bm.version,
              bm.meaning_core_ko                  as core_ko,
              bm.meaning_core_en                  as core_en,
+             -- `en_ko` 는 영영 풀이 그 문장의 한국어 해석이다. 단어 뜻(`ko`)과
+             -- 다른 것이라 따로 가져온다 — 이것이 빠지면 맵에서 영영 풀이를
+             -- 눌렀을 때 보여 줄 것이 없어진다.
              (select coalesce(json_agg(json_build_object(
-                'ko', x.ko, 'en', x.en_definition, 'note', x.connection_note,
+                'ko', x.ko, 'en', x.en_definition, 'en_ko', x.en_definition_ko,
+                'note', x.connection_note,
                 'chunk', x.example_chunk) order by x.sort_order), '[]'::json)
                 from brain_map_meanings x where x.brain_map_id = bm.id)      as meanings,
              (select coalesce(json_agg(json_build_object(
