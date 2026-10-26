@@ -194,3 +194,33 @@ function shuffle<T>(values: T[]): T[] {
   }
   return out
 }
+
+/**
+ * 오늘의 복습이 실제로 물을 단어 수.
+ *
+ * 화면이 따로 세면 어긋난다. 실제로 그랬다 — 목록은 "한 번도 안 본 단어는
+ * 볼 때가 된 것"이라는 예전 규칙으로 235개라 해 놓고, 그 글을 눌러 들어간
+ * 시험은 "지금 복습할 단어가 없어요"를 띄웠다. 도서관에 있는 단어 전부가
+ * 오늘 돌아오는 것이 아니고(담아 둔 것과 한 번이라도 푼 것만 돌아온다),
+ * 그 규칙은 `buildQueue` 에 있다. 그래서 세는 것도 그것으로 센다.
+ *
+ * 단어 수다. 대기열은 방향마다 한 줄이라 같은 단어가 둘일 수 있다.
+ */
+export function dueCount(
+  words: Candidate[],
+  saved: Saved,
+  opts: { set?: string | null; directions?: Direction[]; now?: Date } = {},
+): number {
+  const queue = buildQueue(words, saved, { ...opts, scope: 'due' })
+  return new Set(queue.map((q) => q.word.slug)).size
+}
+
+/** 그중 아직 한 번도 안 본 것. "새 단어 N개 함께"가 이것이다. */
+export function freshCount(
+  words: Candidate[],
+  saved: Saved,
+  opts: { set?: string | null; directions?: Direction[]; now?: Date } = {},
+): number {
+  const queue = buildQueue(words, saved, { ...opts, scope: 'due' })
+  return new Set(queue.filter((q) => q.isNew).map((q) => q.word.slug)).size
+}

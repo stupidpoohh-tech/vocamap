@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Button, EmptyState, Input, TabBar, TabButton } from '@/components/ui'
 import { WordList, type ListDirection, type WordListItem } from '@/components/words/word-list'
-import { dueNow, isBookmarked, read, wrongCount, type Saved } from '@/learning/store'
+import { isBookmarked, read, wrongCount, type Saved } from '@/learning/store'
+import { dueCount } from '@/learning/session'
 
 /**
  * 단어 목록 — 고르고 거르는 일을 전부 브라우저에서 한다.
@@ -68,7 +69,9 @@ export function StudyBrowser({
     mapStatus: w.hasMap ? 'approved' : 'none',
   }))
 
-  const due = saved ? dueNow(saved, visible.map((w) => w.slug), direction).length : 0
+  // 시험이 실제로 물을 것을 센다. 따로 세면 "235개" 를 눌러 들어가 "없어요"
+  // 를 보게 된다 — 실제로 그랬다.
+  const due = saved ? dueCount(visible, saved, { directions: [direction] }) : 0
   const savedCount = saved ? saved.bookmarks.length : 0
 
   return (

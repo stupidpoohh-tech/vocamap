@@ -2,7 +2,6 @@
 
 import {
   emptyCardState,
-  isDue,
   review,
   type CardState,
   type Direction,
@@ -138,14 +137,6 @@ export function toggleBookmark(slug: string): Saved {
 
 export function cardFor(saved: Saved, slug: string, direction: Direction): CardState | null {
   return saved.cards[cardKey(slug, direction)] ?? null
-}
-
-/** 아직 한 번도 안 본 단어는 '볼 때가 된 것'에 들어간다 — 예전 화면과 같다. */
-export function dueNow(saved: Saved, slugs: string[], direction: Direction, now = new Date()) {
-  return slugs.filter((slug) => {
-    const card = saved.cards[cardKey(slug, direction)]
-    return !card || isDue(card, now)
-  })
 }
 
 export function wrongCount(saved: Saved, slug: string): number {

@@ -85,26 +85,6 @@ describe('답을 기록하면', () => {
   })
 })
 
-describe('볼 때가 된 것', () => {
-  it('한 번도 안 본 단어는 들어간다', async () => {
-    const { dueNow, read } = await store()
-    expect(dueNow(read(), ['cave', 'however'], 'en_ko')).toEqual(['cave', 'however'])
-  })
-
-  it('방금 맞힌 단어는 빠진다', async () => {
-    const { recordAnswer, dueNow, read } = await store()
-    recordAnswer('cave', 'en_ko', { correct: true, responseTimeMs: 1500 })
-    expect(dueNow(read(), ['cave', 'however'], 'en_ko')).toEqual(['however'])
-  })
-
-  it('날짜가 지나면 다시 들어온다', async () => {
-    const { recordAnswer, dueNow, read } = await store()
-    const now = new Date('2026-10-26T00:00:00Z')
-    recordAnswer('cave', 'en_ko', { correct: true, responseTimeMs: 1500, now })
-    const muchLater = new Date('2027-10-26T00:00:00Z')
-    expect(dueNow(read(), ['cave'], 'en_ko', muchLater)).toEqual(['cave'])
-  })
-})
 
 describe('저장소를 못 쓸 때', () => {
   it('읽기가 막혀도 빈 기록으로 돌아간다', async () => {

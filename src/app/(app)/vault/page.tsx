@@ -15,6 +15,7 @@ export default function VaultPage() {
     slug: w.slug,
     lemma: w.lemma,
     ko: w.ko,
+    sets: w.sets,
     hasMap: hasMap(w.slug),
   }))
   return <ReviewDesk words={words} />

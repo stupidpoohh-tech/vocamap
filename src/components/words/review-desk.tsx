@@ -6,6 +6,7 @@ import { Button, PageHeader, TabBar, TabButton } from '@/components/ui'
 import { ReviewList, type ReviewWord } from '@/components/words/review-list'
 import { estimatedRetention, isDue } from '@/lib/learning/scheduler'
 import { cardFor, isBookmarked, read, wrongCount, type Saved } from '@/learning/store'
+import { freshCount } from '@/learning/session'
 
 /**
  * 복습 — 잊어가는 곡선이 보이는 화면.
@@ -23,7 +24,7 @@ import { cardFor, isBookmarked, read, wrongCount, type Saved } from '@/learning/
 
 type Bucket = 'now' | 'upcoming' | 'wrong'
 
-export type DeskWord = { slug: string; lemma: string; ko: string; hasMap: boolean }
+export type DeskWord = { slug: string; lemma: string; ko: string; sets: string[]; hasMap: boolean }
 
 export function ReviewDesk({ words }: { words: DeskWord[] }) {
   const [bucket, setBucket] = useState<Bucket>('now')
@@ -86,14 +87,18 @@ export function ReviewDesk({ words }: { words: DeskWord[] }) {
     }
   }, [rows, now])
 
-  /** 시험이 실제로 물을 것. 새 단어도 같은 자리에서 함께 나온다. */
-  const fresh = useMemo(() => {
-    if (!saved) return 0
-    return words.filter((w) => {
-      const card = cardFor(saved, w.slug, 'en_ko')
-      return !card
-    }).length
-  }, [words, saved])
+  /**
+   * 시험이 실제로 데려갈 새 단어 수.
+   *
+   * 한 번도 안 본 단어 전부가 아니다 — 담아 둔 것만 들어오고, 하루 10개가
+   * 상한이다. 그 규칙은 `buildQueue` 에 있으므로 여기서 다시 세지 않는다.
+   * 따로 세면 "새 단어 235개로 시작해요" 라고 해 놓고 10개를 내는 화면이
+   * 된다.
+   */
+  const fresh = useMemo(
+    () => (saved && now ? freshCount(words, saved, { now }) : 0),
+    [words, saved, now],
+  )
 
   const list = buckets[bucket]
   const dueCount = buckets.now.length

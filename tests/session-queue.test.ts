@@ -172,6 +172,41 @@ describe('문제', () => {
   })
 })
 
+describe('화면이 말하는 숫자', () => {
+  it('목록의 "오늘 볼 단어"는 시험이 실제로 내는 것과 같다', async () => {
+    const { toggleBookmark, read } = await store()
+    const { buildQueue, dueCount } = await session()
+    for (const w of WORDS.slice(0, 20)) toggleBookmark(w.slug)
+    const saved = read()
+
+    const queue = buildQueue(WORDS, saved, { scope: 'due', directions: ['en_ko'] })
+    const shown = dueCount(WORDS, saved, { directions: ['en_ko'] })
+    expect(shown).toBe(new Set(queue.map((q) => q.word.slug)).size)
+
+    // 담지 않은 215개는 세지 않는다. 한때 목록이 전부를 세어 "235개"라고
+    // 해 놓고, 눌러 들어가면 "지금 복습할 단어가 없어요"가 떴다.
+    expect(shown).toBe(10)
+  })
+
+  it('담은 것이 없으면 0 이다', async () => {
+    const { read } = await store()
+    const { dueCount } = await session()
+    expect(dueCount(WORDS, read(), { directions: ['en_ko'] })).toBe(0)
+  })
+
+  it('"새 단어 N개 함께"도 같은 규칙으로 센다', async () => {
+    const { toggleBookmark, recordAnswer, read } = await store()
+    const { dueCount, freshCount } = await session()
+    for (const w of WORDS.slice(0, 20)) toggleBookmark(w.slug)
+    recordAnswer('w0', 'en_ko', { correct: true })
+    const saved = read()
+    expect(freshCount(WORDS, saved, { directions: ['en_ko'] })).toBe(10)
+    expect(freshCount(WORDS, saved, { directions: ['en_ko'] })).toBeLessThanOrEqual(
+      dueCount(WORDS, saved, { directions: ['en_ko'] }),
+    )
+  })
+})
+
 describe('주소에서 읽는 범위', () => {
   it('아는 이름만 받고 나머지는 오늘의 복습이다', async () => {
     const { parseScope, parseDirections } = await session()
