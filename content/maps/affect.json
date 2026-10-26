@@ -1,0 +1,65 @@
+{
+  "lemma": "affect",
+  "version": 1,
+  "core_ko": "어떤 것이 다른 것에 작용해서 그 상태나 결과를 바꾸다.",
+  "core_en": "to produce a change in someone or something",
+  "meanings": [
+    {
+      "ko": "~에 영향을 미치다",
+      "en": "to cause a change in something",
+      "note": "가장 기본적인 용법. 목적어를 바로 취하는 타동사라서 \"affect to\"처럼 쓰지 않는다.",
+      "chunk": "affect the results"
+    },
+    {
+      "ko": "(감정적으로) 마음을 움직이다",
+      "en": "to cause a strong emotion in someone",
+      "note": "\"바꾸다\"의 대상이 사람의 마음인 경우. 보통 수동태 be deeply affected 형태로 자주 쓰인다.",
+      "chunk": "deeply affected by the news"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The weather can affect how well you sleep.",
+      "ko": "날씨는 당신이 얼마나 잘 자는지에 영향을 줄 수 있다.",
+      "highlight": "affect how well you sleep",
+      "target": "영향을 미치다"
+    },
+    {
+      "text": "Rising prices affect low-income families the most.",
+      "ko": "물가 상승은 저소득 가정에 가장 큰 영향을 미친다.",
+      "highlight": "affect low-income families",
+      "target": "집단에 영향을 미치다"
+    },
+    {
+      "text": "She was deeply affected by her grandfather’s death.",
+      "ko": "그녀는 할아버지의 죽음에 깊이 마음이 흔들렸다.",
+      "highlight": "deeply affected",
+      "target": "감정을 움직이다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "directly affect",
+      "ko": "직접적으로 영향을 미치다",
+      "example": "The new rule directly affects part-time workers."
+    },
+    {
+      "expression": "adversely affect",
+      "ko": "악영향을 미치다",
+      "example": "Lack of sleep adversely affects concentration."
+    },
+    {
+      "expression": "be deeply affected by",
+      "ko": "~에 깊이 영향을 받다",
+      "example": "The whole town was deeply affected by the flood."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "affection",
+      "pos": "noun",
+      "ko": "애정",
+      "example": "He showed great affection for his students."
+    }
+  ]
+}

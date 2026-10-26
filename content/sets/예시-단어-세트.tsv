@@ -1,0 +1,15 @@
+# 예시 단어 세트
+#
+# 한 줄에 단어 하나. 탭으로 나눈다:  단어 <탭> 뜻 <탭> 품사(없어도 됨)
+# 맨 앞이 # 인 줄과 빈 줄은 무시한다.
+
+maintain	유지하다	verb
+affect	영향을 미치다	verb
+issue	문제, 쟁점	noun
+significant	중요한	adjective
+contribute	기여하다	verb
+increase	증가하다	verb
+demand	수요	noun
+supply	공급	noun
+approach	접근법	noun
+account	계좌	noun
