@@ -13,7 +13,29 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 const source = process.argv[2] ?? 'content/export.json'
-const data = JSON.parse(readFileSync(source, 'utf8'))
+
+/**
+ * Neon 이 돌려주는 모양을 그대로 받는다.
+ *
+ * SQL Editor 는 결과를 `[{ "export": "…" }]` 로 감싸 주고, 그 안의 값은 JSON
+ * 을 다시 글자로 만든 것이다. 붙여넣는 사람에게 "바깥 껍데기를 벗기고 따옴표를
+ * 풀어서 넣으세요"라고 말하는 대신, 받는 쪽이 알아서 벗긴다. 손으로 벗기다
+ * 한 글자를 놓치면 그 뒤로 전부 어긋난다.
+ */
+function unwrap(text) {
+  let value = JSON.parse(text)
+  // 한 줄 한 칸짜리 결과는 배열에 담겨 온다.
+  if (Array.isArray(value)) value = value[0]
+  // 그 한 칸의 이름이 쿼리의 별칭(export)이다.
+  if (value && typeof value === 'object' && typeof value.export === 'string') {
+    value = value.export
+  }
+  // 값이 아직 글자라면 JSON 을 글자로 만든 것이다. 한 겹 더 벗긴다.
+  if (typeof value === 'string') value = JSON.parse(value)
+  return value
+}
+
+const data = unwrap(readFileSync(source, 'utf8'))
 
 const SETS = 'content/sets'
 const MAPS = 'content/maps'
