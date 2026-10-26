@@ -15,7 +15,7 @@ import {
   mobileFrameHeight,
   MOBILE_MAX_NODES,
 } from '@/lib/learning/mobile-map-layout'
-import type { NodeStatus, SemanticNode } from '@/lib/data/semantic-map'
+import type { NodeStatus, SemanticNode } from '@/lib/learning/semantic-nodes'
 import { cn } from '@/lib/utils'
 
 /**

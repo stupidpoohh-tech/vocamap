@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui'
-import type { Exercise, SemanticNode } from '@/lib/data/semantic-map'
+import type { Exercise } from '@/lib/learning/exercises'
+import type { SemanticNode } from '@/lib/learning/semantic-nodes'
 import { cn } from '@/lib/utils'
 
 /**

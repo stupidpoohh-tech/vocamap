@@ -1,21 +1,21 @@
 import Link from 'next/link'
-import { Suspense } from 'react'
-import { getActor } from '@/lib/auth/session'
-import { signOut } from '@/app/login/actions'
 import { BottomNav, NavShell } from './nav'
 import { SiteFooter } from '@/components/site-footer'
 
 /**
  * The app shell.
  *
- * Deliberately not an async component. It used to await the session before
- * returning any markup, which meant the frame — and the loading skeleton of
- * whatever page was opening — waited on a database round trip before a single
- * pixel could paint. The shell is synchronous and the two pieces that need to
- * know who you are stream in behind it.
+ * 두 조각이 사라졌다. 오른쪽 위의 이름과 로그아웃, 그리고 역할에 따라 달라지던
+ * 아래 탭 — 둘 다 "당신이 누구인가"를 서버에 물어야 알 수 있는 것이었고, 그
+ * 질문 하나 때문에 이 레이아웃 아래의 모든 화면이 요청마다 다시 그려졌다.
+ * `Suspense` 로 뒤에 흘려 보내도 그 사실은 바뀌지 않는다: 쿠키를 읽는 화면은
+ * 미리 구워질 수 없다.
  *
- * Visually it is as quiet as it can be: a hairline under a wordmark, and a
- * hairline over the navigation. Chrome should be the last thing you notice.
+ * 그래서 이 껍데기에는 사람이 없다. 단어와 복습, 둘 다 모두에게 같은 것이고
+ * 개인 기록은 브라우저가 자기 것을 얹는다.
+ *
+ * 보이는 것은 되도록 조용하게: 워드마크 아래 머리카락 한 올, 탭 위에 한 올.
+ * 틀은 가장 늦게 눈에 띄어야 하는 것이다.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -32,9 +32,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           >
             Voca Brain Map
           </Link>
-          <Suspense fallback={null}>
-            <Account />
-          </Suspense>
         </div>
       </header>
 
@@ -49,81 +46,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       <NavShell footer={<SiteFooter />}>
-        <Suspense fallback={<BottomNav links={STUDENT_LINKS} />}>
-          <Navigation />
-        </Suspense>
+        <BottomNav links={STUDENT_LINKS} />
       </NavShell>
     </div>
   )
 }
 
 /**
- * Two destinations for a student: the material, and the schedule that brings it
- * back before it is forgotten.
+ * Two destinations: the material, and the schedule that brings it back before
+ * it is forgotten.
  *
  * The maps had a tab of their own until the word rows started marking which
  * words have one. At that point the 맵 tab was this same shelf and these same
  * words with the unmapped ones hidden — a filter, not a place — so it became
  * one, inside the set where the words already are.
  *
- * The material comes first and the one that is about you comes last, which is
- * also the only one that asks for an account.
+ * 교사·검수 탭은 없다. 그 화면들은 데이터베이스와 함께 사라졌다.
  */
 const STUDENT_LINKS = [
   { href: '/study', label: '단어' },
   { href: '/vault', label: '복습' },
 ]
-
-/**
- * Who you are, or a way to become someone.
- *
- * A guest is not shown a wall — they are reading the app already — so this is
- * a quiet link, the same weight as the sign-out it replaces.
- */
-async function Account() {
-  const actor = await getActor()
-
-  if (!actor) {
-    return (
-      <Link href="/login" className="text-[0.8125rem] text-ink-3 transition hover:text-ink-2">
-        로그인
-      </Link>
-    )
-  }
-
-  return (
-    <div className="flex items-center gap-3 text-[0.8125rem]">
-      {/* An account on a temporary password says so on every screen, in place
-          of its own name. Sign-in already sends it here once; this is what
-          stops "I'll do it later" from meaning never, without walling off an
-          app the reader is in the middle of using. */}
-      {actor.mustChangePasswordAt ? (
-        <Link href="/account/password?forced=1" className="font-medium text-brand">
-          비밀번호 변경
-        </Link>
-      ) : (
-        <span className="hidden text-ink-3 sm:inline">{actor.displayName}</span>
-      )}
-      <form action={signOut}>
-        <button className="text-ink-3 transition hover:text-ink-2">로그아웃</button>
-      </form>
-    </div>
-  )
-}
-
-async function Navigation() {
-  const actor = await getActor()
-  // A guest gets the student's two destinations. The words read without an
-  // account; 복습 is their own schedule and asks for a sign-in when they open
-  // it — which is the point at which the account actually means something.
-  if (!actor) return <BottomNav links={STUDENT_LINKS} />
-
-  // Curation is a teacher's job as much as an admin's — the review page and
-  // every action behind it accept both — so the links must follow suit.
-  const links =
-    actor.role === 'student'
-      ? STUDENT_LINKS
-      : [...STUDENT_LINKS, { href: '/teacher', label: '교사' }, { href: '/admin', label: '검수' }]
-
-  return <BottomNav links={links} />
-}

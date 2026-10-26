@@ -24,35 +24,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
-    # A throwaway Postgres, created for this run and destroyed with it.
+    # 데이터베이스가 없다. 이 작업은 한때 Postgres 를 하나 띄웠는데, 시험의
+    # 2/3 이 그것 없이는 스스로 건너뛰면서 초록색으로 보고되었기 때문이다.
+    # 그 시험들은 권한 경계와 동의 검사에 대한 것이었고, 그 코드와 함께
+    # 없어졌다 — 서버가 들고 있는 남의 기록이 없으니 가려낼 경계가 없다.
     #
-    # Without one the database-backed suites skipped themselves and the job went
-    # green: two thirds of the tests — every authorisation boundary, every
-    # consent check, every guarantee about not overwriting a public map — were
-    # not running at all, and nothing said so. A skipped test is not a passing
-    # test, and the only way to stop it reading like one is to give CI a
-    # database.
-    #
-    # It is empty, local to the runner, and its password is in this file
-    # because it protects nothing. The production secret is never used for
-    # tests; `resetDatabase` refuses to truncate a database whose name does not
-    # contain "test", which is a second lock on the same door.
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: vocamap_test
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    env:
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vocamap_test
+    # 남은 시험은 모두 순수 함수에 대한 것이라 건너뛰는 것이 없다. 아래
+    # Test 단계가 그것을 확인한다.
 
     steps:
       - uses: actions/checkout@v4
@@ -68,67 +46,20 @@ jobs:
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
-      # Every migration, against an empty database. This is also the check that
-      # a new one applies at all: a file the journal does not list is skipped in
-      # silence, and that is how a column once shipped without ever existing.
-      - name: Prepare the test database
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vocamap_test
-        run: pnpm db:migrate
-
-      # With TEST_DATABASE_URL set, the database-backed suites run for real —
-      # and the run is failed if any of them skipped anyway.
-      #
-      # A skipped suite reports success, so this checks the count rather than
-      # trusting the exit code: if Postgres were unreachable, every DB-backed
-      # file would quietly skip and the job would still go green, which is the
-      # state this repository was already in.
+      # 건너뛴 시험은 통과한 시험이 아니다. 종료 코드만 믿지 않고 세어 본다 —
+      # 한때 이 저장소가 바로 그 상태였다.
       - name: Test
         run: |
           set -o pipefail
           pnpm test 2>&1 | tee /tmp/test.log
           if grep -qE '[0-9]+ skipped' /tmp/test.log; then
-            echo "::error::Database-backed tests skipped. TEST_DATABASE_URL is not reaching Postgres."
+            echo "::error::시험이 건너뛰어졌습니다. 건너뛴 시험은 통과한 시험이 아닙니다."
             grep -E 'Tests|Test Files' /tmp/test.log || true
             exit 1
           fi
 
       - name: Build
         run: pnpm run cf:build
-
-      # Before the deploy, not after. Every migration here adds something —
-      # a nullable column, a new table — so the running code ignores it until
-      # the new code arrives, and the new code never arrives first.
-      #
-      # This step exists because it was missing. `en_definition_ko` shipped
-      # against a database that did not have it, and every screen that reads a
-      # Brain Map answered with a server error until the column was added by
-      # hand. Nothing in the pipeline had noticed, because nothing in the
-      # pipeline was looking.
-      #
-      # Neon's pooled connection cannot hold the advisory lock a migration
-      # takes, so this wants the direct one — the URL *without* `-pooler` in
-      # the host. `DATABASE_URL_UNPOOLED` is preferred when both are set.
-      #
-      # Missing secret warns and moves on. It used to fail the job, and that
-      # was the wrong call twice over: it was a guard nobody had asked for, and
-      # it held six deploys of unrelated fixes hostage to a secret that had
-      # never been set. A migration that is configured and then *fails* still
-      # stops the deploy — that is a real signal. Not being configured is not.
-      - name: Migrate database
-        if: github.event_name != 'pull_request'
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
-        run: |
-          if [ -z "$DATABASE_URL_UNPOOLED" ] && [ -z "$DATABASE_URL" ]; then
-            echo "::warning::No database secret is set, so migrations were not run."
-            echo "::warning::Add DATABASE_URL (Neon's direct URL, the one without '-pooler')"
-            echo "::warning::under Settings → Secrets and variables → Actions to have them run here."
-            echo "::warning::Until then, apply new drizzle/*.sql by hand and check /api/health after deploying."
-            exit 0
-          fi
-          pnpm db:migrate
 
       - name: Deploy
         if: github.event_name != 'pull_request'

@@ -3,33 +3,16 @@
   "name": "vocamap",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-09-01",
-  // nodejs_compat gives the Worker Node's built-ins (Buffer, crypto, streams).
-  // Next.js and postgres.js both need them.
+  // nodejs_compat gives the Worker Node's built-ins (Buffer, crypto, streams),
+  // which Next.js needs.
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "observability": { "enabled": true },
+  "observability": { "enabled": true }
 
-  // A Worker cannot reliably open a raw TCP connection to a database over the
-  // public internet; against Neon it times out in production while working
-  // locally. Hyperdrive terminates and pools the connection inside Cloudflare's
-  // edge. `src/lib/db/index.ts` prefers this binding and falls back to
-  // DATABASE_URL when it is absent, so Node and non-Cloudflare hosts still work.
-  //
-  // `localConnectionString` is only ever used to emulate Hyperdrive on a
-  // developer machine — production always goes through the `id` above. It is
-  // required rather than optional because `opennextjs-cloudflare deploy` boots
-  // a local platform proxy to read bindings, so without it the *deploy* step
-  // fails in CI, not just `wrangler dev`. Override it with
-  // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE if your local
-  // Postgres differs.
-  "hyperdrive": [
-    {
-      "binding": "HYPERDRIVE",
-      "id": "debca67d626d462188b5ea383976316a",
-      "localConnectionString": "postgresql://postgres:postgres@localhost:5432/vocamap"
-    }
-  ]
+  // Hyperdrive 바인딩이 있던 자리다. 데이터베이스를 읽는 코드가 없어졌으니
+  // 붙일 것이 없다. Cloudflare 쪽의 Hyperdrive 와 Neon 은 그대로 있다 —
+  // 지운 것은 이 설정뿐이고, 돌아가려면 다시 붙이면 된다.
 }

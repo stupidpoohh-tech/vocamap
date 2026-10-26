@@ -1,23 +1,62 @@
-import type { BrainMapDraft } from '@/lib/ai/schema'
-
 /**
- * Hand-authored seed content.
+ * 손으로 쓴 맵 세 개 — 이제 시험 재료다.
  *
- * This is not filler: it is the reference for what an *approved* Brain Map
- * should look like, and the standard the AI generator's output gets judged
- * against in review. `maintain`, `affect` and `issue` are written out in full
- * so every node of the UI has something real to render.
+ * `src/lib/seed/words.ts` 였다. 데이터베이스를 채우던 자리에 있었고, 그 자리는
+ * 없어졌다. 그런데 `exercises.ts` 가 문제를 만드는 규칙은 그대로 쓰이고 있고
+ * (단어 화면의 맵이 그것으로 만들어진다), 그 규칙을 붙들고 있는 것이 이 세
+ * 개뿐이다 — 운영 콘텐츠에는 파생어가 있는 단어가 하나도 없어서, 파생어
+ * 문제의 규칙은 여기서만 확인된다.
  *
- * Everything seeded is marked `isSeed`, so `pnpm db:reset-seed` can remove it
- * without touching production content.
+ * 그래서 지우지 않고 옮겼다. 승인된 맵이 어떤 모양이어야 하는지에 대한
+ * 기준으로 쓰인 것이고, 그 기준이 바뀐 것은 아니다.
+ *
+ * 타입은 여기서 다시 적는다. 원래는 AI 가 내놓을 초안의 스키마(`BrainMapDraft`)
+ * 에서 왔는데, 그 모듈도 데이터베이스와 함께 없어졌다.
  */
+
+type Draft = {
+  meaningCoreKo: string
+  meaningCoreEn: string | null
+  primaryTranslations: string[]
+  meanings: Array<{
+    ko: string
+    enDefinition: string | null
+    connectionNote: string | null
+    exampleChunk: string | null
+  }>
+  sentences: Array<{
+    text: string
+    ko: string
+    targetMeaning: string | null
+    highlight: string | null
+    difficulty: number | null
+  }>
+  collocations: Array<{
+    expression: string
+    ko: string
+    exampleSentence: string | null
+    importance: number
+  }>
+  wordFamily: Array<{
+    lemma: string
+    partOfSpeech: string
+    ko: string
+    exampleSentence: string | null
+  }>
+  similarWords: Array<{
+    lemma: string
+    coreDifference: string
+    usageRule: string | null
+    questions: Array<{ prompt: string; answer: string; explanation: string }>
+  }>
+}
 
 export type SeedWord = {
   lemma: string
   partOfSpeech: string
   level: string | null
   translations: string[]
-  brainMap?: BrainMapDraft
+  brainMap?: Draft
 }
 
 export const SEED_WORDS: SeedWord[] = [

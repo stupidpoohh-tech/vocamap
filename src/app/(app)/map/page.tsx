@@ -1,36 +1,15 @@
-import { redirect } from 'next/navigation'
+import { GoToStudy } from '@/components/go-to-study'
 
 /**
- * The 맵 tab, folded into the study book.
+ * 맵 탭은 단어장 안으로 들어갔다.
  *
- * Having a map is a property of a word, and every word row already says which
- * words have one — so a screen listing the same sets and the same words with
- * the unmapped ones hidden was this screen wearing a different name. It is a
- * filter inside the set now.
+ * 맵이 있다는 것은 단어의 성질이고, 목록의 모든 줄이 이미 어느 단어에 맵이
+ * 있는지 말한다 — 같은 세트와 같은 단어를 맵 없는 것만 숨겨 보여주는 화면은
+ * 이 화면이 다른 이름을 입고 있던 것이었다.
  *
- * Kept as a redirect because the links are already out there: a bookmark, the
- * "← 맵" that used to sit on every word page, a message to a student.
+ * 그대로 두는 것은 링크가 이미 밖에 나가 있기 때문이다: 북마크, 학생에게 보낸
+ * 메시지, 예전 단어 화면마다 있던 "← 맵".
  */
-export default async function MapPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tab?: string; q?: string; set?: string }>
-}) {
-  const { tab, q, set } = await searchParams
-
-  // The curator queues were never about one set — they are the map pipeline,
-  // and that lives in 검수 now.
-  if (tab === 'pending') redirect('/admin')
-  if (tab === 'missing') redirect('/admin?tab=missing')
-  // "저장한 맵" was the star, which has its own tab in the study book.
-  if (tab === 'saved') redirect('/study?tab=saved')
-
-  const params = new URLSearchParams()
-  if (q) params.set('q', q)
-  if (set) {
-    params.set('set', set)
-    params.set('view', 'map')
-  }
-  const rest = params.toString()
-  redirect(rest ? `/study?${rest}` : '/study')
+export default function MapPage() {
+  return <GoToStudy />
 }

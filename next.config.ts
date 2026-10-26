@@ -1,17 +1,10 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  env: {
-    // Cloudflare Workers Builds injects WORKERS_CI_COMMIT_SHA at build time.
-    // Baking it in lets /api/health say which commit is actually serving, so
-    // "is my fix deployed yet?" stops being guesswork.
-    APP_COMMIT: process.env.WORKERS_CI_COMMIT_SHA ?? '',
-  },
   typedRoutes: false,
-  experimental: {
-    // Server Actions are used for every mutation; keep the payload small.
-    serverActions: { bodySizeLimit: '1mb' },
-  },
+  // 서버 액션이 하나도 없다. 고치는 일이 전부 브라우저에서 끝나므로 서버로
+  // 보낼 것이 없고, `/api/health` 도 함께 사라졌다 — 물어볼 데이터베이스가
+  // 없는데 "데이터베이스가 답하나"를 묻는 화면이었다.
 }
 
 export default nextConfig

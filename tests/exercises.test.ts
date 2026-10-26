@@ -11,7 +11,7 @@ import {
   type FamilyContent,
   type SentenceContent,
 } from '@/lib/learning/exercises'
-import { SEED_WORDS } from '@/lib/seed/words'
+import { SEED_WORDS } from './fixtures/seed-words'
 
 /**
  * The seed maps are the standard for approved content, so the questions are

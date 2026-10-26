@@ -1,22 +1,9 @@
-import { redirect } from 'next/navigation'
+import { GoToStudy } from '@/components/go-to-study'
 
 /**
- * The old library lives on as the study book at /study, which is where the
- * search, the set filter and the star all moved. Kept as a redirect so links
- * already handed out — and the "← 단어" on every word page — still land
- * somewhere useful.
+ * 옛 도서관은 /study 의 단어장으로 이어진다. 검색과 세트 걸러내기, 별이 모두
+ * 그쪽으로 옮겨 갔다. 이미 건네준 링크가 어딘가에는 닿게 남겨 둔다.
  */
-export default async function WordsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; set?: string; only?: string }>
-}) {
-  const { q, set, only } = await searchParams
-  if (only === 'bookmarked') redirect('/study?tab=saved')
-
-  const params = new URLSearchParams()
-  if (q) params.set('q', q)
-  if (set) params.set('set', set)
-  const rest = params.toString()
-  redirect(rest ? `/study?${rest}` : '/study')
+export default function WordsPage() {
+  return <GoToStudy />
 }

@@ -1,2 +1,0 @@
-ALTER TABLE "user_vocabulary_state" ADD COLUMN IF NOT EXISTS "bookmarked_at" timestamp with time zone;--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "uvs_bookmarked_idx" ON "user_vocabulary_state" USING btree ("user_id","bookmarked_at");
