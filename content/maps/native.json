@@ -7,12 +7,14 @@
     {
       "ko": "태어난 곳과 관련된, 그곳 출신인",
       "en": "connected with the place where you were born",
+      "en_ko": "자신이 태어난 장소와 연결되어 있는",
       "note": "'원래 거기 것'이라는 핵심이 사람에게 적용된 경우. 사람뿐 아니라 언어(모국어)에도 그대로 쓰인다.",
       "chunk": "her native language"
     },
     {
       "ko": "(동식물이) 원래 그 지역에 살던, 토착의",
       "en": "growing or living naturally in a particular place",
+      "en_ko": "특정 지역에서 자연적으로 자라거나 사는",
       "note": "사람에게 쓰던 '원래 거기 것'을 동식물로 확장한 것. 외부에서 들어온 종과 대비된다.",
       "chunk": "native to Australia"
     }

@@ -7,6 +7,7 @@
     {
       "ko": "(어떤 일이) 반드시 일어나도록 하다, 확실히 해 두다",
       "en": "to make certain that something will happen or be true",
+      "en_ko": "어떤 일이 일어나거나 사실이 되도록 확실하게 만들다",
       "note": "핵심 개념 그대로. 결과를 '확실한 상태'로 만들어 두는 행위다.",
       "chunk": "ensure that everyone is safe"
     }

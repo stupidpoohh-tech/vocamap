@@ -7,12 +7,14 @@
     {
       "ko": "(근거 없이) ~라고 가정하다, 당연히 그럴 거라고 생각하다",
       "en": "to believe something is true without checking it",
+      "en_ko": "확인해 보지 않은 채로 어떤 것이 사실이라고 믿는다",
       "note": "'검증 없이 받아들인다'는 중심 개념이 생각에 적용된 경우. 그래서 assume한 내용은 틀릴 수 있다는 뉘앙스가 항상 깔려 있다.",
       "chunk": "assume that he knew"
     },
     {
       "ko": "(책임·직책·권력을) 맡다, 떠안다",
       "en": "to begin to have a duty, position, or power",
+      "en_ko": "어떤 의무나 자리, 권한을 갖기 시작한다",
       "note": "받아들이는 대상이 '생각'이 아니라 '역할'일 때. 남의 검증이나 허락보다 스스로 짊어진다는 느낌이 남아 있다.",
       "chunk": "assume responsibility"
     }

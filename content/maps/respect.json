@@ -7,12 +7,14 @@
     {
       "ko": "(사람·의견·권리를) 존중하다, 존경",
       "en": "to admire someone or treat their rights and feelings as important",
+      "en_ko": "누군가를 높이 평가하거나, 그 사람의 권리와 감정을 중요하게 여기며 대하다",
       "note": "핵심 개념인 '가치를 인정함'이 사람에게 향한 가장 기본적인 경우다.",
       "chunk": "respect other people's opinions"
     },
     {
       "ko": "(규칙·약속을) 지키다, 어기지 않다",
       "en": "to obey a rule, law, or agreement",
+      "en_ko": "규칙이나 법, 합의를 어기지 않고 따르다",
       "note": "규칙을 '가볍게 여기지 않는다'는 것이 곧 그 규칙을 지키는 행동으로 나타난다. 한국어 '존중하다'만 외우면 이 용법을 놓치기 쉽다.",
       "chunk": "respect the rules"
     }

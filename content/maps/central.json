@@ -7,12 +7,14 @@
     {
       "ko": "(무엇에서) 가장 중요한, 핵심적인",
       "en": "most important; having the greatest influence on something",
+      "en_ko": "가장 중요하고, 어떤 일에 가장 큰 영향을 주는",
       "note": "물리적으로 한가운데 있는 것이 모든 것이 모이는 자리라는 데서, '핵심'이라는 뜻으로 넓어졌다.",
       "chunk": "the central idea"
     },
     {
       "ko": "중앙에 있는, 도심의",
       "en": "in or near the middle of a place",
+      "en_ko": "어떤 장소의 한가운데나 그 근처에 있는",
       "note": "meaning core의 위치적 의미가 그대로 쓰인 경우.",
       "chunk": "central London"
     }

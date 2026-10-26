@@ -7,12 +7,14 @@
     {
       "ko": "안전(한 상태), 보안",
       "en": "protection against danger, attack, or loss",
+      "en_ko": "위험이나 공격, 손실로부터 지켜지는 것",
       "note": "핵심 개념 그대로. 위험이 차단된 상태를 가리킨다.",
       "chunk": "national security"
     },
     {
       "ko": "안정감, 마음의 든든함",
       "en": "the feeling of being safe and free from worry",
+      "en_ko": "안전하다고 느끼며 걱정이 없는 기분",
       "note": "물리적 안전이 마음속 느낌으로 옮겨간 용법. 돈이나 가족이 주는 '든든함'을 말한다.",
       "chunk": "a sense of security"
     }

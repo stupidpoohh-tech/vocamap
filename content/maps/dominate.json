@@ -7,12 +7,14 @@
     {
       "ko": "(경기·시장·분야를) 지배하다, 압도적으로 우세하다",
       "en": "to be the most powerful or successful in a situation or area",
+      "en_ko": "어떤 상황이나 분야에서 가장 강하거나 성공적인 상태다",
       "note": "'가장 큰 힘을 가진다'는 중심 개념이 사람·팀·기업의 힘에 적용된 경우.",
       "chunk": "dominate the market"
     },
     {
       "ko": "(풍경·장면에서) 가장 눈에 띄게 자리 잡다",
       "en": "to be the largest or most noticeable thing in a place",
+      "en_ko": "어떤 장소에서 가장 크거나 가장 눈에 띄는 것이다",
       "note": "힘의 우위가 물리적 크기·시각적 존재감으로 나타난 용법. 사람을 억압한다는 뜻이 아님.",
       "chunk": "dominate the skyline"
     }

@@ -7,12 +7,14 @@
     {
       "ko": "~에 영향을 미치다 (전치사 없이 바로 목적어)",
       "en": "to cause a change in someone or something",
+      "en_ko": "어떤 사람이나 사물에 변화를 일으키다",
       "note": "'밖에서 작용해 변화를 만든다'는 중심 개념의 가장 일반적인 쓰임이다.",
       "chunk": "affect the results"
     },
     {
       "ko": "(마음을) 움직이다, 감동시키다",
       "en": "to make someone feel strong emotion",
+      "en_ko": "누군가가 강한 감정을 느끼게 만들다",
       "note": "변화가 감정에 일어난 경우. 흔히 be deeply affected 형태로 쓴다.",
       "chunk": "deeply affected by the news"
     }

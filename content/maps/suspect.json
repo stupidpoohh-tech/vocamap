@@ -7,12 +7,14 @@
     {
       "ko": "(증거는 없지만) ~라고 의심하다, 짐작하다",
       "en": "to think that something is likely, especially something bad, without being certain",
+      "en_ko": "확실하지는 않지만 어떤 일이, 특히 안 좋은 일이 사실일 것 같다고 생각하다",
       "note": "핵심 개념 그대로다. 증거가 부족한 상태에서 마음속으로 결론을 내리는 행위.",
       "chunk": "suspect that he lied"
     },
     {
       "ko": "용의자 (명사)",
       "en": "a person the police think may have committed a crime",
+      "en_ko": "경찰이 범죄를 저질렀을 수도 있다고 보는 사람",
       "note": "'의심을 받는 대상'이 사람으로 굳어진 것. 명사일 때는 강세가 앞에 온다(SUS-pect).",
       "chunk": "the main suspect"
     }

@@ -7,12 +7,14 @@
     {
       "ko": "(가려져 있던 곳에서) 나오다, 모습을 드러내다",
       "en": "to come out from a place where you could not be seen",
+      "en_ko": "보이지 않던 곳에서 밖으로 나오다",
       "note": "핵심 이미지 그대로. 숨겨진 상태에서 밖으로 나와 눈에 보이게 되는 것.",
       "chunk": "emerge from the water"
     },
     {
       "ko": "(사실·문제가) 밝혀지다, 드러나다",
       "en": "to become known, especially after being hidden",
+      "en_ko": "숨겨져 있던 것이 알려지게 되다",
       "note": "'눈에 보이게 되다'가 정보에 적용된 것. 사실이 사람들의 시야에 나타나는 셈이다.",
       "chunk": "new evidence emerged"
     }

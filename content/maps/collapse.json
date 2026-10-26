@@ -7,12 +7,14 @@
     {
       "ko": "(건물·구조물이) 무너져 내리다",
       "en": "to fall down suddenly because of losing structural support",
+      "en_ko": "지탱하던 구조가 힘을 잃어 갑자기 무너져 내리다",
       "note": "핵심 이미지 그대로다. 위에서 눌리거나 안에서 버티던 것이 없어져 폭삭 주저앉는 장면.",
       "chunk": "the roof collapsed"
     },
     {
       "ko": "(경제·제도·계획이) 붕괴하다 / (사람이) 쓰러지다",
       "en": "to fail completely, or (of a person) to fall down from exhaustion or illness",
+      "en_ko": "완전히 실패해 무너지거나, 사람이 탈진·병으로 쓰러지다",
       "note": "건물이 무너지는 이미지를 경제·체제·몸에 그대로 옮긴 것. 버티던 힘이 다해 한순간에 주저앉는다는 점이 같다.",
       "chunk": "the economy collapsed"
     }

@@ -7,12 +7,14 @@
     {
       "ko": "병을 옮기다, 감염시키다",
       "en": "to pass a disease to a person, animal, or plant",
+      "en_ko": "사람·동물·식물에게 병을 옮기는 것",
       "note": "핵심 개념이 '병균'에 적용된 가장 기본 용법이다. 주의: infect의 주어는 병균이나 옮기는 사람이고, 병에 걸린 사람은 목적어다. 즉 'I infected'가 아니라 'I was infected'로 쓴다.",
       "chunk": "infect other people"
     },
     {
       "ko": "(컴퓨터를) 바이러스에 감염시키다",
       "en": "to put a virus into a computer or file so that it spreads and causes damage",
+      "en_ko": "컴퓨터나 파일에 바이러스가 들어가 퍼지며 손상을 일으키게 하는 것",
       "note": "병균이 몸속에 퍼지는 그림을 컴퓨터에 그대로 옮긴 확장 용법이다.",
       "chunk": "infect the whole system"
     }

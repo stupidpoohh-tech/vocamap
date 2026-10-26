@@ -7,12 +7,14 @@
     {
       "ko": "(씨앗·식물이) 싹이 나다, 자라기 시작하다",
       "en": "to begin to grow, producing shoots or leaves",
+      "en_ko": "싹이나 잎을 내면서 자라기 시작하다",
       "note": "중심 개념 그대로의 쓰임. 씨앗 속에 있던 것이 밖으로 돋아나는 장면이다.",
       "chunk": "the seeds sprouted"
     },
     {
       "ko": "(건물·가게 등이) 우후죽순으로 생겨나다",
       "en": "to appear suddenly and in large numbers",
+      "en_ko": "갑자기, 그리고 많이 생겨나다",
       "note": "싹이 여기저기 돋아나는 이미지를 사람이 만든 것에 옮겨 쓴 것. 흔히 sprout up으로 쓴다.",
       "chunk": "cafés sprouting up"
     }
