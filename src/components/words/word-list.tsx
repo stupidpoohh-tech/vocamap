@@ -36,11 +36,17 @@ export function WordList({
   openMap = false,
   wordQuery = '',
   total,
+  onBookmarkChange,
 }: {
   items: WordListItem[]
   direction: ListDirection
   /** How many the list has in all, when this is one page of them. */
   total?: number
+  /**
+   * 별이 눌렸다. 목록이 '담은 것' 수와 걸러내기를 따라 움직여야 하므로,
+   * 기록을 들고 있는 쪽에 알린다 — 별은 자기 상태만 알고 목록은 모른다.
+   */
+  onBookmarkChange?: (next: boolean) => void
   emptyHint?: string
   /** Off when the list is already only mapped words — a badge on every row
    *  says nothing the heading has not said once. */
@@ -217,7 +223,11 @@ export function WordList({
                 {direction === 'en_ko' || open ? <SpeakButton text={item.lemma} /> : null}
               </span>
 
-              <BookmarkButton vocabularyId={item.id} bookmarked={item.bookmarked} />
+              <BookmarkButton
+                slug={item.id}
+                bookmarked={item.bookmarked}
+                onChange={onBookmarkChange}
+              />
             </li>
           )
         })}

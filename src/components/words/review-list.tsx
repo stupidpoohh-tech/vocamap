@@ -1,8 +1,24 @@
+'use client'
+
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { dueLabel, type ReviewWord } from '@/lib/data/review'
+import { dueLabel } from '@/lib/learning/scheduler'
 import { BookmarkButton } from './bookmark-button'
 import { SpeakButton } from './speak-button'
+
+/** 복습 화면의 한 줄. 기록이 브라우저에 있으므로 여기서 만들어 넘긴다. */
+export type ReviewWord = {
+  slug: string
+  lemma: string
+  translation: string | null
+  bookmarked: boolean
+  wrongCount: number
+  hasMap: boolean
+  /** 두 방향 중 먼저 돌아오는 날. 한 번도 답하지 않았으면 `null` 이다. */
+  dueAt: Date | null
+  /** 0–1, 약한 쪽. 한 번도 답하지 않았으면 `null` 이다. */
+  retention: number | null
+}
 
 /**
  * The review desk's rows.
@@ -21,12 +37,15 @@ export function ReviewList({
   now,
   emptyHint,
   showWrongCount = false,
+  onBookmarkChange,
 }: {
   items: ReviewWord[]
   now: Date
   emptyHint: string
   /** On the mistake list, how often it beat you says more than a forecast. */
   showWrongCount?: boolean
+  /** 별이 눌렸다. 담은 것 수를 세는 쪽에 알린다. */
+  onBookmarkChange?: (next: boolean) => void
 }) {
   if (!items.length) {
     return (
@@ -44,8 +63,8 @@ export function ReviewList({
       )}
     >
       {items.map((word) => (
-        <li key={word.id} className="flex items-center gap-3 py-3">
-          <Link href={`/words/${word.id}`} className="group min-w-0 flex-1">
+        <li key={word.slug} className="flex items-center gap-3 py-3">
+          <Link href={`/words/${word.slug}`} className="group min-w-0 flex-1">
             <span className="block truncate text-[0.9375rem] text-ink group-hover:text-brand">
               {word.lemma}
             </span>
@@ -79,9 +98,9 @@ export function ReviewList({
           </span>
 
           <span className="flex w-7 shrink-0 items-center justify-center">
-            {word.mapStatus === 'approved' ? (
+            {word.hasMap ? (
               <Link
-                href={`/words/${word.id}`}
+                href={`/words/${word.slug}`}
                 className="rounded-chip px-1 py-0.5 text-[0.6875rem] text-ink-3 transition hover:bg-sunken hover:text-ink-2"
               >
                 맵
@@ -93,7 +112,11 @@ export function ReviewList({
             <SpeakButton text={word.lemma} />
           </span>
 
-          <BookmarkButton vocabularyId={word.id} bookmarked={word.bookmarked} />
+          <BookmarkButton
+            slug={word.slug}
+            bookmarked={word.bookmarked}
+            onChange={onBookmarkChange}
+          />
         </li>
       ))}
     </ul>

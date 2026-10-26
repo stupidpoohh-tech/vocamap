@@ -165,3 +165,20 @@ export const RETENTION_BAND_LABEL: Record<RetentionBand, string> = {
 export function isDue(state: CardState, now: Date = new Date()): boolean {
   return state.dueAt.getTime() <= now.getTime()
 }
+
+/**
+ * 다음에 볼 날을 사람이 읽는 말로.
+ *
+ * 순수 함수인데 `src/lib/data/review.ts` 안에, 질의와 한 덩어리로 있었다.
+ * 복습 화면이 브라우저로 내려오면서 브라우저도 이것을 불러야 했다.
+ */
+export function dueLabel(dueAt: Date | null, now: Date = new Date()): string {
+  if (!dueAt) return '—'
+  const days = Math.round((dueAt.getTime() - now.getTime()) / 86_400_000)
+  if (days <= -2) return `${Math.abs(days)}일 지남`
+  if (days <= 0) return '지금'
+  if (days === 1) return '내일'
+  if (days < 30) return `${days}일 후`
+  const months = Math.round(days / 30)
+  return `${months}개월 후`
+}

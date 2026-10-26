@@ -245,13 +245,4 @@ async function weakestRetention(
  * "3일 후", "2일 지남". Days, not hours: the schedule is a study plan, and a
  * plan measured in hours reads as a countdown the student is losing.
  */
-export function dueLabel(dueAt: Date | null, now: Date = new Date()): string {
-  if (!dueAt) return '—'
-  const days = Math.round((dueAt.getTime() - now.getTime()) / 86_400_000)
-  if (days <= -2) return `${Math.abs(days)}일 지남`
-  if (days <= 0) return '지금'
-  if (days === 1) return '내일'
-  if (days < 30) return `${days}일 후`
-  const months = Math.round(days / 30)
-  return `${months}개월 후`
-}
+export { dueLabel } from '@/lib/learning/scheduler'

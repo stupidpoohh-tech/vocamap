@@ -43,7 +43,20 @@ export type Sense = {
   chunk: string | null
 }
 export type Sentence = { text: string; ko: string; highlight: string | null; target: string | null }
-export type Collocation = { expression: string; ko: string; example: string | null }
+export type Collocation = {
+  expression: string
+  ko: string
+  example: string | null
+  /**
+   * 맵에 올릴 두 개를 고를 때 쓰는 순위. 1 이 가장 높다.
+   *
+   * 처음 내보낼 때 이 칸을 빠뜨렸다. 그래서 파일에 없으면 적힌 순서로 매긴다
+   * — 연어가 셋 이상인 맵이 167개 중 9개뿐이고, 둘 이하면 어차피 전부
+   * 올라가므로 지금 화면에서 달라지는 것은 그 9개뿐이다. 다시 내보내면
+   * 파일에 적힌 값이 쓰인다.
+   */
+  importance: number
+}
 export type FamilyMember = { lemma: string; pos: string | null; ko: string; example: string | null }
 
 export type BrainMap = {
@@ -149,7 +162,12 @@ function load() {
           chunk: (m.chunk as string) ?? null,
         })),
         sentences: raw.sentences ?? [],
-        collocations: raw.collocations ?? [],
+        collocations: (raw.collocations ?? []).map((c: Record<string, unknown>, i: number) => ({
+          expression: (c.expression as string) ?? '',
+          ko: (c.ko as string) ?? '',
+          example: (c.example as string) ?? null,
+          importance: typeof c.importance === 'number' ? c.importance : i < 2 ? i + 1 : 3,
+        })),
         family: raw.family ?? [],
       })
     }

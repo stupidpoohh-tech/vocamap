@@ -7,6 +7,7 @@ import {
   type CardState,
   type Direction,
 } from '@/lib/learning/scheduler'
+import { statusFor, type ItemTally, type NodeStatus } from '@/lib/learning/semantic-nodes'
 
 /**
  * 학습 기록이 사는 곳 — 이 폰의 브라우저.
@@ -32,9 +33,18 @@ type Saved = {
   cards: Record<string, CardState>
   /** 단어별 틀린 횟수. 목록에서 약한 것을 눈에 띄게 하는 데 쓴다. */
   wrong: Record<string, number>
+  /**
+   * 맵 노드 하나하나의 시도·정답 수.
+   *
+   * 단어 카드(`cards`)와 다른 것이다. 카드는 "이 단어를 다시 볼 날"을 정하고,
+   * 이쪽은 "핵심 의미는 됐고 연어가 흔들린다"를 정한다. 예전에는
+   * `review_events` 를 훑어 세던 것이고, 세는 규칙(`statusFor`)은 그대로
+   * 쓴다 — 적어 두는 곳만 바뀌었다.
+   */
+  items: Record<string, ItemTally>
 }
 
-const EMPTY: Saved = { version: 1, bookmarks: [], cards: {}, wrong: {} }
+const EMPTY: Saved = { version: 1, bookmarks: [], cards: {}, wrong: {}, items: {} }
 
 /**
  * 카드에는 `Date` 가 둘 들어 있다. JSON 은 그것을 글자로 만들고 돌려주지
@@ -78,7 +88,8 @@ export function read(): Saved {
     const raw = localStorage.getItem(KEY)
     if (!raw) return EMPTY
     const parsed = JSON.parse(raw) as { version?: number; bookmarks?: string[]
-      cards?: Record<string, StoredCard>; wrong?: Record<string, number> }
+      cards?: Record<string, StoredCard>; wrong?: Record<string, number>
+      items?: Record<string, ItemTally> }
     if (parsed?.version !== 1) return EMPTY
 
     const cards: Record<string, CardState> = {}
@@ -91,6 +102,9 @@ export function read(): Saved {
       bookmarks: Array.isArray(parsed.bookmarks) ? parsed.bookmarks : [],
       cards,
       wrong: parsed.wrong ?? {},
+      // 노드 집계는 나중에 붙은 칸이다. 그 전에 공부한 기록에는 없으므로,
+      // 없으면 빈 것으로 읽는다 — 버전을 올려 기록을 버릴 일이 아니다.
+      items: parsed.items ?? {},
     }
   } catch {
     return EMPTY
@@ -163,6 +177,29 @@ export function recordAnswer(
   if (!correct) wrong[slug] = (wrong[slug] ?? 0) + 1
 
   return write({ ...saved, cards: { ...saved.cards, [key]: next }, wrong })
+}
+
+/**
+ * 맵 노드 하나의 답을 기록한다.
+ *
+ * 일정(`cards`)과 따로 센다. 노드는 단어가 아니라 그 단어의 한 연결이고,
+ * "핵심 의미는 세 번 맞혔다"는 다음에 그 단어를 언제 볼지와 다른 질문이다.
+ */
+export function recordItem(itemId: string, correct: boolean): Saved {
+  const saved = read()
+  const before = saved.items[itemId] ?? { attempts: 0, correct: 0 }
+  return write({
+    ...saved,
+    items: {
+      ...saved.items,
+      [itemId]: { attempts: before.attempts + 1, correct: before.correct + (correct ? 1 : 0) },
+    },
+  })
+}
+
+/** 그 노드가 지금 어느 등급인지. 규칙은 서버가 쓰던 것과 같은 함수다. */
+export function itemStatus(saved: Saved, itemId: string): NodeStatus {
+  return statusFor(saved.items[itemId])
 }
 
 /** 기록을 통째로 지운다. 설정 화면에서 부른다. */

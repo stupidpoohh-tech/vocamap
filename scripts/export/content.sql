@@ -46,7 +46,8 @@ select json_build_object(
                 from brain_map_sentences x where x.brain_map_id = bm.id)     as sentences,
              (select coalesce(json_agg(json_build_object(
                 'expression', x.expression, 'ko', x.ko,
-                'example', x.example_sentence) order by x.sort_order), '[]'::json)
+                'example', x.example_sentence,
+                'importance', x.importance) order by x.sort_order), '[]'::json)
                 from brain_map_collocations x where x.brain_map_id = bm.id)  as collocations,
              (select coalesce(json_agg(json_build_object(
                 'lemma', x.lemma, 'pos', x.part_of_speech, 'ko', x.ko,

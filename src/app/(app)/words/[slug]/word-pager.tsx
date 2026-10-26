@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-import type { WordNeighbour } from '@/lib/data/library'
+
+/** 옆 단어. 주소에 쓰는 이름과 보여줄 단어, 그것뿐이다. */
+export type Neighbour = { slug: string; lemma: string }
 
 /**
  * The word before and the word after, in the list this page was opened from.
@@ -15,16 +17,7 @@ import type { WordNeighbour } from '@/lib/data/library'
  * The links stay on screen anyway. A gesture nobody is told about is a gesture
  * nobody uses, and it is the only thing a mouse or a keyboard has.
  */
-export function WordPager({
-  prev,
-  next,
-  query,
-}: {
-  prev: WordNeighbour | null
-  next: WordNeighbour | null
-  /** The list context, carried on so the next word knows it too. */
-  query: string
-}) {
+export function WordPager({ prev, next }: { prev: Neighbour | null; next: Neighbour | null }) {
   const router = useRouter()
   const start = useRef<{ x: number; y: number } | null>(null)
 
@@ -59,7 +52,7 @@ export function WordPager({
       if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2) return
 
       const target = dx < 0 ? next : prev
-      if (target) router.push(`/words/${target.id}${query}`)
+      if (target) router.push(`/words/${target.slug}`)
     }
 
     window.addEventListener('touchstart', onStart, { passive: true })
@@ -68,7 +61,7 @@ export function WordPager({
       window.removeEventListener('touchstart', onStart)
       window.removeEventListener('touchend', onEnd)
     }
-  }, [next, prev, query, router])
+  }, [next, prev, router])
 
   if (!prev && !next) return null
 
@@ -76,7 +69,7 @@ export function WordPager({
     <nav className="mt-10 flex items-stretch gap-2 border-t border-line pt-4 text-[0.8125rem]">
       {prev ? (
         <Link
-          href={`/words/${prev.id}${query}`}
+          href={`/words/${prev.slug}`}
           // The two words most likely to be opened next, fetched in full when
           // the pager scrolls into view — which is when the student has reached
           // the bottom of this one and is about to move on.
@@ -93,7 +86,7 @@ export function WordPager({
       )}
       {next ? (
         <Link
-          href={`/words/${next.id}${query}`}
+          href={`/words/${next.slug}`}
           prefetch
           className="group min-w-0 flex-1 text-right text-ink-3 transition hover:text-ink-2"
         >

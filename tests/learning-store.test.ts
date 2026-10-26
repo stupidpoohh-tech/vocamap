@@ -144,13 +144,53 @@ describe('저장소를 못 쓸 때', () => {
   })
 })
 
+describe('맵 노드별 집계', () => {
+  it('시도와 정답을 따로 센다', async () => {
+    const { recordItem, itemStatus, read } = await store()
+    recordItem('issue:core0', true)
+    recordItem('issue:core0', true)
+    recordItem('issue:core0', true)
+    expect(read().items['issue:core0']).toEqual({ attempts: 3, correct: 3 })
+    // 세 번 넘게 풀고 8할 이상이면 됐다고 본다 — 서버가 쓰던 규칙 그대로다.
+    expect(itemStatus(read(), 'issue:core0')).toBe('completed')
+  })
+
+  it('반을 못 맞히면 흔들리는 것으로 본다', async () => {
+    const { recordItem, itemStatus, read } = await store()
+    recordItem('issue:c0', false)
+    recordItem('issue:c0', true)
+    recordItem('issue:c0', false)
+    expect(itemStatus(read(), 'issue:c0')).toBe('weak')
+  })
+
+  it('한 번도 안 푼 노드는 아직 안 본 것이다', async () => {
+    const { itemStatus, read } = await store()
+    expect(itemStatus(read(), 'issue:f0')).toBe('unseen')
+  })
+
+  it('노드 집계가 없던 기록도 그대로 읽힌다', async () => {
+    const { read } = await store()
+    // 집계 칸이 붙기 전에 공부한 기록. 버전을 올려 버리면 그 사람의 담은
+    // 단어와 일정이 함께 사라진다.
+    localStorage.setItem(
+      'vocamap.learning.v1',
+      JSON.stringify({ version: 1, bookmarks: ['cave'], cards: {}, wrong: { cave: 2 } }),
+    )
+    const saved = read()
+    expect(saved.bookmarks).toEqual(['cave'])
+    expect(saved.wrong.cave).toBe(2)
+    expect(saved.items).toEqual({})
+  })
+})
+
 describe('기록 지우기', () => {
   it('전부 사라진다', async () => {
-    const { toggleBookmark, recordAnswer, clearAll, read } = await store()
+    const { toggleBookmark, recordAnswer, recordItem, clearAll, read } = await store()
     toggleBookmark('cave')
     recordAnswer('issue', 'en_ko', { correct: false, responseTimeMs: 1000 })
+    recordItem('issue:core0', true)
     clearAll()
-    expect(read()).toEqual({ version: 1, bookmarks: [], cards: {}, wrong: {} })
+    expect(read()).toEqual({ version: 1, bookmarks: [], cards: {}, wrong: {}, items: {} })
   })
 })
 

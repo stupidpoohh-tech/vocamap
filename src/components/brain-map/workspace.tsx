@@ -30,8 +30,14 @@ export type WorkspaceOutcome =
       node: SemanticNode
       /** The page's own reading of the tap, for the screen. The server regrades. */
       correct: boolean
-      /** The server's signed record of the card. See `question-token.ts`. */
-      token: string
+      /**
+       * The server's signed record of the card. See `question-token.ts`.
+       *
+       * Absent when nothing on a server grades the answer — the file-backed
+       * map is graded in this browser and written to this browser, so there is
+       * no claim to sign and no one to make it to.
+       */
+      token?: string
       choice: string
       responseTimeMs: number
     }
@@ -154,8 +160,9 @@ function Runner({ node, onAnswer }: { node: SemanticNode; onAnswer: WorkspaceAns
   const submit = (given: string, correct: boolean) => {
     if (answered) return
     setAnswered({ correct, given })
-    // A card with no token was not gradable — nothing to send.
-    if (exercise.kind !== 'choice' || !exercise.token) return
+    // Only a choice card is graded. A token rides along when a server is
+    // going to regrade it; its absence is not a reason to drop the answer.
+    if (exercise.kind !== 'choice') return
     onAnswer({
       kind: 'graded',
       node,

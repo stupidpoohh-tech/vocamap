@@ -1,111 +1,36 @@
-import Link from 'next/link'
-import { readerFromCookie } from '@/lib/auth/session'
-import { buildScopedQueue, parseDirections, parseQueueScope } from '@/lib/data/study'
-import { buildQuestions } from '@/lib/learning/questions'
-import { Button, Card } from '@/components/ui'
-import { SessionRunner } from './session-runner'
-import { GuestNote } from '@/components/guest-note'
+import { Suspense } from 'react'
+import { Card } from '@/components/ui'
+import { allWords } from '@/content'
+import { SessionScreen } from '@/components/words/session-screen'
 
 /**
- * The test. Which words it covers comes from the URL, so every list in the app
- * can hand the student a test over exactly what they were looking at.
+ * 시험.
+ *
+ * 화면은 모두에게 같은 것이 빌드할 때 한 번 구워진다. 무엇을 물을지는 주소에
+ * 붙은 범위와 이 폰의 기록이 정하고, 그 둘을 보는 것은 브라우저다 — 서버에서
+ * 주소의 값을 읽는 것만으로 이 화면은 요청마다 만들어지는 화면이 된다.
+ *
+ * `Suspense` 가 필요한 것은 안쪽이 주소의 물음표 뒤를 읽기 때문이다. 미리
+ * 굽는 동안에는 그 값이 없으므로, 구울 때는 아래의 '준비하고 있어요'가
+ * 구워지고 브라우저에서 바뀐다.
  */
-export default async function SessionPage({
-  searchParams,
-}: {
-  searchParams: Promise<{
-    scope?: string
-    dir?: string
-    set?: string
-    unassigned?: string
-    from?: string
-  }>
-}) {
-  const { scope: scopeParam, dir, set, unassigned, from } = await searchParams
-  // From the cookie; the session row is proved alongside the queue rather
-  // than ahead of it. See `readerFromCookie`.
-  const { reader: actor, confirm } = await readerFromCookie()
-  const scope = parseQueueScope(scopeParam)
+export default function SessionPage() {
+  const words = allWords().map((w) => ({
+    slug: w.slug,
+    lemma: w.lemma,
+    ko: w.ko,
+    sets: w.sets,
+  }))
 
-  const [queue] = await Promise.all([
-    buildScopedQueue(actor.id, {
-      scope,
-      setId: set,
-      unassigned: unassigned === '1',
-      directions: parseDirections(dir),
-    }),
-    confirm,
-  ])
-
-  if (queue.length === 0) {
-    return (
-      <Card className="text-center">
-        <p className="font-semibold">{EMPTY[scope]}</p>
-        <Link
-          href={backHref(scope, set, unassigned === '1', from)}
-          className="mt-4 inline-block"
-        >
-          <Button variant="secondary">돌아가기</Button>
-        </Link>
-      </Card>
-    )
-  }
-
-  // Distractors are drawn on the server from the shared word list, so the wrong
-  // options are always plausible rather than random noise.
-  //
-  // The map's richer questions are asked only on the map test — the one the
-  // reader starts from the mapped-words view. Basic recall stays one
-  // measurement: a word having a map is not a request to be asked about it a
-  // different way, and it used to be treated as one, so two students with the
-  // same history were asked different questions against the same schedule.
-  const questions = await buildQuestions(actor.id, queue, { extended: scope === 'mapped' })
   return (
-    <>
-      {actor.isGuest ? (
-        <GuestNote next="/study">이 시험의 결과는 저장되지 않아요. 복습 일정을 남기려면</GuestNote>
-      ) : null}
-      <SessionRunner
-        questions={questions}
-        backHref={backHref(scope, set, unassigned === '1', from)}
-      />
-    </>
+    <Suspense
+      fallback={
+        <Card className="text-center">
+          <p className="text-sm text-ink-3">문제를 준비하고 있어요…</p>
+        </Card>
+      }
+    >
+      <SessionScreen words={words} />
+    </Suspense>
   )
-}
-
-const EMPTY: Record<ReturnType<typeof parseQueueScope>, string> = {
-  due: '지금 복습할 단어가 없어요.',
-  all: '시험 볼 단어가 없어요.',
-  saved: '담은 단어가 없어요.',
-  wrong: '틀린 단어가 없어요.',
-  mapped: '이 세트에는 맵이 있는 단어가 없어요.',
-}
-
-/**
- * Where "done" goes.
- *
- * Back to the list you were tested on, not to the shelf. A student working
- * through one set a day finishes the test and wants the words again — landing
- * on a list of every set means finding it a second time.
- *
- * The daily review is the one test two screens can start, so it carries `from`
- * and returns to whichever of them sent it.
- */
-function backHref(
-  scope: ReturnType<typeof parseQueueScope>,
-  set?: string,
-  unassigned?: boolean,
-  from?: string,
-): string {
-  if (scope === 'saved') return '/study?tab=saved'
-  if (scope === 'wrong') return '/vault?tab=wrong'
-  if (scope === 'mapped') {
-    if (set) return `/study?set=${set}&view=map`
-    if (unassigned) return '/study?set=none&view=map'
-    return '/study'
-  }
-  if (scope === 'due') return from === 'vault' ? '/vault' : '/study'
-  if (set) return `/study?set=${set}`
-  if (unassigned) return '/study?set=none'
-  return '/study'
 }

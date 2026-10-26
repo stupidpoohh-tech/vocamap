@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Button, EmptyState, Input, TabBar } from '@/components/ui'
+import { Button, EmptyState, Input, TabBar, TabButton } from '@/components/ui'
 import { WordList, type ListDirection, type WordListItem } from '@/components/words/word-list'
 import { dueNow, isBookmarked, read, wrongCount, type Saved } from '@/learning/store'
 
@@ -122,7 +122,13 @@ export function StudyBrowser({
 
       {items.length ? (
         <>
-          <WordList items={items} direction={direction} total={items.length} />
+          <WordList
+            items={items}
+            direction={direction}
+            total={items.length}
+            // 별은 자기 상태만 알고, '담은 것' 수와 걸러내기는 여기서 센다.
+            onBookmarkChange={() => setSaved(read())}
+          />
           {visible.length ? (
             <Link
               href={`/study/session?${set ? `set=${encodeURIComponent(set)}&` : ''}dir=${direction}`}
@@ -141,34 +147,5 @@ export function StudyBrowser({
         />
       )}
     </>
-  )
-}
-
-/** `TabLink` 와 같은 생김새인데 주소가 아니라 상태를 바꾼다. */
-function TabButton({
-  active,
-  count,
-  onClick,
-  children,
-}: {
-  active: boolean
-  count?: number
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? 'page' : undefined}
-      className={`whitespace-nowrap border-b-2 pb-2.5 text-sm transition ${
-        active ? 'border-brand text-ink' : 'border-transparent text-ink-3 hover:text-ink-2'
-      }`}
-    >
-      {children}
-      {typeof count === 'number' && count > 0 ? (
-        <span className="numeral ml-1.5 text-xs text-ink-3">{count}</span>
-      ) : null}
-    </button>
   )
 }

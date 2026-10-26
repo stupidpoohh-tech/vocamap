@@ -258,6 +258,43 @@ export function TabLink({
   )
 }
 
+/**
+ * The same tab, when the choice is not in the URL.
+ *
+ * `TabLink` is right whenever the list it opens is an address — something to
+ * reload, bookmark or send. The screens whose content comes out of this
+ * browser's own record have no such address: the record is not on the server,
+ * so a URL cannot name what to show. Those tabs are buttons.
+ */
+export function TabButton({
+  active,
+  count,
+  onClick,
+  children,
+}: {
+  active: boolean
+  count?: number
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'whitespace-nowrap border-b-2 pb-2.5 text-sm transition',
+        active ? 'border-brand text-ink' : 'border-transparent text-ink-3 hover:text-ink-2',
+      )}
+    >
+      {children}
+      {typeof count === 'number' && count > 0 ? (
+        <span className="numeral ml-1.5 text-xs text-ink-3">{count}</span>
+      ) : null}
+    </button>
+  )
+}
+
 export function Pager({
   page,
   pageCount,

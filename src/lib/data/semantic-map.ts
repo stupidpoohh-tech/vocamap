@@ -11,8 +11,18 @@ import {
   type Exercise,
 } from '@/lib/learning/exercises'
 import { randomUUID } from 'node:crypto'
+import {
+  EYEBROW,
+  PROGRESS_NODE,
+  recommend,
+  selectMapNodes,
+  statusFor,
+  type ItemTally,
+  type NodeKind,
+  type NodeStatus,
+  type SemanticNode,
+} from '@/lib/learning/semantic-nodes'
 import { signQuestion } from '@/lib/learning/question-token'
-import { MAP_NODE_BUDGET, MAP_NODE_TARGET } from '@/lib/ai'
 import { getMasterBrainMap, listRivalDefinitions, type MasterBrainMap } from './brain-map'
 import { collectWordState, type Awaitable, type WordAnswer, type WordStateRead } from './study'
 import { listTranslations } from './personal'
@@ -26,9 +36,18 @@ import { listTranslations } from './personal'
  * which keeps every existing analytic and the node-level progress table intact.
  */
 
-export type NodeKind = 'coreMeaning' | 'secondaryMeaning' | 'collocation' | 'wordFamily'
-
-export type NodeStatus = 'unseen' | 'learning' | 'needsReview' | 'weak' | 'completed'
+/**
+ * 노드의 모양과 규칙은 `@/lib/learning/semantic-nodes` 에 있다 — DB 를 모르는
+ * 순수 모듈이라 브라우저도 같은 것을 쓴다. 여기서 다시 내보내는 것은 카드를
+ * 그리는 컴포넌트들이 이미 이 이름으로 들여오고 있기 때문이다.
+ */
+export type {
+  NodeKind,
+  NodeStatus,
+  IssuedExercise,
+  SemanticNode,
+} from '@/lib/learning/semantic-nodes'
+export { nodeEyebrow } from '@/lib/learning/semantic-nodes'
 
 /**
  * Re-exported so the components that render a card keep importing the map's
@@ -36,39 +55,6 @@ export type NodeStatus = 'unseen' | 'learning' | 'needsReview' | 'weak' | 'compl
  * `@/lib/learning/exercises`, which knows nothing about the database.
  */
 export type { Exercise }
-
-/** A choice exercise as it goes out, with the server's signed record of it. */
-export type IssuedExercise = Exercise & { token?: string }
-
-export type SemanticNode = {
-  id: string
-  kind: NodeKind
-  /** The vocabulary itself. Always the largest text on the card. */
-  label: string
-  /** Korean gloss or a short gloss line. */
-  secondaryLabel: string | null
-  /** Tiny tag. Never the main text. */
-  eyebrow: string
-  importance: number
-  relationStrength: number
-  status: NodeStatus
-  recommended: boolean
-  /** Which of the five progress buckets an answer here counts towards. */
-  progressNode: NodeType
-  /**
-   * Whether this node earns a place on the map itself.
-   *
-   * A curriculum decision, not a layout one, so it is made here rather than in
-   * the component: a Brain Map is the few connections that must survive in the
-   * student's head, and everything true that does not earn a place costs the
-   * ones that did. What misses out is still reachable in the list below the
-   * map — nothing a curator wrote becomes unreachable.
-   */
-  onMap: boolean
-  /** Carried into `review_events.payload` so per-item status can be derived. */
-  itemId: string
-  exercises: IssuedExercise[]
-}
 
 export type SemanticMap = {
   lemma: string
@@ -81,27 +67,7 @@ export type SemanticMap = {
   recommendedNodeId: string | null
 }
 
-const EYEBROW: Record<NodeKind, string> = {
-  coreMeaning: '핵심 의미',
-  secondaryMeaning: '확장 의미',
-  collocation: '함께 쓰는 표현',
-  wordFamily: '파생어',
-}
-
-const PROGRESS_NODE: Record<NodeKind, NodeType> = {
-  coreMeaning: 'meaning_core',
-  secondaryMeaning: 'sentences',
-  collocation: 'collocations',
-  wordFamily: 'word_family',
-}
-
-export function nodeEyebrow(kind: NodeKind): string {
-  return EYEBROW[kind]
-}
-
 /* ───────────────────── per-item status from the event log ───────────────────── */
-
-type ItemTally = { attempts: number; correct: number }
 
 /**
  * Attempts per individual item, counted off the answers already in hand.
@@ -122,15 +88,6 @@ function itemTallies(events: WordAnswer[]): Map<string, ItemTally> {
     tallies.set(row.itemId, tally)
   }
   return tallies
-}
-
-function statusFor(tally: ItemTally | undefined): NodeStatus {
-  if (!tally || tally.attempts === 0) return 'unseen'
-  const accuracy = tally.correct / tally.attempts
-  if (accuracy < 0.5) return 'weak'
-  if (tally.attempts >= 3 && accuracy >= 0.8) return 'completed'
-  if (accuracy < 0.75) return 'needsReview'
-  return 'learning'
 }
 
 /* ─────────────────────────── building the nodes ─────────────────────────── */
@@ -330,24 +287,7 @@ export async function buildSemanticMap(
   )
 
   selectMapNodes(nodes)
-
-  // ── what to start with ─────────────────────────────────────────────────
-  // On-map nodes first, so the recommendation lands where the eye already is
-  // whenever an equally good candidate sits on the map.
-  const startable = nodes
-    .filter((n) => n.exercises.length > 0)
-    .sort((a, b) => Number(b.onMap) - Number(a.onMap))
-  const recommended =
-    // Weak beats merely important: being shaky on something that matters is
-    // the reason this word was expanded at all.
-    startable.find((n) => n.status === 'weak' && n.importance >= 0.7) ??
-    startable.find((n) => n.status === 'weak') ??
-    startable.find((n) => n.status === 'needsReview') ??
-    startable.find((n) => n.status === 'unseen' && n.importance >= 0.85) ??
-    startable[0] ??
-    null
-
-  if (recommended) recommended.recommended = true
+  const recommendedNodeId = recommend(nodes)
 
   return {
     lemma: master.lemma,
@@ -356,41 +296,6 @@ export async function buildSemanticMap(
     status: master.status,
     brainMapId: master.id,
     nodes,
-    recommendedNodeId: recommended?.id ?? null,
+    recommendedNodeId,
   }
-}
-
-/**
- * Chooses the handful of nodes that go on the map, in priority order:
- * the one core meaning, the one or two collocations the student will really
- * meet, and — only if there is room — one further sense.
- *
- * Derived forms are deliberately never picked. A list of derivatives is
- * reference material; putting it on the map spends the student's attention on
- * the least useful thing there.
- *
- * Applied to stored content as well as to fresh generations, because the rule
- * is about what a student should see, not about what the model happened to
- * produce — maps written before the rule existed obey it too.
- */
-function selectMapNodes(nodes: SemanticNode[]): void {
-  const strongestFirst = (a: SemanticNode, b: SemanticNode) => b.importance - a.importance
-  const of = (kind: NodeKind) => nodes.filter((n) => n.kind === kind).sort(strongestFirst)
-
-  const picked: SemanticNode[] = []
-  const take = (node: SemanticNode | undefined) => {
-    if (!node || picked.length >= MAP_NODE_BUDGET || picked.includes(node)) return
-    picked.push(node)
-  }
-
-  take(of('coreMeaning')[0])
-  for (const collocation of of('collocation').slice(0, 2)) take(collocation)
-
-  // A further sense is the last thing in, and only when the map would otherwise
-  // be too thin to be a map. A word-pair card used to hold the slot after the
-  // core meaning; the map is one card shorter without it rather than filled
-  // with something else, which is what removing them was for.
-  if (picked.length < MAP_NODE_TARGET) take(of('secondaryMeaning')[0])
-
-  for (const node of picked) node.onMap = true
 }
