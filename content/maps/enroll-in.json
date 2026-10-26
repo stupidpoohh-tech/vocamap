@@ -1,0 +1,35 @@
+{
+  "lemma": "enroll in",
+  "version": 1,
+  "core_ko": "phr. ~에 등록하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~에 등록하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "If you want to enroll in any courses this semester, you have to do it by September 3.",
+      "ko": "이번 학기에 어떤 강좌에든 등록하기를 원한다면 9월 3일까지 해야 한다.",
+      "highlight": "enroll in",
+      "target": "phr. ~에 등록하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "register for[at]",
+      "ko": "~에 등록하다",
+      "example": null
+    },
+    {
+      "expression": "sign up for",
+      "ko": "~에 등록하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

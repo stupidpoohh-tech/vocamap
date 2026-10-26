@@ -1,0 +1,72 @@
+{
+  "lemma": "central",
+  "version": 1,
+  "core_ko": "가운데에 있어서 가장 중요한 축이 되는 것 — 위치의 중심이 곧 비중의 중심으로 확장된다.",
+  "core_en": "at the center — either in position or in importance",
+  "meanings": [
+    {
+      "ko": "(무엇에서) 가장 중요한, 핵심적인",
+      "en": "most important; having the greatest influence on something",
+      "note": "물리적으로 한가운데 있는 것이 모든 것이 모이는 자리라는 데서, '핵심'이라는 뜻으로 넓어졌다.",
+      "chunk": "the central idea"
+    },
+    {
+      "ko": "중앙에 있는, 도심의",
+      "en": "in or near the middle of a place",
+      "note": "meaning core의 위치적 의미가 그대로 쓰인 경우.",
+      "chunk": "central London"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Trust is central to any lasting friendship.",
+      "ko": "신뢰는 오래가는 우정에서 가장 핵심적인 요소다.",
+      "highlight": "central to",
+      "target": "가장 중요한"
+    },
+    {
+      "text": "What is the central idea of this paragraph?",
+      "ko": "이 단락의 중심 생각은 무엇인가요?",
+      "highlight": "central idea",
+      "target": "핵심적인"
+    },
+    {
+      "text": "She played a central role in planning the festival.",
+      "ko": "그녀는 축제를 기획하는 데 중심적인 역할을 했다.",
+      "highlight": "central role",
+      "target": "중심이 되는"
+    },
+    {
+      "text": "Our hotel was in central Seoul, near the station.",
+      "ko": "우리 호텔은 역 근처 서울 도심에 있었다.",
+      "highlight": "central Seoul",
+      "target": "중앙의, 도심의"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "play a central role in",
+      "ko": "~에서 중심적인 역할을 하다",
+      "example": "Teachers play a central role in shaping young minds."
+    },
+    {
+      "expression": "be central to",
+      "ko": "~에 있어 가장 중요하다",
+      "example": "Sleep is central to good health."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "center",
+      "pos": "noun",
+      "ko": "중심, 가운데",
+      "example": "He stood in the center of the room."
+    },
+    {
+      "lemma": "centrally",
+      "pos": "adverb",
+      "ko": "중심적으로, 중앙에",
+      "example": "The library is centrally located."
+    }
+  ]
+}

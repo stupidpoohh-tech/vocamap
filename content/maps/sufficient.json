@@ -1,0 +1,43 @@
+{
+  "lemma": "sufficient",
+  "version": 1,
+  "core_ko": "충분한",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "충분한",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Your blood is then able to carry sufficient oxygen to your whole body.",
+      "ko": "그러면 여러분의 혈액은 온몸에 충분한 산소를 운반할 수 있게 된다.",
+      "highlight": "sufficient",
+      "target": "충분한"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "suffice",
+      "pos": "verb",
+      "ko": "충분하다",
+      "example": null
+    },
+    {
+      "lemma": "sufficiency",
+      "pos": "noun",
+      "ko": "충분함",
+      "example": null
+    },
+    {
+      "lemma": "sufficiently",
+      "pos": "adverb",
+      "ko": "충분하게",
+      "example": null
+    }
+  ]
+}

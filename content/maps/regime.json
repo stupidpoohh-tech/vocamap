@@ -1,0 +1,24 @@
+{
+  "lemma": "regime",
+  "version": 1,
+  "core_ko": "정권, 체제, 제도",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "정권, 체제, 제도",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The present regime has been in power for two years.",
+      "ko": "현 정권은 2년째 권력을 잡고 있다.",
+      "highlight": "regime",
+      "target": "정권, 체제, 제도"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

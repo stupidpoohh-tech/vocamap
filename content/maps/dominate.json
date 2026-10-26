@@ -1,0 +1,72 @@
+{
+  "lemma": "dominate",
+  "version": 1,
+  "core_ko": "어떤 공간·상황에서 가장 큰 힘이나 존재감을 가지고 전체를 좌우하는 것.",
+  "core_en": "to be the strongest or most noticeable force in a place or situation",
+  "meanings": [
+    {
+      "ko": "(경기·시장·분야를) 지배하다, 압도적으로 우세하다",
+      "en": "to be the most powerful or successful in a situation or area",
+      "note": "'가장 큰 힘을 가진다'는 중심 개념이 사람·팀·기업의 힘에 적용된 경우.",
+      "chunk": "dominate the market"
+    },
+    {
+      "ko": "(풍경·장면에서) 가장 눈에 띄게 자리 잡다",
+      "en": "to be the largest or most noticeable thing in a place",
+      "note": "힘의 우위가 물리적 크기·시각적 존재감으로 나타난 용법. 사람을 억압한다는 뜻이 아님.",
+      "chunk": "dominate the skyline"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "That company has dominated the smartphone market for a decade.",
+      "ko": "그 회사는 10년 동안 스마트폰 시장을 지배해 왔다.",
+      "highlight": "dominated the smartphone market",
+      "target": "분야에서 압도적으로 우세하다"
+    },
+    {
+      "text": "Our team dominated the second half but still lost.",
+      "ko": "우리 팀은 후반전을 압도했지만 그래도 졌다.",
+      "highlight": "dominated the second half",
+      "target": "경기를 주도하다"
+    },
+    {
+      "text": "A huge cathedral dominates the center of the old city.",
+      "ko": "거대한 성당이 구시가지 중심을 압도하듯 서 있다.",
+      "highlight": "dominates the center",
+      "target": "가장 눈에 띄게 자리 잡다"
+    },
+    {
+      "text": "One student dominated the discussion and nobody else spoke.",
+      "ko": "한 학생이 토론을 독차지해서 아무도 말하지 못했다.",
+      "highlight": "dominated the discussion",
+      "target": "대화를 혼자 주도하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "dominate the market",
+      "ko": "시장을 장악하다",
+      "example": "A few big firms dominate the market completely."
+    },
+    {
+      "expression": "dominate the conversation",
+      "ko": "대화를 혼자 독차지하다",
+      "example": "He tends to dominate the conversation at every meeting."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "dominant",
+      "pos": "adjective",
+      "ko": "지배적인, 가장 우세한",
+      "example": "English is the dominant language of science."
+    },
+    {
+      "lemma": "dominance",
+      "pos": "noun",
+      "ko": "우위, 지배력",
+      "example": "They lost their dominance in the industry."
+    }
+  ]
+}

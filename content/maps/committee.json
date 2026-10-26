@@ -1,0 +1,55 @@
+{
+  "lemma": "committee",
+  "version": 1,
+  "core_ko": "위원회",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "위원회",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The committee is comprised of representatives from many social groups.",
+      "ko": "그 위원회는 여러 사회 집단의 대표들로 구성되어 있다.",
+      "highlight": "committee",
+      "target": "위원회"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "review committee",
+      "ko": "평가 위원회",
+      "example": null
+    },
+    {
+      "expression": "fact-finding committee",
+      "ko": "진상 조사 위원회",
+      "example": null
+    },
+    {
+      "expression": "the Nobel committee",
+      "ko": "노벨상 위원회",
+      "example": null
+    },
+    {
+      "expression": "hiring committee",
+      "ko": "고용 위원회",
+      "example": null
+    },
+    {
+      "expression": "assemble a committee",
+      "ko": "위원회를 조직하다",
+      "example": null
+    },
+    {
+      "expression": "organize a committee",
+      "ko": "위원회를 조직하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

@@ -1,0 +1,60 @@
+{
+  "lemma": "diversity",
+  "version": 1,
+  "core_ko": "한 집단 안에 서로 다른 종류가 여러 갈래로 섞여 있는 상태.",
+  "core_en": "the state of containing many different kinds within one group",
+  "meanings": [
+    {
+      "ko": "다양성 (여러 서로 다른 것들이 함께 있는 상태)",
+      "en": "the fact that a group includes people or things of many different types",
+      "note": "'서로 다른 것이 섞여 있음'이라는 핵심 개념이 사람·문화·생물 등 어떤 집단에도 그대로 적용된다.",
+      "chunk": "cultural diversity"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Our school celebrates the cultural diversity of its students.",
+      "ko": "우리 학교는 학생들의 문화적 다양성을 소중히 여긴다.",
+      "highlight": "cultural diversity",
+      "target": "사람·문화의 다양성"
+    },
+    {
+      "text": "Cutting down the forest reduces the diversity of plant life.",
+      "ko": "숲을 베어내면 식물 생태의 다양성이 줄어든다.",
+      "highlight": "the diversity of plant life",
+      "target": "생물종의 다양성"
+    },
+    {
+      "text": "The company hires from many countries to increase diversity.",
+      "ko": "그 회사는 다양성을 높이기 위해 여러 나라에서 직원을 채용한다.",
+      "highlight": "increase diversity",
+      "target": "구성원 구성의 다양성"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "cultural diversity",
+      "ko": "문화적 다양성",
+      "example": "Big cities are known for their cultural diversity."
+    },
+    {
+      "expression": "a wide diversity of",
+      "ko": "아주 다양한 ~",
+      "example": "The island supports a wide diversity of birds."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "diverse",
+      "pos": "adjective",
+      "ko": "다양한",
+      "example": "The class has students from diverse backgrounds."
+    },
+    {
+      "lemma": "diversify",
+      "pos": "verb",
+      "ko": "다양화하다",
+      "example": "Farmers are trying to diversify their crops."
+    }
+  ]
+}

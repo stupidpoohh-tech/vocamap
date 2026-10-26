@@ -1,0 +1,37 @@
+{
+  "lemma": "deceit",
+  "version": 1,
+  "core_ko": "속임수, 사기, 기만",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "속임수, 사기, 기만",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "That’s because criminals have perfected the art of manipulation and deceit.",
+      "ko": "그것은 범죄자들이 조작과 사기의 기술에 통달했기 때문이다.",
+      "highlight": "deceit",
+      "target": "속임수, 사기, 기만"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "deception",
+      "pos": "noun",
+      "ko": "속임수",
+      "example": null
+    },
+    {
+      "lemma": "deceive",
+      "pos": "verb",
+      "ko": "속이다, 기만하다",
+      "example": null
+    }
+  ]
+}

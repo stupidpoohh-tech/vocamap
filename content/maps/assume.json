@@ -1,0 +1,60 @@
+{
+  "lemma": "assume",
+  "version": 1,
+  "core_ko": "확인하지 않은 것을 '일단 그렇다고 받아들이는' 것 — 사실이라 여기거나, 역할·책임을 자기 것으로 받아들이는 것.",
+  "core_en": "to take something on without proof or question — as true, or as yours to carry",
+  "meanings": [
+    {
+      "ko": "(근거 없이) ~라고 가정하다, 당연히 그럴 거라고 생각하다",
+      "en": "to believe something is true without checking it",
+      "note": "'검증 없이 받아들인다'는 중심 개념이 생각에 적용된 경우. 그래서 assume한 내용은 틀릴 수 있다는 뉘앙스가 항상 깔려 있다.",
+      "chunk": "assume that he knew"
+    },
+    {
+      "ko": "(책임·직책·권력을) 맡다, 떠안다",
+      "en": "to begin to have a duty, position, or power",
+      "note": "받아들이는 대상이 '생각'이 아니라 '역할'일 때. 남의 검증이나 허락보다 스스로 짊어진다는 느낌이 남아 있다.",
+      "chunk": "assume responsibility"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "I assumed you were coming, so I saved you a seat.",
+      "ko": "네가 올 거라고 생각해서 자리를 잡아 뒀어.",
+      "highlight": "assumed you were coming",
+      "target": "확인 없이 그럴 거라고 여기다"
+    },
+    {
+      "text": "Don't assume that silence means agreement.",
+      "ko": "침묵이 동의라고 함부로 단정하지 마.",
+      "highlight": "assume",
+      "target": "근거 없이 단정하다"
+    },
+    {
+      "text": "She assumed responsibility for the whole project last month.",
+      "ko": "그녀는 지난달에 그 프로젝트 전체를 책임지게 되었다.",
+      "highlight": "assumed responsibility",
+      "target": "책임을 맡다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "assume (that) ...",
+      "ko": "~라고 가정하다",
+      "example": "Let's assume the train is on time."
+    },
+    {
+      "expression": "assume responsibility for",
+      "ko": "~에 대한 책임을 맡다",
+      "example": "He assumed responsibility for the team's mistakes."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "assumption",
+      "pos": "noun",
+      "ko": "가정, 추측",
+      "example": "Your plan is based on a false assumption."
+    }
+  ]
+}

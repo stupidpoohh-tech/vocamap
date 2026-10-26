@@ -1,0 +1,43 @@
+{
+  "lemma": "validity",
+  "version": 1,
+  "core_ko": "유효함, 타당성",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "유효함, 타당성",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "One cannot take for granted that the findings of any given study will have validity.",
+      "ko": "우리는 주어진 연구의 결과가 타당성을 가질 것이라고 당연하게 여길 수 없다.",
+      "highlight": "validity",
+      "target": "유효함, 타당성"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "term of validity",
+      "ko": "유효 기간",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "valid",
+      "pos": "adjective",
+      "ko": "유효한, 타당한",
+      "example": null
+    },
+    {
+      "lemma": "validate",
+      "pos": "verb",
+      "ko": "입증하다",
+      "example": null
+    }
+  ]
+}

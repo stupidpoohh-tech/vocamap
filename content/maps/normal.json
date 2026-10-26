@@ -1,0 +1,68 @@
+{
+  "lemma": "normal",
+  "version": 1,
+  "core_ko": "보통의, 평범한, 정상의",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "보통의, 평범한, 정상의",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "보통, 평균, 정상",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "These perspectives on social manners, when repeated, may become a normal cultural practice.",
+      "ko": "사회적 예절에 관한 이러한 관점은 그것이 반복될 때 일반적인 문화적 관습이 될 수 있다.",
+      "highlight": "normal",
+      "target": "보통, 평균, 정상"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "look normal",
+      "ko": "정상으로 보이다",
+      "example": null
+    },
+    {
+      "expression": "above normal",
+      "ko": "비범한",
+      "example": null
+    },
+    {
+      "expression": "below normal",
+      "ko": "보통보다 떨어지는",
+      "example": null
+    },
+    {
+      "expression": "go back to normal",
+      "ko": "정상으로 돌아가다",
+      "example": null
+    },
+    {
+      "expression": "normal distribution",
+      "ko": "정규 분포",
+      "example": null
+    },
+    {
+      "expression": "in[under] normal circumstances",
+      "ko": "정상적인 상황에서",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "normally",
+      "pos": "adverb",
+      "ko": "보통, 정상적으로",
+      "example": null
+    }
+  ]
+}

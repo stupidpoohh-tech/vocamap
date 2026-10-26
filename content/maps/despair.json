@@ -1,0 +1,49 @@
+{
+  "lemma": "despair",
+  "version": 1,
+  "core_ko": "절망",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "절망",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "절망하다, 체념하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Instead of despairing, he was inspired to cofound the End To Cyber Bullying organization.",
+      "ko": "절망하는 대신 그는 End To Cyber Bullying 협회를 공동으로 창립하겠다는 영감을 받았다.",
+      "highlight": "despairing",
+      "target": "절망하다, 체념하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "in despair",
+      "ko": "절망에 빠진",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "desperate",
+      "pos": "adjective",
+      "ko": "절망적인",
+      "example": null
+    },
+    {
+      "lemma": "desperation",
+      "pos": "noun",
+      "ko": "절망",
+      "example": null
+    }
+  ]
+}

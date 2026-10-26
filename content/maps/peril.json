@@ -1,0 +1,37 @@
+{
+  "lemma": "peril",
+  "version": 1,
+  "core_ko": "위험, 위난",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "위험, 위난",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "위태롭게 하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "I’m sorry but his company is facing financial peril.",
+      "ko": "유감이지만 그의 회사는 재정난에 직면해 있다.",
+      "highlight": "peril",
+      "target": "위태롭게 하다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "perilous",
+      "pos": "adjective",
+      "ko": "매우 위험한",
+      "example": null
+    }
+  ]
+}

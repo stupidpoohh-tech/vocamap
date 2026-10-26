@@ -1,0 +1,17 @@
+{
+  "lemma": "quotation",
+  "version": 2,
+  "core_ko": "인용구, 인용문",
+  "core_en": "a group of words taken from a book, poem, play, etc.",
+  "meanings": [
+    {
+      "ko": "인용구, 인용문",
+      "en": "a group of words taken from a book, poem, play, etc.",
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [],
+  "collocations": [],
+  "family": []
+}

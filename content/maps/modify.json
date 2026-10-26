@@ -1,0 +1,37 @@
+{
+  "lemma": "modify",
+  "version": 1,
+  "core_ko": "수정[변경]하다; 조정하다; 수식하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "수정[변경]하다; 조정하다; 수식하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "I’d like to modify the terms and conditions of this contract.",
+      "ko": "나는 이 계약의 계약 조건을 변경하고 싶다.",
+      "highlight": "modify",
+      "target": "수정[변경]하다; 조정하다; 수식하다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "modification",
+      "pos": "noun",
+      "ko": "수정, 조정",
+      "example": null
+    },
+    {
+      "lemma": "modifiable",
+      "pos": "adjective",
+      "ko": "수정·조정 가능한",
+      "example": null
+    }
+  ]
+}

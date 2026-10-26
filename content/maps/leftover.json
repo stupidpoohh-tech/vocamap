@@ -1,0 +1,30 @@
+{
+  "lemma": "leftover",
+  "version": 1,
+  "core_ko": "(식사 후에) 남은 음식; (과거의) 잔재, 유물",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "(식사 후에) 남은 음식; (과거의) 잔재, 유물",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "남은",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Often he used charcoal from the wood fire to sketch on a leftover piece of brown paper.",
+      "ko": "그는 자주 남은 갈색 종이 위에 장작불에서 나온 숯을 이용해 스케치했다.",
+      "highlight": "leftover",
+      "target": "남은"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

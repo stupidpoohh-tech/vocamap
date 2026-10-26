@@ -1,0 +1,37 @@
+{
+  "lemma": "intimacy",
+  "version": 1,
+  "core_ko": "친밀함, 친밀감을 나타내는 행위",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "친밀함, 친밀감을 나타내는 행위",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The fact that the intensity reflects the duration of the separation as well as the level of intimacy suggests that elephants have a sense of time as well.",
+      "ko": "강렬함이 친밀함의 정도뿐만 아니라 떨어져 있었던 시간의 길이도 반영한다는 사실은 코끼리들에게도 시간적 감각이 있다는 것을 암시한다.",
+      "highlight": "intimacy",
+      "target": "친밀함, 친밀감을 나타내는 행위"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "form an intimacy with ~",
+      "ko": "~와 친해지다",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "intimate",
+      "pos": "adjective",
+      "ko": "친한, 사적인",
+      "example": null
+    }
+  ]
+}

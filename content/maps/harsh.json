@@ -1,0 +1,43 @@
+{
+  "lemma": "harsh",
+  "version": 1,
+  "core_ko": "가혹한, 냉혹한, 혹독한",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "가혹한, 냉혹한, 혹독한",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "He did it to protect Korea’s cultural identity during the harsh Japanese colonial period.",
+      "ko": "그는 가혹한 일제 강점기 동안 한국의 문화적 독자성을 보호하기 위해 그 일을 했다.",
+      "highlight": "harsh",
+      "target": "가혹한, 냉혹한, 혹독한"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "harsh climate",
+      "ko": "혹독한 기후",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "harshness",
+      "pos": "noun",
+      "ko": "가혹함, 혹독함",
+      "example": null
+    },
+    {
+      "lemma": "harshly",
+      "pos": "adverb",
+      "ko": "가혹하게",
+      "example": null
+    }
+  ]
+}

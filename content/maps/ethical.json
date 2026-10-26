@@ -1,0 +1,37 @@
+{
+  "lemma": "ethical",
+  "version": 1,
+  "core_ko": "윤리적인, 도덕적인",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "윤리적인, 도덕적인",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "In 2011, British scientists, engineers, and scholars suggested that designers, builders, and users of robots follow five ethical principles.",
+      "ko": "2011년 영국의 과학자들, 공학자들, 학자들은 로봇의 설계자, 제작자, 이용자들이 다섯 가지 윤리적인 원칙을 따르라고 제안했다.",
+      "highlight": "ethical",
+      "target": "윤리적인, 도덕적인"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "ethics",
+      "pos": "noun",
+      "ko": "윤리학",
+      "example": null
+    },
+    {
+      "lemma": "ethically",
+      "pos": "adverb",
+      "ko": "윤리적으로",
+      "example": null
+    }
+  ]
+}

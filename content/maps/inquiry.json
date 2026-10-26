@@ -1,0 +1,37 @@
+{
+  "lemma": "inquiry",
+  "version": 1,
+  "core_ko": "질문, 문의; 조사, 수사; 연구, 탐구",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "질문, 문의; 조사, 수사; 연구, 탐구",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "In much of scientific inquiry, there are no right or wrong answers.",
+      "ko": "많은 과학 연구에서 옳거나 틀린 답은 없다.",
+      "highlight": "inquiry",
+      "target": "질문, 문의; 조사, 수사; 연구, 탐구"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "inquire",
+      "pos": "verb",
+      "ko": "문의하다",
+      "example": null
+    },
+    {
+      "lemma": "inquisitive",
+      "pos": "adjective",
+      "ko": "호기심이 많은",
+      "example": null
+    }
+  ]
+}

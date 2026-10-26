@@ -1,0 +1,66 @@
+{
+  "lemma": "sprout",
+  "version": 1,
+  "core_ko": "숨어 있던 것이 작게 돋아나 자라기 시작하다 — 씨앗에서 싹이 트듯 새로 생겨나는 것.",
+  "core_en": "to begin to grow and appear as something small and new",
+  "meanings": [
+    {
+      "ko": "(씨앗·식물이) 싹이 나다, 자라기 시작하다",
+      "en": "to begin to grow, producing shoots or leaves",
+      "note": "중심 개념 그대로의 쓰임. 씨앗 속에 있던 것이 밖으로 돋아나는 장면이다.",
+      "chunk": "the seeds sprouted"
+    },
+    {
+      "ko": "(건물·가게 등이) 우후죽순으로 생겨나다",
+      "en": "to appear suddenly and in large numbers",
+      "note": "싹이 여기저기 돋아나는 이미지를 사람이 만든 것에 옮겨 쓴 것. 흔히 sprout up으로 쓴다.",
+      "chunk": "cafés sprouting up"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The beans I planted last week have already sprouted.",
+      "ko": "지난주에 심은 콩이 벌써 싹이 났다.",
+      "highlight": "sprouted",
+      "target": "싹이 나다"
+    },
+    {
+      "text": "Tiny green leaves are sprouting from the old branches.",
+      "ko": "낡은 가지에서 작은 초록 잎들이 돋아나고 있다.",
+      "highlight": "sprouting",
+      "target": "싹이 돋아나다"
+    },
+    {
+      "text": "New coffee shops have sprouted up all over the neighborhood.",
+      "ko": "동네 곳곳에 새 커피숍이 우후죽순으로 생겨났다.",
+      "highlight": "sprouted up",
+      "target": "갑자기 많이 생겨나다"
+    },
+    {
+      "text": "She added bean sprouts to the soup at the last minute.",
+      "ko": "그녀는 마지막에 국에 콩나물을 넣었다.",
+      "highlight": "bean sprouts",
+      "target": "새싹(명사)"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "sprout up",
+      "ko": "(우후죽순으로) 솟아나다, 생겨나다",
+      "example": "Weeds sprout up everywhere after the rain."
+    },
+    {
+      "expression": "bean sprouts",
+      "ko": "콩나물",
+      "example": "He ordered noodles with bean sprouts on top."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "sprout",
+      "pos": "noun",
+      "ko": "새싹, 순",
+      "example": "A green sprout pushed through the soil."
+    }
+  ]
+}

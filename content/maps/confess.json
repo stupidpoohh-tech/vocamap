@@ -1,0 +1,31 @@
+{
+  "lemma": "confess",
+  "version": 1,
+  "core_ko": "고백하다, 인정하다, 자백하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "고백하다, 인정하다, 자백하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "When little Maria confessed her act, the neighbor asked to see the painting.",
+      "ko": "어린 Maria가 자신의 행동을 고백하자, 그 이웃은 그 그림을 보기를 요청했다.",
+      "highlight": "confessed",
+      "target": "고백하다, 인정하다, 자백하다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "confession",
+      "pos": "noun",
+      "ko": "고백, 인정",
+      "example": null
+    }
+  ]
+}

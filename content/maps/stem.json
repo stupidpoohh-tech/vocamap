@@ -1,0 +1,30 @@
+{
+  "lemma": "stem",
+  "version": 1,
+  "core_ko": "줄기, 줄기 부분; 어간",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "줄기, 줄기 부분; 어간",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "A butterfly was sitting nearby and a caterpillar was creeping down the flower stem.",
+      "ko": "나비 한 마리가 인근에 앉아 있었고 애벌레는 꽃의 줄기를 기어 내려가고 있었다.",
+      "highlight": "stem",
+      "target": "줄기, 줄기 부분; 어간"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "stem from ~",
+      "ko": "~에서 기인하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

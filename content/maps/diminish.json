@@ -1,0 +1,35 @@
+{
+  "lemma": "diminish",
+  "version": 1,
+  "core_ko": "줄어들다, 약화시키다; 평범하게 하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "줄어들다, 약화시키다; 평범하게 하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "It was the decision of the cereal maker to remind people that the world’s population of bees is fast diminishing.",
+      "ko": "그것은 전 세계의 꿀벌 수가 급격히 감소하고 있다는 사실을 사람들에게 알리기 위해 시리얼 회사가 내린 결정이었다.",
+      "highlight": "diminishing",
+      "target": "줄어들다, 약화시키다; 평범하게 하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "diminish in population",
+      "ko": "인구가 감소하다",
+      "example": null
+    },
+    {
+      "expression": "diminish by degrees",
+      "ko": "점차 적어지다",
+      "example": null
+    }
+  ],
+  "family": []
+}

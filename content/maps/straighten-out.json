@@ -1,0 +1,24 @@
+{
+  "lemma": "straighten out",
+  "version": 1,
+  "core_ko": "phr. ~을 바로잡다[바르게 하다]; (분쟁·혼란 등을) 수습하다, 해결하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~을 바로잡다[바르게 하다]; (분쟁·혼란 등을) 수습하다, 해결하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Unfortunately you need braces to straighten out your teeth.",
+      "ko": "유감이지만 당신의 치아를 고르게 하려면 치아 교정기가 필요하다.",
+      "highlight": "straighten out",
+      "target": "phr. ~을 바로잡다[바르게 하다]; (분쟁·혼란 등을) 수습하다, 해결하다"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

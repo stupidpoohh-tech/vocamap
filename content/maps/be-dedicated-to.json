@@ -1,0 +1,30 @@
+{
+  "lemma": "be dedicated to",
+  "version": 1,
+  "core_ko": "phr. ~에 전념하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~에 전념하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "School time should be dedicated to academic subjects.",
+      "ko": "학교 시간은 교과목 수업에 전념해야 한다.",
+      "highlight": "be dedicated to",
+      "target": "phr. ~에 전념하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "be devoted to",
+      "ko": "~에 전념하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

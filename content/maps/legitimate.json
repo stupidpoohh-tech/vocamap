@@ -1,0 +1,37 @@
+{
+  "lemma": "legitimate",
+  "version": 1,
+  "core_ko": "합법적인; 타당한, 정당한",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "합법적인; 타당한, 정당한",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Sadly, human beings are in fact the only species that deliberately deprive themselves of sleep without legitimate gain.",
+      "ko": "안타깝게도, 인간은 사실 합당한 이익 없이 의도적으로 잠을 자제할 유일한 종이다.",
+      "highlight": "legitimate",
+      "target": "합법적인; 타당한, 정당한"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "legitimacy",
+      "pos": "noun",
+      "ko": "합법, 적법, 정당성",
+      "example": null
+    },
+    {
+      "lemma": "legitimately",
+      "pos": "adverb",
+      "ko": "합법적으로",
+      "example": null
+    }
+  ]
+}

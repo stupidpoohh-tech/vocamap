@@ -1,0 +1,68 @@
+{
+  "lemma": "tension",
+  "version": 1,
+  "core_ko": "긴장 상태, 팽팽함, 긴장",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "긴장 상태, 팽팽함, 긴장",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "팽팽하게 하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Tension has heightened after the recent attack.",
+      "ko": "최근의 공격 이후 긴장이 고조되었다.",
+      "highlight": "Tension",
+      "target": "팽팽하게 하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "dramatic tension",
+      "ko": "극적 긴장감",
+      "example": null
+    },
+    {
+      "expression": "mounting tension",
+      "ko": "고조되는 긴장",
+      "example": null
+    },
+    {
+      "expression": "nervous tension",
+      "ko": "심리적인 긴장",
+      "example": null
+    },
+    {
+      "expression": "sign of tension",
+      "ko": "긴장의 표시",
+      "example": null
+    },
+    {
+      "expression": "tension of the rope",
+      "ko": "밧줄의 팽팽함",
+      "example": null
+    },
+    {
+      "expression": "surface tension",
+      "ko": "표면 장력",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "tense",
+      "pos": "adjective",
+      "ko": "팽팽한",
+      "example": null
+    }
+  ]
+}

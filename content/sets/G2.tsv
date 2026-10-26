@@ -1,0 +1,18 @@
+# G2
+#
+# 한 줄에 단어 하나. 탭으로 나눈다:  단어 <탭> 뜻 <탭> 품사(없어도 됨)
+# 맨 앞이 # 인 줄과 빈 줄은 무시한다.
+
+positive	긍정적인
+against	~에 반대하여
+energize	활기를 불어넣다
+obstacle	장애물
+principle	원칙
+arise	발생하다
+desire	욕구
+outcome	결과
+temporary	일시적인
+calmness	평온함
+inactivity	비활동
+objective	목표
+confidence	자신감

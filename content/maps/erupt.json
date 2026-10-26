@@ -1,0 +1,31 @@
+{
+  "lemma": "erupt",
+  "version": 1,
+  "core_ko": "분출하다; (갑자기) 분출되다; (강한 감정을) 폭발시키다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "분출하다; (갑자기) 분출되다; (강한 감정을) 폭발시키다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Many fans erupted in indignation that the showrunners failed to resolve the series’ many puzzles.",
+      "ko": "많은 팬들은 드라마 책임자들이 그 시리즈물의 많은 의문들을 해소해 주지 못했다고 분개하여 폭발했다.",
+      "highlight": "erupted",
+      "target": "분출하다; (갑자기) 분출되다; (강한 감정을) 폭발시키다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "eruption",
+      "pos": "noun",
+      "ko": "(화산의) 폭발",
+      "example": null
+    }
+  ]
+}

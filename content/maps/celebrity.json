@@ -1,0 +1,48 @@
+{
+  "lemma": "celebrity",
+  "version": 1,
+  "core_ko": "유명 인사; 명성",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "유명 인사; 명성",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "These edible pieces of art can resemble animals, nature scenes, and even celebrities and characters from popular culture.",
+      "ko": "이러한 식용 예술작품들은 동물, 자연 풍경, 그리고 대중 문화의 유명 인사와 등장인물들까지 닮을 수 있다.",
+      "highlight": "celebrities",
+      "target": "유명 인사; 명성"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "literary celebrity",
+      "ko": "문단의 유명 인사",
+      "example": null
+    },
+    {
+      "expression": "local celebrity",
+      "ko": "지방의 명사",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "celebrate",
+      "pos": "verb",
+      "ko": "기념하다, 축하하다",
+      "example": null
+    },
+    {
+      "lemma": "celebration",
+      "pos": "noun",
+      "ko": "기념, 축하",
+      "example": null
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "lemma": "impulse",
+  "version": 1,
+  "core_ko": "충동, 자극, 충격",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "충동, 자극, 충격",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Our first impulse is to run away when in danger.",
+      "ko": "위험에 처하면 우리의 첫 번째 충동은 달아나는 것이다.",
+      "highlight": "impulse",
+      "target": "충동, 자극, 충격"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "impulse buying",
+      "ko": "충동 구매",
+      "example": null
+    },
+    {
+      "expression": "on impulse",
+      "ko": "충동적으로",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "impulsive",
+      "pos": "adjective",
+      "ko": "충동적인",
+      "example": null
+    }
+  ]
+}

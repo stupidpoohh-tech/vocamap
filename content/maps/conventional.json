@@ -1,0 +1,37 @@
+{
+  "lemma": "conventional",
+  "version": 1,
+  "core_ko": "전형적인, 관습적인, 관례적인; 전통적인",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "전형적인, 관습적인, 관례적인; 전통적인",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The Eastgate Centre was constructed without a conventional cooling system.",
+      "ko": "Eastgate Centre는 전형적인 냉방 시스템 없이 건설되었다.",
+      "highlight": "conventional",
+      "target": "전형적인, 관습적인, 관례적인; 전통적인"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "conventional wisdom",
+      "ko": "일반적인 통념[견해]",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "convention",
+      "pos": "noun",
+      "ko": "관습, 관례; 대회, 회의",
+      "example": null
+    }
+  ]
+}

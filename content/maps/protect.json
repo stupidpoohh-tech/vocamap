@@ -1,0 +1,66 @@
+{
+  "lemma": "protect",
+  "version": 1,
+  "core_ko": "해를 입힐 수 있는 것으로부터 막아서 안전하게 지켜 주는 것",
+  "core_en": "to keep someone or something safe from harm or damage",
+  "meanings": [
+    {
+      "ko": "위험·피해로부터 보호하다, 지키다",
+      "en": "to keep someone or something safe from harm, injury, or damage",
+      "note": "핵심 개념 그대로. '막아 준다'는 방향성이 있어서 보통 from/against와 함께 무엇으로부터 지키는지를 밝힌다.",
+      "chunk": "protect children from harm"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Sunscreen protects your skin from the sun.",
+      "ko": "선크림은 태양으로부터 피부를 보호해 준다.",
+      "highlight": "protects your skin from",
+      "target": "위험 요소로부터 지키다"
+    },
+    {
+      "text": "These laws protect workers against unfair treatment.",
+      "ko": "이 법은 노동자들을 부당한 대우로부터 보호한다.",
+      "highlight": "protect workers against",
+      "target": "제도가 권리를 지켜 주다"
+    },
+    {
+      "text": "We must protect the environment for future generations.",
+      "ko": "우리는 미래 세대를 위해 환경을 보호해야 한다.",
+      "highlight": "protect the environment",
+      "target": "훼손되지 않게 지키다"
+    },
+    {
+      "text": "A thick shell protects the turtle's soft body.",
+      "ko": "두꺼운 등딱지가 거북의 연한 몸을 보호한다.",
+      "highlight": "protects the turtle's soft body",
+      "target": "물리적으로 감싸 지키다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "protect A from/against B",
+      "ko": "A를 B로부터 보호하다",
+      "example": "Warm clothes protect you from the cold."
+    },
+    {
+      "expression": "protect the environment",
+      "ko": "환경을 보호하다",
+      "example": "Small habits can help protect the environment."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "protection",
+      "pos": "noun",
+      "ko": "보호",
+      "example": "The tent gave us protection from the rain."
+    },
+    {
+      "lemma": "protective",
+      "pos": "adjective",
+      "ko": "보호하는, 보호용의",
+      "example": "Workers must wear protective gloves."
+    }
+  ]
+}

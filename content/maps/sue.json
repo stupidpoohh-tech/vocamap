@@ -1,0 +1,30 @@
+{
+  "lemma": "sue",
+  "version": 1,
+  "core_ko": "고소하다, 소송을 제기하다; (재판 등을 통해) 청구하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "고소하다, 소송을 제기하다; (재판 등을 통해) 청구하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The company Able Entertainment decided to sue the singer for canceling his concert.",
+      "ko": "Able Entertainment 회사는 콘서트를 취소했다는 이유로 그 가수를 고소하기로 결정했다.",
+      "highlight": "sue",
+      "target": "고소하다, 소송을 제기하다; (재판 등을 통해) 청구하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "sue ~ for …",
+      "ko": "~에게 …에 관한 소송을 제기하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

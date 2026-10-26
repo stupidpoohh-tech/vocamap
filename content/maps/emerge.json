@@ -1,0 +1,66 @@
+{
+  "lemma": "emerge",
+  "version": 2,
+  "core_ko": "보이지 않던 것이 밖으로 드러나 나타나는 것 — 물리적으로든, 사실·존재로든.",
+  "core_en": "to come out of something hidden and become visible or known",
+  "meanings": [
+    {
+      "ko": "(가려져 있던 곳에서) 나오다, 모습을 드러내다",
+      "en": "to come out from a place where you could not be seen",
+      "note": "핵심 이미지 그대로. 숨겨진 상태에서 밖으로 나와 눈에 보이게 되는 것.",
+      "chunk": "emerge from the water"
+    },
+    {
+      "ko": "(사실·문제가) 밝혀지다, 드러나다",
+      "en": "to become known, especially after being hidden",
+      "note": "'눈에 보이게 되다'가 정보에 적용된 것. 사실이 사람들의 시야에 나타나는 셈이다.",
+      "chunk": "new evidence emerged"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "A bear emerged from the trees and crossed the road.",
+      "ko": "곰 한 마리가 나무들 사이에서 나와 길을 건넜다.",
+      "highlight": "emerged from the trees",
+      "target": "보이지 않던 곳에서 나오다"
+    },
+    {
+      "text": "It later emerged that the company had hidden the losses.",
+      "ko": "그 회사가 손실을 숨겼다는 사실이 나중에 밝혀졌다.",
+      "highlight": "emerged that",
+      "target": "사실이 드러나다"
+    },
+    {
+      "text": "She emerged as the strongest candidate after the debate.",
+      "ko": "토론 후 그녀가 가장 유력한 후보로 부상했다.",
+      "highlight": "emerged as",
+      "target": "~로 부상하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "emerge from",
+      "ko": "~에서 나오다, ~에서 벗어나다",
+      "example": "The country is slowly emerging from a long recession."
+    },
+    {
+      "expression": "emerge as",
+      "ko": "~로 부상하다, ~로 떠오르다",
+      "example": "He has emerged as a leader in his field."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "emergence",
+      "pos": "noun",
+      "ko": "출현, 등장",
+      "example": "The emergence of new technology changed the industry."
+    },
+    {
+      "lemma": "emerging",
+      "pos": "adjective",
+      "ko": "신흥의, 떠오르는",
+      "example": "Emerging markets attract many investors."
+    }
+  ]
+}

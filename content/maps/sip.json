@@ -1,0 +1,30 @@
+{
+  "lemma": "sip",
+  "version": 1,
+  "core_ko": "(음료를) 조금씩 마시다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "(음료를) 조금씩 마시다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "한 모금",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "She took a sip of the sweet tea and waited for her grandmother to make the first move.",
+      "ko": "그녀는 그 달콤한 차를 조금 마시고 할머니가 먼저 움직이기를 기다렸다.",
+      "highlight": "sip",
+      "target": "한 모금"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

@@ -1,0 +1,31 @@
+{
+  "lemma": "adequate",
+  "version": 1,
+  "core_ko": "충분한, 적절한",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "충분한, 적절한",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Photographers need to learn how to decide an adequate composition for their photos.",
+      "ko": "사진사들은 자신의 사진의 적절한 구성을 결정하는 법을 배워야 한다.",
+      "highlight": "adequate",
+      "target": "충분한, 적절한"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "adequately",
+      "pos": "adverb",
+      "ko": "충분히",
+      "example": null
+    }
+  ]
+}

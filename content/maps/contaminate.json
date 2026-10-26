@@ -1,0 +1,31 @@
+{
+  "lemma": "contaminate",
+  "version": 1,
+  "core_ko": "오염시키다, 악영향을 주다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "오염시키다, 악영향을 주다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "If bees avoid direct contact with pesticides, they can still be contaminated through pollen, the air, water or soil.",
+      "ko": "벌이 농약과 직접 접촉하지 않더라도 벌은 여전히 꽃가루, 공기, 물 또는 흙을 통해 오염될 수 있다.",
+      "highlight": "contaminated",
+      "target": "오염시키다, 악영향을 주다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "contamination",
+      "pos": "noun",
+      "ko": "오염",
+      "example": null
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "lemma": "advent",
+  "version": 1,
+  "core_ko": "출현, 도래",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "출현, 도래",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The advent of literacy strengthened the ability of large and complex ideas to spread with high fidelity.",
+      "ko": "글을 읽고 쓸 줄 아는 능력의 출현은 크고 복잡한 생각이 매우 정확하게 퍼져 나가는 능력을 강화했다.",
+      "highlight": "advent",
+      "target": "출현, 도래"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

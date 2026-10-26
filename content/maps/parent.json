@@ -1,0 +1,17 @@
+{
+  "lemma": "parent",
+  "version": 2,
+  "core_ko": "(-s) 부모, 어버이",
+  "core_en": "a person's father or mother",
+  "meanings": [
+    {
+      "ko": "(-s) 부모, 어버이",
+      "en": "a person's father or mother",
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [],
+  "collocations": [],
+  "family": []
+}

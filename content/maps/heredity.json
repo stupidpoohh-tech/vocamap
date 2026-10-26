@@ -1,0 +1,31 @@
+{
+  "lemma": "heredity",
+  "version": 1,
+  "core_ko": "유전적 특징, 세습",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "유전적 특징, 세습",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Can intelligence and appearance be acquired from heredity?",
+      "ko": "지능과 외모가 유전 형질로부터 획득될 수 있는가?",
+      "highlight": "heredity",
+      "target": "유전적 특징, 세습"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "hereditary",
+      "pos": "adjective",
+      "ko": "유전의, 세습의",
+      "example": null
+    }
+  ]
+}

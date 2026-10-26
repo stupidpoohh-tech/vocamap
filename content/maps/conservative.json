@@ -1,0 +1,49 @@
+{
+  "lemma": "conservative",
+  "version": 1,
+  "core_ko": "보수적인",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "보수적인",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "보수당 지지자",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "One newspaper is generally liberal, and the second is conservative.",
+      "ko": "한 신문은 대개 진보적이고 두 번째 신문은 보수적이다.",
+      "highlight": "conservative",
+      "target": "보수당 지지자"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "conserve",
+      "pos": "verb",
+      "ko": "아끼다, 보존하다",
+      "example": null
+    },
+    {
+      "lemma": "conservation",
+      "pos": "noun",
+      "ko": "보호, 보존",
+      "example": null
+    },
+    {
+      "lemma": "conservatism",
+      "pos": "noun",
+      "ko": "보수주의",
+      "example": null
+    }
+  ]
+}

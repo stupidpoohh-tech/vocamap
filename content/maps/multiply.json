@@ -1,0 +1,49 @@
+{
+  "lemma": "multiply",
+  "version": 1,
+  "core_ko": "곱하다; (크게) 증식시키다; (동·식물을) 번식시키다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "곱하다; (크게) 증식시키다; (동·식물을) 번식시키다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Multiply 4 by 10 and you get 40.",
+      "ko": "4를 10으로 곱하면 40이 된다.",
+      "highlight": "Multiply",
+      "target": "곱하다; (크게) 증식시키다; (동·식물을) 번식시키다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "multiplication table",
+      "ko": "구구표",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "multiplication",
+      "pos": "noun",
+      "ko": "곱셈, 증식",
+      "example": null
+    },
+    {
+      "lemma": "multiplicity",
+      "pos": "noun",
+      "ko": "다수, 다양함",
+      "example": null
+    },
+    {
+      "lemma": "multiple",
+      "pos": "adjective",
+      "ko": "다수의, 많은",
+      "example": null
+    }
+  ]
+}

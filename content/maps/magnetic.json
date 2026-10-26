@@ -1,0 +1,63 @@
+{
+  "lemma": "magnetic",
+  "version": 1,
+  "core_ko": "자석의, 자기(를 띤); 매력이 있는",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "자석의, 자기(를 띤); 매력이 있는",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The metal becomes magnetic when the current is switched on.",
+      "ko": "전류의 스위치를 켜면 그 금속이 자성을 띤다.",
+      "highlight": "magnetic",
+      "target": "자석의, 자기(를 띤); 매력이 있는"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "magnetic strip",
+      "ko": "자기 띠",
+      "example": null
+    },
+    {
+      "expression": "magnetic material",
+      "ko": "자성 물질",
+      "example": null
+    },
+    {
+      "expression": "magnetic property",
+      "ko": "자성",
+      "example": null
+    },
+    {
+      "expression": "magnetic field",
+      "ko": "자기장",
+      "example": null
+    },
+    {
+      "expression": "magnetic personality",
+      "ko": "매력적인 성격",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "magnet",
+      "pos": "noun",
+      "ko": "자석",
+      "example": null
+    },
+    {
+      "lemma": "magnetically",
+      "pos": "adverb",
+      "ko": "자석으로, 자기로",
+      "example": null
+    }
+  ]
+}

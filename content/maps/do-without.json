@@ -1,0 +1,30 @@
+{
+  "lemma": "do without",
+  "version": 1,
+  "core_ko": "phr. ~ 없이 지내다[해내다]",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~ 없이 지내다[해내다]",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "If they can’t get the machine to us, we’ll just have to do without.",
+      "ko": "그들이 우리에게 그 기계를 가져오지 못하면, 우리는 그저 그것 없이 지내야 할 것이다.",
+      "highlight": "do without",
+      "target": "phr. ~ 없이 지내다[해내다]"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "do fine",
+      "ko": "잘 지내다",
+      "example": null
+    }
+  ],
+  "family": []
+}

@@ -1,0 +1,35 @@
+{
+  "lemma": "sign up for",
+  "version": 1,
+  "core_ko": "phr. ~에 등록하다, ~을 신청[가입]하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~에 등록하다, ~을 신청[가입]하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "I tried to sign up for your lifeguard training course this summer.",
+      "ko": "저는 이번 여름에 귀사의 인명구조원 훈련 과정에 등록하려 했습니다.",
+      "highlight": "sign up for",
+      "target": "phr. ~에 등록하다, ~을 신청[가입]하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "register for[at]",
+      "ko": "~에 등록하다",
+      "example": null
+    },
+    {
+      "expression": "apply to[for]",
+      "ko": "~에 지원하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

@@ -1,0 +1,49 @@
+{
+  "lemma": "botanical",
+  "version": 1,
+  "core_ko": "식물(학)의",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "식물(학)의",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "There was merely a tag on the plant showing some foreign or botanical name.",
+      "ko": "식물에는 단지 어떤 외국어인지 또는 식물학상의 이름인지를 보여 주는 이름표가 있었다.",
+      "highlight": "botanical",
+      "target": "식물(학)의"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "botanical[botanic] garden",
+      "ko": "식물원",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "botanic",
+      "pos": "adjective",
+      "ko": "식물(학)의",
+      "example": null
+    },
+    {
+      "lemma": "botany",
+      "pos": "noun",
+      "ko": "식물학",
+      "example": null
+    },
+    {
+      "lemma": "botanist",
+      "pos": "noun",
+      "ko": "식물학자",
+      "example": null
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "lemma": "hands-on",
+  "version": 1,
+  "core_ko": "직접 해 보는",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "직접 해 보는",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "We have hands-on activities for children, such as making art pieces and exploring the forest.",
+      "ko": "저희는 아이들을 위한 예술작품을 만들고 숲을 탐험하는 것과 같은 직접 체험하는 활동이 있습니다.",
+      "highlight": "hands-on",
+      "target": "직접 해 보는"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

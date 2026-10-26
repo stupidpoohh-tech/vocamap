@@ -1,0 +1,37 @@
+{
+  "lemma": "refrigeration",
+  "version": 1,
+  "core_ko": "냉장(보관), 냉동",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "냉장(보관), 냉동",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "All foods are required to be kept under refrigeration.",
+      "ko": "모든 식품은 냉장 보관할 필요가 있다.",
+      "highlight": "refrigeration",
+      "target": "냉장(보관), 냉동"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "refrigerate",
+      "pos": "verb",
+      "ko": "냉장하다",
+      "example": null
+    },
+    {
+      "lemma": "refrigerator",
+      "pos": "noun",
+      "ko": "냉장고",
+      "example": null
+    }
+  ]
+}

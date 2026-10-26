@@ -1,0 +1,47 @@
+{
+  "lemma": "ancient",
+  "version": 1,
+  "core_ko": "아주 먼 옛 시대에 속한 것 — 단순히 '오래된'이 아니라 수천 년 전 시대의 것",
+  "core_en": "belonging to a time very far back in history",
+  "meanings": [
+    {
+      "ko": "고대의, 먼 옛날의",
+      "en": "belonging to the distant past, especially thousands of years ago",
+      "note": "의미 중심 그대로의 용법. '오래됨'의 정도가 극단적이어서 역사 속 시대를 가리킨다.",
+      "chunk": "ancient Greece"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Ancient Egyptians built the pyramids thousands of years ago.",
+      "ko": "고대 이집트인들은 수천 년 전에 피라미드를 세웠다.",
+      "highlight": "Ancient Egyptians",
+      "target": "고대의 (역사 속 시대)"
+    },
+    {
+      "text": "The museum displays ancient coins found under the city.",
+      "ko": "박물관은 도시 아래에서 발견된 고대 동전들을 전시한다.",
+      "highlight": "ancient coins",
+      "target": "먼 옛날에 만들어진"
+    },
+    {
+      "text": "This tradition is ancient, but people still follow it today.",
+      "ko": "이 전통은 아주 오래된 것이지만 사람들은 지금도 지킨다.",
+      "highlight": "is ancient",
+      "target": "기원이 아주 오래된"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "ancient civilization",
+      "ko": "고대 문명",
+      "example": "We studied ancient civilizations in history class."
+    },
+    {
+      "expression": "ancient ruins",
+      "ko": "고대 유적",
+      "example": "Tourists climb the hill to see the ancient ruins."
+    }
+  ],
+  "family": []
+}

@@ -1,0 +1,37 @@
+{
+  "lemma": "monetary",
+  "version": 1,
+  "core_ko": "통화[화폐]의, 재정적인, 금융의",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "통화[화폐]의, 재정적인, 금융의",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Monetary donations will be appreciated at the event.",
+      "ko": "그 행사에서 금전 기부는 감사히 받겠습니다.",
+      "highlight": "Monetary",
+      "target": "통화[화폐]의, 재정적인, 금융의"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "monetary policy",
+      "ko": "통화 정책",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "money",
+      "pos": "noun",
+      "ko": "돈",
+      "example": null
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "lemma": "informal",
+  "version": 1,
+  "core_ko": "비공식적인; 격식에 얽매이지 않은; 일상적인",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "비공식적인; 격식에 얽매이지 않은; 일상적인",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Tourism can generate business opportunities in both the formal and informal sector.",
+      "ko": "관광업은 공식적 부문과 비공식적 부문 둘 다에서 사업 기회를 창출할 수 있다.",
+      "highlight": "informal",
+      "target": "비공식적인; 격식에 얽매이지 않은; 일상적인"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "informality",
+      "pos": "noun",
+      "ko": "비공식, 일상",
+      "example": null
+    },
+    {
+      "lemma": "informally",
+      "pos": "adverb",
+      "ko": "형식에 얽매이지 않고",
+      "example": null
+    }
+  ]
+}

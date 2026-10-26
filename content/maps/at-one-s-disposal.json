@@ -1,0 +1,30 @@
+{
+  "lemma": "at one’s disposal",
+  "version": 1,
+  "core_ko": "phr. ~의 마음대로 이용[사용]할 수 있게",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~의 마음대로 이용[사용]할 수 있게",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Painters have in principle an infinite range of colors at their disposal.",
+      "ko": "이론상으로 화가들은 무한한 범위의 색을 마음대로 사용할 수 있다.",
+      "highlight": "",
+      "target": "phr. ~의 마음대로 이용[사용]할 수 있게"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "available for one’s use",
+      "ko": "이용할 수 있는",
+      "example": null
+    }
+  ],
+  "family": []
+}

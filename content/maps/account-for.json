@@ -1,0 +1,30 @@
+{
+  "lemma": "account for",
+  "version": 1,
+  "core_ko": "phr. (부분·비율을) 차지하다; ~을 설명하다, ~을 해명하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. (부분·비율을) 차지하다; ~을 설명하다, ~을 해명하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "In 2015, cash transactions accounted for barely 20% of all payments made in Sweden.",
+      "ko": "2015년에 스웨덴에서 이루어지는 모든 결제의 20%를 겨우 차지했다.",
+      "highlight": "",
+      "target": "phr. (부분·비율을) 차지하다; ~을 설명하다, ~을 해명하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "take up",
+      "ko": "차지하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

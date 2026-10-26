@@ -1,0 +1,35 @@
+{
+  "lemma": "vain",
+  "version": 1,
+  "core_ko": "헛된; 자만심이 강한",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "헛된; 자만심이 강한",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "I made a vain resolution never to repeat the act.",
+      "ko": "나는 다시는 그런 행위를 되풀이하지 않겠다는 헛된 결심을 했다.",
+      "highlight": "vain",
+      "target": "헛된; 자만심이 강한"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "in vain",
+      "ko": "헛되이",
+      "example": null
+    },
+    {
+      "expression": "vain efforts",
+      "ko": "헛된 노력",
+      "example": null
+    }
+  ],
+  "family": []
+}

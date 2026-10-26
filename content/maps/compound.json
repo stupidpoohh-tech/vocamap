@@ -1,0 +1,62 @@
+{
+  "lemma": "compound",
+  "version": 1,
+  "core_ko": "복합체, 화합물, 혼합물",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "복합체, 화합물, 혼합물",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "합성의",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "혼합하다; 구성하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The compounds in eucalyptus leaves make the koalas slow.",
+      "ko": "유칼립투스 잎 속의 화합물이 코알라들을 느리게 만든다.",
+      "highlight": "compounds",
+      "target": "혼합하다; 구성하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "chemical compounds",
+      "ko": "화합물",
+      "example": null
+    },
+    {
+      "expression": "toxic compound",
+      "ko": "독성 화합물",
+      "example": null
+    },
+    {
+      "expression": "organic compound",
+      "ko": "유기 화합물",
+      "example": null
+    },
+    {
+      "expression": "compound interest",
+      "ko": "복리",
+      "example": null
+    },
+    {
+      "expression": "compound noun",
+      "ko": "복합 명사",
+      "example": null
+    }
+  ],
+  "family": []
+}

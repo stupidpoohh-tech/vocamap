@@ -1,0 +1,42 @@
+{
+  "lemma": "candidate",
+  "version": 1,
+  "core_ko": "후보, 출마자; 지원자",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "후보, 출마자; 지원자",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "We decided to narrow down the candidates.",
+      "ko": "우리는 후보군을 좁히기로 했다.",
+      "highlight": "candidates",
+      "target": "후보, 출마자; 지원자"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "presidential candidate",
+      "ko": "대통령 후보",
+      "example": null
+    },
+    {
+      "expression": "doctoral candidate",
+      "ko": "박사 학위 지원자",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "candidacy",
+      "pos": "noun",
+      "ko": "입후보",
+      "example": null
+    }
+  ]
+}

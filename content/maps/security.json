@@ -1,0 +1,66 @@
+{
+  "lemma": "security",
+  "version": 1,
+  "core_ko": "위험으로부터 지켜져서 불안하지 않은 상태, 또 그 상태를 만드는 장치·수단.",
+  "core_en": "the state of being safe from danger, and the means that keep it that way",
+  "meanings": [
+    {
+      "ko": "안전(한 상태), 보안",
+      "en": "protection against danger, attack, or loss",
+      "note": "핵심 개념 그대로. 위험이 차단된 상태를 가리킨다.",
+      "chunk": "national security"
+    },
+    {
+      "ko": "안정감, 마음의 든든함",
+      "en": "the feeling of being safe and free from worry",
+      "note": "물리적 안전이 마음속 느낌으로 옮겨간 용법. 돈이나 가족이 주는 '든든함'을 말한다.",
+      "chunk": "a sense of security"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Airport security checked every bag carefully.",
+      "ko": "공항 보안 요원들이 모든 가방을 꼼꼼히 검사했다.",
+      "highlight": "Airport security",
+      "target": "보안(을 담당하는 조직·인원)"
+    },
+    {
+      "text": "The company spent millions on computer security.",
+      "ko": "그 회사는 컴퓨터 보안에 수백만 달러를 썼다.",
+      "highlight": "computer security",
+      "target": "보안 (공격으로부터의 보호)"
+    },
+    {
+      "text": "A steady job gave her a sense of security.",
+      "ko": "안정된 직장은 그녀에게 든든한 안정감을 주었다.",
+      "highlight": "a sense of security",
+      "target": "안정감, 마음의 든든함"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "national security",
+      "ko": "국가 안보",
+      "example": "The documents were kept secret for national security."
+    },
+    {
+      "expression": "tighten security",
+      "ko": "보안을 강화하다",
+      "example": "Police tightened security around the stadium."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "secure",
+      "pos": "adjective",
+      "ko": "안전한, 든든한",
+      "example": "Make sure the door is secure before you leave."
+    },
+    {
+      "lemma": "insecure",
+      "pos": "adjective",
+      "ko": "불안한, 자신 없는",
+      "example": "He felt insecure about his new job."
+    }
+  ]
+}

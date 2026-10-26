@@ -1,0 +1,50 @@
+{
+  "lemma": "crisis",
+  "version": 1,
+  "core_ko": "위기, 고비 (pl. crises)",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "위기, 고비 (pl. crises)",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Some of us go through an identity crisis in our teens.",
+      "ko": "우리 중 일부는 십 대에 정체성 위기를 겪는다.",
+      "highlight": "crisis",
+      "target": "위기, 고비 (pl. crises)"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "in times of crisis",
+      "ko": "위기의 순간에",
+      "example": null
+    },
+    {
+      "expression": "political crisis",
+      "ko": "정치적 위기",
+      "example": null
+    },
+    {
+      "expression": "financial crisis",
+      "ko": "재정적 위기",
+      "example": null
+    },
+    {
+      "expression": "critical crisis",
+      "ko": "심각한 위기",
+      "example": null
+    },
+    {
+      "expression": "diplomatic crisis",
+      "ko": "외교적 위기",
+      "example": null
+    }
+  ],
+  "family": []
+}

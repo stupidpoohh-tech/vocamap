@@ -1,0 +1,61 @@
+{
+  "lemma": "contemporary",
+  "version": 1,
+  "core_ko": "현대의, 동시대의",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "현대의, 동시대의",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "동년배, 동시대인",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Most contemporary art began as some sort of craft.",
+      "ko": "대부분의 현대 예술은 일종의 공예로서 시작했다.",
+      "highlight": "contemporary",
+      "target": "동년배, 동시대인"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "contemporary art",
+      "ko": "현대 미술",
+      "example": null
+    },
+    {
+      "expression": "contemporary music",
+      "ko": "현대 음악",
+      "example": null
+    },
+    {
+      "expression": "contemporary literature",
+      "ko": "현대 문학",
+      "example": null
+    },
+    {
+      "expression": "contemporary Britain",
+      "ko": "현대 영국",
+      "example": null
+    },
+    {
+      "expression": "my contemporaries at school",
+      "ko": "나의 동기생들",
+      "example": null
+    },
+    {
+      "expression": "contemporary review",
+      "ko": "시사 평론",
+      "example": null
+    }
+  ],
+  "family": []
+}

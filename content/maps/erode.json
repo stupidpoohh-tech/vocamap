@@ -1,0 +1,24 @@
+{
+  "lemma": "erode",
+  "version": 1,
+  "core_ko": "침식[풍화]하다; 부식하다; 약화시키다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "침식[풍화]하다; 부식하다; 약화시키다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Slowly and continually, the water erodes small parts of the rock, creating cracks underground.",
+      "ko": "천천히 그리고 계속해서 물은 바위의 작은 부분을 침식하고 지하에서 갈라진 틈을 만든다.",
+      "highlight": "erodes",
+      "target": "침식[풍화]하다; 부식하다; 약화시키다"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

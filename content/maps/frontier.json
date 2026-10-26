@@ -1,0 +1,35 @@
+{
+  "lemma": "frontier",
+  "version": 1,
+  "core_ko": "국경, 경계; 한계, 미개척 분야",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "국경, 경계; 한계, 미개척 분야",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The latest finding will open a new frontier in physics.",
+      "ko": "최근의 발견은 물리학에서 새로운 지평을 열 것이다.",
+      "highlight": "frontier",
+      "target": "국경, 경계; 한계, 미개척 분야"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "frontier spirit",
+      "ko": "개척자 정신",
+      "example": null
+    },
+    {
+      "expression": "frontier dispute",
+      "ko": "국경 분쟁",
+      "example": null
+    }
+  ],
+  "family": []
+}

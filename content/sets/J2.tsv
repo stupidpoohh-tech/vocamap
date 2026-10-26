@@ -1,0 +1,21 @@
+# J2
+#
+# 한 줄에 단어 하나. 탭으로 나눈다:  단어 <탭> 뜻 <탭> 품사(없어도 됨)
+# 맨 앞이 # 인 줄과 빈 줄은 무시한다.
+
+accidentally	우연히
+adventure	모험
+archer	궁수
+brave	용감한
+bridge	다리
+brightly	밝게
+cave	동굴
+however	그러나
+lead	이끌다
+listen	듣다
+read	읽다
+run away	도망치다
+survive	살아남다
+wake up	잠에서 깨다
+warrior	전사
+wizard	마법사

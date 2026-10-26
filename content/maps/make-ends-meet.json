@@ -1,0 +1,24 @@
+{
+  "lemma": "make ends meet",
+  "version": 1,
+  "core_ko": "phr. 수입과 지출을 맞추다, 겨우 먹고살다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. 수입과 지출을 맞추다, 겨우 먹고살다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Many had to reenter the workforce just to make ends meet.",
+      "ko": "많은 사람들이 그저 수입과 지출을 맞추기 위해 다시 노동자로 돌아가야만 했다.",
+      "highlight": "make ends meet",
+      "target": "phr. 수입과 지출을 맞추다, 겨우 먹고살다"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

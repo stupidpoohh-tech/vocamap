@@ -1,0 +1,37 @@
+{
+  "lemma": "applaud",
+  "version": 1,
+  "core_ko": "박수를 치다, 갈채를 보내다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "박수를 치다, 갈채를 보내다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "We applaud the efforts of researchers and other experts who have participated in the development of a vaccine.",
+      "ko": "우리는 백신 개발에 참여한 연구원들과 여러 전문가들의 노력에 박수를 보낸다.",
+      "highlight": "applaud",
+      "target": "박수를 치다, 갈채를 보내다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "give somebody a big hand",
+      "ko": "~에게 큰 박수를 보내다",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "applause",
+      "pos": "noun",
+      "ko": "박수",
+      "example": null
+    }
+  ]
+}

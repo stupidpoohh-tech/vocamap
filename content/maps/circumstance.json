@@ -1,0 +1,37 @@
+{
+  "lemma": "circumstance",
+  "version": 1,
+  "core_ko": "환경, 상황; (개인의) 형편",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "환경, 상황; (개인의) 형편",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Under the difficult circumstance, he tried hard not to be discouraged.",
+      "ko": "어려운 상황 속에서, 그는 낙심하지 않기 위해 노력했다.",
+      "highlight": "circumstance",
+      "target": "환경, 상황; (개인의) 형편"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "in[under] no circumstances",
+      "ko": "무슨 일이 있어도[어떤 경우에도]",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "circumstantial",
+      "pos": "adjective",
+      "ko": "정황상의",
+      "example": null
+    }
+  ]
+}

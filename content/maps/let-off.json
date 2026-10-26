@@ -1,0 +1,30 @@
+{
+  "lemma": "let off",
+  "version": 1,
+  "core_ko": "phr. ~을 내뿜다; (총을) 발사하다; (폭탄 등을) 터뜨리다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~을 내뿜다; (총을) 발사하다; (폭탄 등을) 터뜨리다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "When the volcano let off steam, people ran away.",
+      "ko": "화산이 증기를 내뿜자 사람들은 도망갔다.",
+      "highlight": "let off",
+      "target": "phr. ~을 내뿜다; (총을) 발사하다; (폭탄 등을) 터뜨리다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "shoot up",
+      "ko": "쏘아 올리다",
+      "example": null
+    }
+  ],
+  "family": []
+}

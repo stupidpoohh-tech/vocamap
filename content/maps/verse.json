@@ -1,0 +1,24 @@
+{
+  "lemma": "verse",
+  "version": 1,
+  "core_ko": "운문; (노래의) 절, (시의) 연",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "운문; (노래의) 절, (시의) 연",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "We will only sing the first verse of the national anthem.",
+      "ko": "애국가는 1절만 부르겠습니다.",
+      "highlight": "verse",
+      "target": "운문; (노래의) 절, (시의) 연"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

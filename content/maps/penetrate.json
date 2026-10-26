@@ -1,0 +1,37 @@
+{
+  "lemma": "penetrate",
+  "version": 1,
+  "core_ko": "뚫고 들어가다, 침투하다; (의미 등을) 간파하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "뚫고 들어가다, 침투하다; (의미 등을) 간파하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Back in 2003, a criminal group penetrated more than 100 banks’ internal computers.",
+      "ko": "2003년 당시, 한 범죄 집단이 100개 이상의 은행의 내부 컴퓨터를 뚫고 들어갔다.",
+      "highlight": "penetrated",
+      "target": "뚫고 들어가다, 침투하다; (의미 등을) 간파하다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "penetration",
+      "pos": "noun",
+      "ko": "침투, 관통",
+      "example": null
+    },
+    {
+      "lemma": "penetrating",
+      "pos": "adjective",
+      "ko": "간파하는, 꿰뚫는",
+      "example": null
+    }
+  ]
+}

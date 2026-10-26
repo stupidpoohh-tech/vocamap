@@ -1,0 +1,68 @@
+{
+  "lemma": "disorder",
+  "version": 1,
+  "core_ko": "어수선함, 무질서; 장애",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "어수선함, 무질서; 장애",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "With the sun rising and setting as many as sixteen times a day on the ISS, astronauts suffer from sleep disorders.",
+      "ko": "국제우주정거장에서는 태양이 하루에 16번이나 뜨고 지기 때문에 우주 비행사들은 수면 장애로 고생한다.",
+      "highlight": "disorders",
+      "target": "어수선함, 무질서; 장애"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "personality disorder",
+      "ko": "인격 장애",
+      "example": null
+    },
+    {
+      "expression": "learning disorder",
+      "ko": "학습 장애",
+      "example": null
+    },
+    {
+      "expression": "behavioral disorder",
+      "ko": "행동 장애",
+      "example": null
+    },
+    {
+      "expression": "eating disorder",
+      "ko": "식이 장애",
+      "example": null
+    },
+    {
+      "expression": "in disorder",
+      "ko": "무질서 속에",
+      "example": null
+    },
+    {
+      "expression": "fall into disorder",
+      "ko": "어수선해지다",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "disorderly",
+      "pos": "adjective",
+      "ko": "어수선한, 무질서한",
+      "example": null
+    },
+    {
+      "lemma": "disordered",
+      "pos": "adjective",
+      "ko": "어수선한, 엉망인",
+      "example": null
+    }
+  ]
+}

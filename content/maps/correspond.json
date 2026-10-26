@@ -1,0 +1,49 @@
+{
+  "lemma": "correspond",
+  "version": 1,
+  "core_ko": "일치하다, 부합하다; 해당하다, 상응하다; 편지를 주고받다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "일치하다, 부합하다; 해당하다, 상응하다; 편지를 주고받다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "We will check whether the written record corresponds to what was actually said.",
+      "ko": "우리는 서면 기록이 실제 말했던 것과 일치하는지 확인할 것이다.",
+      "highlight": "corresponds",
+      "target": "일치하다, 부합하다; 해당하다, 상응하다; 편지를 주고받다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "correspond to",
+      "ko": "~에 일치하다, 들어맞다",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "corresponding",
+      "pos": "adjective",
+      "ko": "상응하는",
+      "example": null
+    },
+    {
+      "lemma": "correspondence",
+      "pos": "noun",
+      "ko": "일치; 서신 교환",
+      "example": null
+    },
+    {
+      "lemma": "correspondent",
+      "pos": "noun",
+      "ko": "기자, 통신원",
+      "example": null
+    }
+  ]
+}

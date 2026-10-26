@@ -1,0 +1,24 @@
+{
+  "lemma": "be in charge of",
+  "version": 1,
+  "core_ko": "phr. ~을 담당하다[맡다]",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~을 담당하다[맡다]",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "A new manager came in his place to be in charge of running the manufacturing location.",
+      "ko": "새로운 관리자가 제조 구역 운영을 담당하기 위해 그의 자리에 왔다.",
+      "highlight": "be in charge of",
+      "target": "phr. ~을 담당하다[맡다]"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

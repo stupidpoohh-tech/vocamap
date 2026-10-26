@@ -1,0 +1,48 @@
+{
+  "lemma": "disadvantage",
+  "version": 1,
+  "core_ko": "불리한 점, 약점, 손실",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "불리한 점, 약점, 손실",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "불리하게 하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Let’s talk about the advantages and disadvantages.",
+      "ko": "유리한 점과 불리한 점에 대해 이야기해 보자.",
+      "highlight": "disadvantages",
+      "target": "불리하게 하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "at a disadvantage",
+      "ko": "불리한 상황에 처한",
+      "example": null
+    },
+    {
+      "expression": "despite the disadvantage",
+      "ko": "불리함에도 불구하고",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "disadvantageous",
+      "pos": "adjective",
+      "ko": "불리한",
+      "example": null
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "lemma": "reflect on",
+  "version": 1,
+  "core_ko": "phr. ~을 되돌아보다, ~을 반성하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~을 되돌아보다, ~을 반성하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The boy was left to reflect on the implications of his decision.",
+      "ko": "그 소년은 자기 결정에 내포되는 의미를 되돌아보도록 남겨졌다.",
+      "highlight": "reflect on",
+      "target": "phr. ~을 되돌아보다, ~을 반성하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "think over",
+      "ko": "~을 되돌아보다",
+      "example": null
+    }
+  ],
+  "family": []
+}

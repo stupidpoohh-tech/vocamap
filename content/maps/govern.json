@@ -1,0 +1,37 @@
+{
+  "lemma": "govern",
+  "version": 1,
+  "core_ko": "통치하다, 다스리다; 지배하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "통치하다, 다스리다; 지배하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Whatever we do on earth is governed by the rules of nature.",
+      "ko": "우리가 지구상에서 하는 모든 것은 자연의 법칙에 의해 지배를 받는다.",
+      "highlight": "governed",
+      "target": "통치하다, 다스리다; 지배하다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "government",
+      "pos": "noun",
+      "ko": "정부",
+      "example": null
+    },
+    {
+      "lemma": "governor",
+      "pos": "noun",
+      "ko": "주지사, 총독",
+      "example": null
+    }
+  ]
+}

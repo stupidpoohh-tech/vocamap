@@ -1,0 +1,48 @@
+{
+  "lemma": "assert",
+  "version": 1,
+  "core_ko": "주장하다, 자기주장을 하다, 확고히 하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "주장하다, 자기주장을 하다, 확고히 하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The lawyer asserted that his client is not guilty.",
+      "ko": "변호사는 자신의 의뢰인에게는 죄가 없다고 주장했다.",
+      "highlight": "asserted",
+      "target": "주장하다, 자기주장을 하다, 확고히 하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "assert one’s rights",
+      "ko": "자신의 권리를 주장하다",
+      "example": null
+    },
+    {
+      "expression": "assert one’s innocence",
+      "ko": "자신의 무죄를 주장하다",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "assertive",
+      "pos": "adjective",
+      "ko": "주장이 강한, 적극적인",
+      "example": null
+    },
+    {
+      "lemma": "assertion",
+      "pos": "noun",
+      "ko": "주장, (권리) 행사",
+      "example": null
+    }
+  ]
+}

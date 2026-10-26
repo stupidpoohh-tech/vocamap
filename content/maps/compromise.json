@@ -1,0 +1,36 @@
+{
+  "lemma": "compromise",
+  "version": 1,
+  "core_ko": "타협, 절충, 양보",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "타협, 절충, 양보",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "타협하다; 위태롭게 하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Neither party is willing to compromise on the issue.",
+      "ko": "양쪽 정당 중 어느 쪽도 그 문제에 대해 흔쾌히 타협하려고 하지 않는다.",
+      "highlight": "compromise",
+      "target": "타협하다; 위태롭게 하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "reach[come to] a compromise",
+      "ko": "타협에 이르다",
+      "example": null
+    }
+  ],
+  "family": []
+}

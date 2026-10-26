@@ -1,0 +1,72 @@
+{
+  "lemma": "respect",
+  "version": 1,
+  "core_ko": "상대의 가치를 인정해서 함부로 대하지 않는 태도 — 사람이든 규칙이든 '가볍게 여기지 않고 대우하다'",
+  "core_en": "treating someone or something as having value, and acting accordingly",
+  "meanings": [
+    {
+      "ko": "(사람·의견·권리를) 존중하다, 존경",
+      "en": "to admire someone or treat their rights and feelings as important",
+      "note": "핵심 개념인 '가치를 인정함'이 사람에게 향한 가장 기본적인 경우다.",
+      "chunk": "respect other people's opinions"
+    },
+    {
+      "ko": "(규칙·약속을) 지키다, 어기지 않다",
+      "en": "to obey a rule, law, or agreement",
+      "note": "규칙을 '가볍게 여기지 않는다'는 것이 곧 그 규칙을 지키는 행동으로 나타난다. 한국어 '존중하다'만 외우면 이 용법을 놓치기 쉽다.",
+      "chunk": "respect the rules"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "You don't have to agree, but you should respect her opinion.",
+      "ko": "동의할 필요는 없지만, 그녀의 의견은 존중해야 한다.",
+      "highlight": "respect her opinion",
+      "target": "의견을 존중하다"
+    },
+    {
+      "text": "Students here respect their teachers deeply.",
+      "ko": "이곳 학생들은 선생님을 깊이 존경한다.",
+      "highlight": "respect their teachers",
+      "target": "사람을 존경하다"
+    },
+    {
+      "text": "Every driver must respect the speed limit.",
+      "ko": "모든 운전자는 제한 속도를 지켜야 한다.",
+      "highlight": "respect the speed limit",
+      "target": "규칙을 지키다"
+    },
+    {
+      "text": "She earned the respect of everyone on the team.",
+      "ko": "그녀는 팀원 모두의 존경을 얻었다.",
+      "highlight": "the respect of everyone",
+      "target": "명사로서의 존경"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "have respect for",
+      "ko": "~을 존중하다, ~에 대한 존경심을 갖다",
+      "example": "I have great respect for people who admit their mistakes."
+    },
+    {
+      "expression": "earn / win someone's respect",
+      "ko": "~의 존경을 얻다",
+      "example": "He earned my respect by staying honest under pressure."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "respectful",
+      "pos": "adjective",
+      "ko": "공손한, 예의 바른",
+      "example": "He answered in a quiet, respectful voice."
+    },
+    {
+      "lemma": "respectable",
+      "pos": "adjective",
+      "ko": "남부끄럽지 않은, 괜찮은 수준의",
+      "example": "She got a respectable score on the test."
+    }
+  ]
+}

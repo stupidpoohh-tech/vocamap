@@ -1,0 +1,24 @@
+{
+  "lemma": "unbiased",
+  "version": 1,
+  "core_ko": "선입견이 없는, 편파적이지 않은",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "선입견이 없는, 편파적이지 않은",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "She is an unbiased judge so I expect a fair verdict.",
+      "ko": "그녀는 편파적이지 않은 판사여서 나는 공정한 판결을 기대한다.",
+      "highlight": "unbiased",
+      "target": "선입견이 없는, 편파적이지 않은"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

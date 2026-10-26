@@ -1,0 +1,43 @@
+{
+  "lemma": "approximate",
+  "version": 1,
+  "core_ko": "대략적인, 근사치인, 거의 정확한",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "대략적인, 근사치인, 거의 정확한",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "근사치를 내다, 비슷하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "What is the approximate cost of the materials?",
+      "ko": "대략적인 재료비는 얼마입니까?",
+      "highlight": "approximate",
+      "target": "근사치를 내다, 비슷하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "approximate value",
+      "ko": "근사값",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "approximately",
+      "pos": "adverb",
+      "ko": "거의, 약",
+      "example": null
+    }
+  ]
+}

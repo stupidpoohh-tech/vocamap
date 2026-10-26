@@ -1,0 +1,72 @@
+{
+  "lemma": "infect",
+  "version": 1,
+  "core_ko": "몸이나 대상 안에 병균·나쁜 것이 들어가 퍼지게 만든다",
+  "core_en": "to pass something harmful (a disease, a program, a feeling) into someone or something so it spreads inside",
+  "meanings": [
+    {
+      "ko": "병을 옮기다, 감염시키다",
+      "en": "to pass a disease to a person, animal, or plant",
+      "note": "핵심 개념이 '병균'에 적용된 가장 기본 용법이다. 주의: infect의 주어는 병균이나 옮기는 사람이고, 병에 걸린 사람은 목적어다. 즉 'I infected'가 아니라 'I was infected'로 쓴다.",
+      "chunk": "infect other people"
+    },
+    {
+      "ko": "(컴퓨터를) 바이러스에 감염시키다",
+      "en": "to put a virus into a computer or file so that it spreads and causes damage",
+      "note": "병균이 몸속에 퍼지는 그림을 컴퓨터에 그대로 옮긴 확장 용법이다.",
+      "chunk": "infect the whole system"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Wash your hands so you don't infect anyone else.",
+      "ko": "다른 사람에게 병을 옮기지 않도록 손을 씻어라.",
+      "highlight": "infect anyone else",
+      "target": "병을 옮기다"
+    },
+    {
+      "text": "Thousands of people were infected with the virus last winter.",
+      "ko": "지난겨울에 수천 명이 그 바이러스에 감염되었다.",
+      "highlight": "were infected with",
+      "target": "감염되다 (수동태로 쓰이는 전형적 형태)"
+    },
+    {
+      "text": "One bad email can infect every computer in the office.",
+      "ko": "나쁜 이메일 하나가 사무실의 모든 컴퓨터를 감염시킬 수 있다.",
+      "highlight": "infect every computer",
+      "target": "컴퓨터를 바이러스에 감염시키다"
+    },
+    {
+      "text": "Clean the wound, or it may get infected.",
+      "ko": "상처를 소독해라, 그러지 않으면 감염될 수 있다.",
+      "highlight": "get infected",
+      "target": "상처가 감염되다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "be infected with",
+      "ko": "~에 감염되다",
+      "example": "He was infected with the flu at school."
+    },
+    {
+      "expression": "get infected",
+      "ko": "감염되다 (상처 등이)",
+      "example": "The cut got infected after a few days."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "infection",
+      "pos": "noun",
+      "ko": "감염, 전염병",
+      "example": "She has an ear infection."
+    },
+    {
+      "lemma": "infectious",
+      "pos": "adjective",
+      "ko": "전염성의",
+      "example": "Measles is highly infectious."
+    }
+  ]
+}

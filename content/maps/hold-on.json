@@ -1,0 +1,30 @@
+{
+  "lemma": "hold on",
+  "version": 1,
+  "core_ko": "phr. ~을 간직하다(to); ~을 계속 잡고 있다; ~을 견뎌내다; (명령문 형태로) 기다리다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~을 간직하다(to); ~을 계속 잡고 있다; ~을 견뎌내다; (명령문 형태로) 기다리다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "In order to hold on to these precious memories, we often bring home souvenirs.",
+      "ko": "이런 소중한 추억들을 간직하기 위해 우리는 종종 집에 기념품을 가져온다.",
+      "highlight": "hold on",
+      "target": "phr. ~을 간직하다(to); ~을 계속 잡고 있다; ~을 견뎌내다; (명령문 형태로) 기다리다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "stick to ~",
+      "ko": "~을 고수하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

@@ -1,0 +1,24 @@
+{
+  "lemma": "scale up",
+  "version": 1,
+  "core_ko": "phr. (크기·규모를) 확대하다[늘리다]",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. (크기·규모를) 확대하다[늘리다]",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Scaling up from the small to the large is often accompanied by an evolution from simplicity to complexity.",
+      "ko": "작은 것에서 큰 것으로 규모를 확대하는 것은 흔히 단순함에서 복잡함으로의 진화를 수반한다.",
+      "highlight": "",
+      "target": "phr. (크기·규모를) 확대하다[늘리다]"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

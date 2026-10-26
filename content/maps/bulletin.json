@@ -1,0 +1,30 @@
+{
+  "lemma": "bulletin",
+  "version": 1,
+  "core_ko": "(중요한) 고시, 공고, (단체의) 회보; 뉴스 속보",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "(중요한) 고시, 공고, (단체의) 회보; 뉴스 속보",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The television program was suddenly interrupted for a news bulletin.",
+      "ko": "뉴스 속보로 텔레비전 프로그램이 갑자기 중단되었다.",
+      "highlight": "bulletin",
+      "target": "(중요한) 고시, 공고, (단체의) 회보; 뉴스 속보"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "bulletin board",
+      "ko": "게시판",
+      "example": null
+    }
+  ],
+  "family": []
+}

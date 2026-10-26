@@ -1,0 +1,37 @@
+{
+  "lemma": "conversion",
+  "version": 1,
+  "core_ko": "전환, 개조, 개종",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "전환, 개조, 개종",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Hunting and the loss of forest habitat due to logging and conversion to farmland threaten its survival.",
+      "ko": "사냥과 벌목, 농경지 전환으로 인한 삼림 서식지의 감소가 그것의 생존을 위협한다.",
+      "highlight": "conversion",
+      "target": "전환, 개조, 개종"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "energy conversion",
+      "ko": "에너지 변환",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "convert",
+      "pos": "verb",
+      "ko": "전환시키다, 개조하다",
+      "example": null
+    }
+  ]
+}

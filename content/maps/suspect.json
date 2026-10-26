@@ -1,0 +1,66 @@
+{
+  "lemma": "suspect",
+  "version": 1,
+  "core_ko": "확실한 증거 없이 \"아마 그럴 것이다\"라고 짐작하는 것 — 특히 나쁜 일과 관련해 의심하는 마음",
+  "core_en": "to believe something is probably true—usually something bad—without proof",
+  "meanings": [
+    {
+      "ko": "(증거는 없지만) ~라고 의심하다, 짐작하다",
+      "en": "to think that something is likely, especially something bad, without being certain",
+      "note": "핵심 개념 그대로다. 증거가 부족한 상태에서 마음속으로 결론을 내리는 행위.",
+      "chunk": "suspect that he lied"
+    },
+    {
+      "ko": "용의자 (명사)",
+      "en": "a person the police think may have committed a crime",
+      "note": "'의심을 받는 대상'이 사람으로 굳어진 것. 명사일 때는 강세가 앞에 온다(SUS-pect).",
+      "chunk": "the main suspect"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "I suspect she already knows about the surprise party.",
+      "ko": "그녀가 이미 깜짝 파티에 대해 알고 있는 것 같아.",
+      "highlight": "suspect she already knows",
+      "target": "~인 것 같다고 짐작하다"
+    },
+    {
+      "text": "The teacher suspected him of copying the answers.",
+      "ko": "선생님은 그가 답을 베꼈다고 의심했다.",
+      "highlight": "suspected him of copying",
+      "target": "~했다고 의심하다 (suspect A of B)"
+    },
+    {
+      "text": "Police questioned three suspects but released them all.",
+      "ko": "경찰은 용의자 세 명을 조사했지만 모두 풀어 주었다.",
+      "highlight": "suspects",
+      "target": "용의자(명사)"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "suspect (that) + 절",
+      "ko": "~라고 짐작하다/의심하다",
+      "example": "I suspect that the train will be late again."
+    },
+    {
+      "expression": "suspect someone of something",
+      "ko": "누군가를 ~한 것으로 의심하다",
+      "example": "They suspected the manager of hiding the money."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "suspicion",
+      "pos": "noun",
+      "ko": "의심, 혐의",
+      "example": "She was arrested on suspicion of theft."
+    },
+    {
+      "lemma": "suspicious",
+      "pos": "adjective",
+      "ko": "의심스러운, 수상한",
+      "example": "His behavior at the door looked suspicious."
+    }
+  ]
+}

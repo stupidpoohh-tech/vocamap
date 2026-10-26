@@ -1,0 +1,31 @@
+{
+  "lemma": "disrupt",
+  "version": 1,
+  "core_ko": "방해하다, 지장을 주다; 분열하다, 붕괴하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "방해하다, 지장을 주다; 분열하다, 붕괴하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The repairman is called in when the smooth operation of our world has been disrupted.",
+      "ko": "우리 세상의 매끄러운 운영이 중단될 때 수리공을 부르게 된다.",
+      "highlight": "disrupted",
+      "target": "방해하다, 지장을 주다; 분열하다, 붕괴하다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "disruption",
+      "pos": "noun",
+      "ko": "파열, 분열, 붕괴",
+      "example": null
+    }
+  ]
+}

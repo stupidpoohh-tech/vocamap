@@ -1,0 +1,43 @@
+{
+  "lemma": "modest",
+  "version": 1,
+  "core_ko": "겸손한; 보통의, 그리 심하지 않은",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "겸손한; 보통의, 그리 심하지 않은",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "His income was modest compared with that of other chief executives.",
+      "ko": "그의 수입은 다른 최고 경영자들의 수입에 비해 많지 않았다.",
+      "highlight": "modest",
+      "target": "겸손한; 보통의, 그리 심하지 않은"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "moderate",
+      "pos": "adjective",
+      "ko": "보통의, 온건한",
+      "example": null
+    },
+    {
+      "lemma": "modesty",
+      "pos": "noun",
+      "ko": "겸손, 수수함",
+      "example": null
+    },
+    {
+      "lemma": "modestly",
+      "pos": "adverb",
+      "ko": "겸손하게",
+      "example": null
+    }
+  ]
+}

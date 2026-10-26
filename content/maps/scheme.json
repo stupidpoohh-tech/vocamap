@@ -1,0 +1,36 @@
+{
+  "lemma": "scheme",
+  "version": 1,
+  "core_ko": "계획; 개요; 분류표, 도표; 책략, 음모",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "계획; 개요; 분류표, 도표; 책략, 음모",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "책략을 꾸미다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The advantages of the scheme outweighed the disadvantages.",
+      "ko": "그 계획은 단점보다 장점이 더 많았다.",
+      "highlight": "scheme",
+      "target": "책략을 꾸미다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "pension scheme",
+      "ko": "연금 계획",
+      "example": null
+    }
+  ],
+  "family": []
+}

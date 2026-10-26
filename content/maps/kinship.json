@@ -1,0 +1,42 @@
+{
+  "lemma": "kinship",
+  "version": 1,
+  "core_ko": "친족; 연대감, 유사",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "친족; 연대감, 유사",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The two boys proved their kinship by showing their identification cards.",
+      "ko": "두 소년은 신분증을 제시해 친족임을 증명했다.",
+      "highlight": "kinship",
+      "target": "친족; 연대감, 유사"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "distant[near] kinship",
+      "ko": "먼[가까운] 친족",
+      "example": null
+    },
+    {
+      "expression": "feel kinship with ~",
+      "ko": "~에 친근감을 느끼다",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "kin",
+      "pos": "noun",
+      "ko": "친족, 일가",
+      "example": null
+    }
+  ]
+}

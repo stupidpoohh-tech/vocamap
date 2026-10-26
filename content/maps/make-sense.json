@@ -1,0 +1,24 @@
+{
+  "lemma": "make sense",
+  "version": 1,
+  "core_ko": "phr. 말이 되다, 타당하다; 의미가 통하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. 말이 되다, 타당하다; 의미가 통하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "This story only makes sense because it is set in 1980.",
+      "ko": "이 이야기는 단지 그것이 1980년을 배경으로 되어 있기 때문에 말이 될 뿐이다.",
+      "highlight": "",
+      "target": "phr. 말이 되다, 타당하다; 의미가 통하다"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

@@ -1,0 +1,60 @@
+{
+  "lemma": "manage to",
+  "version": 1,
+  "core_ko": "쉽지 않은 일을 어떻게든 해내는 데 성공한다는 뜻 — '노력·어려움'과 '결국 성공'이 함께 들어 있다.",
+  "core_en": "to succeed in doing something difficult, despite obstacles",
+  "meanings": [
+    {
+      "ko": "어려움을 무릅쓰고 결국 ~해내다",
+      "en": "to succeed in doing something, especially something difficult",
+      "note": "핵심 개념 그대로의 용법. '할 수 있었다'가 아니라 '실제로 해냈다'라는 결과가 포함된다는 점이 중요하다.",
+      "chunk": "manage to finish it"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "We somehow managed to finish the project before the deadline.",
+      "ko": "우리는 어떻게든 마감 전에 프로젝트를 끝냈다.",
+      "highlight": "managed to finish",
+      "target": "어렵게 해내다"
+    },
+    {
+      "text": "The bus was full, but I managed to find a seat.",
+      "ko": "버스가 만원이었지만 나는 용케 자리를 찾았다.",
+      "highlight": "managed to find",
+      "target": "가까스로 ~하다"
+    },
+    {
+      "text": "He didn't manage to catch the last train home.",
+      "ko": "그는 집에 가는 마지막 기차를 결국 타지 못했다.",
+      "highlight": "didn't manage to catch",
+      "target": "부정문: 결국 해내지 못했다"
+    },
+    {
+      "text": "How do you manage to stay calm in such a noisy classroom?",
+      "ko": "그렇게 시끄러운 교실에서 어떻게 침착함을 유지하니?",
+      "highlight": "manage to stay",
+      "target": "쉽지 않은 일을 해내는 방법을 묻기"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "somehow manage to do something",
+      "ko": "어떻게든 ~해내다",
+      "example": "She somehow managed to fix the old computer."
+    },
+    {
+      "expression": "manage to get by",
+      "ko": "어렵게나마 살아가다, 버티다",
+      "example": "They manage to get by on a small salary."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "manage",
+      "pos": "verb",
+      "ko": "관리하다, 운영하다",
+      "example": "She manages a small bakery downtown."
+    }
+  ]
+}

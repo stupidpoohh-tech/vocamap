@@ -1,0 +1,35 @@
+{
+  "lemma": "correspond to",
+  "version": 1,
+  "core_ko": "phr. ~에[와] 일치하다[들어맞다]",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~에[와] 일치하다[들어맞다]",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The goods do not correspond to the samples you sent me.",
+      "ko": "그 상품은 귀사가 제게 보냈던 견본과 일치하지 않습니다.",
+      "highlight": "correspond to",
+      "target": "phr. ~에[와] 일치하다[들어맞다]"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "coincide with",
+      "ko": "~와 일치하다",
+      "example": null
+    },
+    {
+      "expression": "accord with",
+      "ko": "~와 부합하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

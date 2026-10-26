@@ -1,0 +1,42 @@
+{
+  "lemma": "monument",
+  "version": 1,
+  "core_ko": "기념비, 기념물, 유물",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "기념비, 기념물, 유물",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "A monument to him was erected in St. Paul’s Cathedral.",
+      "ko": "St. Paul 대성당에 그를 기념하는 기념비가 세워졌다.",
+      "highlight": "monument",
+      "target": "기념비, 기념물, 유물"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "memorial stone",
+      "ko": "추모비",
+      "example": null
+    },
+    {
+      "expression": "ancient monument",
+      "ko": "고대 기념물",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "monumental",
+      "pos": "adjective",
+      "ko": "기념비적인",
+      "example": null
+    }
+  ]
+}

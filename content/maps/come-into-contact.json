@@ -1,0 +1,30 @@
+{
+  "lemma": "come into contact",
+  "version": 1,
+  "core_ko": "phr. ~와 접촉하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~와 접촉하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Discard any foods that have come into contact with polluted water.",
+      "ko": "오염된 물에 접촉한 식품은 어떤 것이어도 폐기하라.",
+      "highlight": "come into contact",
+      "target": "phr. ~와 접촉하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "come across",
+      "ko": "~와 마주치다",
+      "example": null
+    }
+  ],
+  "family": []
+}

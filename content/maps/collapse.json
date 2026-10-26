@@ -1,0 +1,72 @@
+{
+  "lemma": "collapse",
+  "version": 1,
+  "core_ko": "지탱하던 힘이 무너져 안쪽으로 폭삭 주저앉는 것 — 건물이든 사람이든 체제든.",
+  "core_en": "To suddenly fall down or give way because the support holding it up fails.",
+  "meanings": [
+    {
+      "ko": "(건물·구조물이) 무너져 내리다",
+      "en": "to fall down suddenly because of losing structural support",
+      "note": "핵심 이미지 그대로다. 위에서 눌리거나 안에서 버티던 것이 없어져 폭삭 주저앉는 장면.",
+      "chunk": "the roof collapsed"
+    },
+    {
+      "ko": "(경제·제도·계획이) 붕괴하다 / (사람이) 쓰러지다",
+      "en": "to fail completely, or (of a person) to fall down from exhaustion or illness",
+      "note": "건물이 무너지는 이미지를 경제·체제·몸에 그대로 옮긴 것. 버티던 힘이 다해 한순간에 주저앉는다는 점이 같다.",
+      "chunk": "the economy collapsed"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The old bridge collapsed after weeks of heavy rain.",
+      "ko": "몇 주간의 폭우 끝에 낡은 다리가 무너졌다.",
+      "highlight": "collapsed",
+      "target": "구조물이 무너지다"
+    },
+    {
+      "text": "He collapsed on the field and was rushed to hospital.",
+      "ko": "그는 경기장에서 쓰러져 급히 병원으로 실려 갔다.",
+      "highlight": "collapsed",
+      "target": "사람이 쓰러지다"
+    },
+    {
+      "text": "The whole plan collapsed when our main partner pulled out.",
+      "ko": "주요 파트너가 손을 떼자 계획 전체가 무너졌다.",
+      "highlight": "collapsed",
+      "target": "계획·체제가 붕괴하다"
+    },
+    {
+      "text": "Many families lost everything in the collapse of the housing market.",
+      "ko": "많은 가정이 주택 시장 붕괴로 모든 것을 잃었다.",
+      "highlight": "the collapse of the housing market",
+      "target": "명사형: 붕괴"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "collapse of the economy / economic collapse",
+      "ko": "경제 붕괴",
+      "example": "The war led to the collapse of the country's economy."
+    },
+    {
+      "expression": "collapse from exhaustion",
+      "ko": "탈진해서 쓰러지다",
+      "example": "She collapsed from exhaustion after working three night shifts."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "collapse",
+      "pos": "noun",
+      "ko": "붕괴, 쓰러짐",
+      "example": "Nobody predicted the collapse of the government."
+    },
+    {
+      "lemma": "collapsible",
+      "pos": "adjective",
+      "ko": "접을 수 있는",
+      "example": "We packed a collapsible chair for the trip."
+    }
+  ]
+}

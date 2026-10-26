@@ -1,0 +1,48 @@
+{
+  "lemma": "sensor",
+  "version": 1,
+  "core_ko": "센서, 감지기",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "센서, 감지기",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The IoT is also helping many cities deal with a garbage crisis through waste-management sensors.",
+      "ko": "사물인터넷 또한 폐기물 관리 센서를 통해 많은 도시들이 쓰레기 위기를 해결하도록 돕고 있다.",
+      "highlight": "sensors",
+      "target": "센서, 감지기"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "infrared sensor",
+      "ko": "적외선 감지기",
+      "example": null
+    },
+    {
+      "expression": "heat sensor",
+      "ko": "열 감지기",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "sense",
+      "pos": "verb",
+      "ko": "감지하다, n. 감각",
+      "example": null
+    },
+    {
+      "lemma": "sensory",
+      "pos": "adjective",
+      "ko": "감각의",
+      "example": null
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "lemma": "function",
+  "version": 1,
+  "core_ko": "기능, 작용; 의식, 행사; (수학) 함수",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "기능, 작용; 의식, 행사; (수학) 함수",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "기능하다, 작용하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The family has the important function of socializing children.",
+      "ko": "가족은 어린이를 사회화시키는 중요한 기능을 한다.",
+      "highlight": "function",
+      "target": "기능하다, 작용하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "vital function",
+      "ko": "매우 중요한 기능",
+      "example": null
+    },
+    {
+      "expression": "charity function",
+      "ko": "자선 행사",
+      "example": null
+    },
+    {
+      "expression": "perform a function",
+      "ko": "기능을 수행하다",
+      "example": null
+    },
+    {
+      "expression": "main function",
+      "ko": "주요한 기능",
+      "example": null
+    },
+    {
+      "expression": "one-to-one function",
+      "ko": "일대일 대응 함수",
+      "example": null
+    },
+    {
+      "expression": "function key",
+      "ko": "기능 키",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "functional",
+      "pos": "adjective",
+      "ko": "기능적인",
+      "example": null
+    }
+  ]
+}

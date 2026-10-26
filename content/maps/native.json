@@ -1,0 +1,66 @@
+{
+  "lemma": "native",
+  "version": 1,
+  "core_ko": "태어난 그곳에 원래부터 속해 있는 것 — 사람이든 언어든 동식물이든 '원래 거기 것'이라는 개념.",
+  "core_en": "belonging to a place from birth or origin",
+  "meanings": [
+    {
+      "ko": "태어난 곳과 관련된, 그곳 출신인",
+      "en": "connected with the place where you were born",
+      "note": "'원래 거기 것'이라는 핵심이 사람에게 적용된 경우. 사람뿐 아니라 언어(모국어)에도 그대로 쓰인다.",
+      "chunk": "her native language"
+    },
+    {
+      "ko": "(동식물이) 원래 그 지역에 살던, 토착의",
+      "en": "growing or living naturally in a particular place",
+      "note": "사람에게 쓰던 '원래 거기 것'을 동식물로 확장한 것. 외부에서 들어온 종과 대비된다.",
+      "chunk": "native to Australia"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Korean is her native language, but she speaks English fluently.",
+      "ko": "한국어가 그녀의 모국어지만, 영어도 유창하게 한다.",
+      "highlight": "her native language",
+      "target": "태어나면서부터 쓴, 모국의"
+    },
+    {
+      "text": "He returned to his native village after twenty years abroad.",
+      "ko": "그는 해외 생활 20년 만에 고향 마을로 돌아왔다.",
+      "highlight": "his native village",
+      "target": "태어난 곳의, 고향의"
+    },
+    {
+      "text": "These birds are native to the islands and live nowhere else.",
+      "ko": "이 새들은 그 섬들이 원산지이며 다른 곳에는 살지 않는다.",
+      "highlight": "native to the islands",
+      "target": "(동식물이) 그 지역 토착의"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "native speaker",
+      "ko": "원어민",
+      "example": "Our school hired a native speaker of English."
+    },
+    {
+      "expression": "be native to (a place)",
+      "ko": "~가 원산지이다, ~에 토착하다",
+      "example": "The plant is native to South America."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "natively",
+      "pos": "adverb",
+      "ko": "선천적으로, 본래",
+      "example": "The species occurs natively in this region."
+    },
+    {
+      "lemma": "nation",
+      "pos": "noun",
+      "ko": "국가, 국민",
+      "example": "The whole nation watched the final match."
+    }
+  ]
+}

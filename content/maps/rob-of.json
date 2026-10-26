@@ -1,0 +1,30 @@
+{
+  "lemma": "rob ~ of …",
+  "version": 1,
+  "core_ko": "phr. ~에게서 …을 앗아가다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~에게서 …을 앗아가다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The negative events are likely to rob us of appreciation of each day.",
+      "ko": "부정적인 사건은 우리에게서 매일의 감사할 마음을 앗아갈 듯하다.",
+      "highlight": "",
+      "target": "phr. ~에게서 …을 앗아가다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "deprive ~ of …",
+      "ko": "~에게서 …을 빼앗다",
+      "example": null
+    }
+  ],
+  "family": []
+}

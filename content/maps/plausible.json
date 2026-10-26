@@ -1,0 +1,37 @@
+{
+  "lemma": "plausible",
+  "version": 1,
+  "core_ko": "타당한 것 같은, 그럴듯한",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "타당한 것 같은, 그럴듯한",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Consider whether other plausible options are being ignored or overlooked.",
+      "ko": "타당해 보이는 다른 선택 사항들이 무시되거나 간과되고 있는지를 고려해 보라.",
+      "highlight": "plausible",
+      "target": "타당한 것 같은, 그럴듯한"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "plausibility",
+      "pos": "noun",
+      "ko": "그럴듯함, 타당함",
+      "example": null
+    },
+    {
+      "lemma": "plausibly",
+      "pos": "adverb",
+      "ko": "그럴듯하게",
+      "example": null
+    }
+  ]
+}

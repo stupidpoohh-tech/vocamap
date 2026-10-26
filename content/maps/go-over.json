@@ -1,0 +1,24 @@
+{
+  "lemma": "go over",
+  "version": 1,
+  "core_ko": "phr. ~을 검토하다, ~을 조사하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~을 검토하다, ~을 조사하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Then let’s go over what we’ve prepared.",
+      "ko": "그럼 우리가 준비한 것을 검토해 봅시다.",
+      "highlight": "go over",
+      "target": "phr. ~을 검토하다, ~을 조사하다"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

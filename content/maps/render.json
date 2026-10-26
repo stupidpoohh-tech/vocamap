@@ -1,0 +1,30 @@
+{
+  "lemma": "render",
+  "version": 1,
+  "core_ko": "만들다; 주다, 제출하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "만들다; 주다, 제출하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "I will render this concept comprehensible to others.",
+      "ko": "나는 이 개념을 남이 이해할 수 있게 만들 것이다.",
+      "highlight": "render",
+      "target": "만들다; 주다, 제출하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "render aid[assistance]",
+      "ko": "지원해 주다, 원조하다",
+      "example": null
+    }
+  ],
+  "family": []
+}

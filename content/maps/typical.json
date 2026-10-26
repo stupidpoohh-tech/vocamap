@@ -1,0 +1,31 @@
+{
+  "lemma": "typical",
+  "version": 1,
+  "core_ko": "전형적인, 대표적인, 일반적인",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "전형적인, 대표적인, 일반적인",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "A typical workday for me begins at 9 a.m.",
+      "ko": "나에게 있어서 일반적인 근무일은 오전 9시에 시작한다.",
+      "highlight": "typical",
+      "target": "전형적인, 대표적인, 일반적인"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "typically",
+      "pos": "adverb",
+      "ko": "전형적으로",
+      "example": null
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "lemma": "keystone",
+  "version": 1,
+  "core_ko": "핵심; (건축) 쐐기돌",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "핵심; (건축) 쐐기돌",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "As a keystone species, oysters provide habitat for an extensive array of marine life.",
+      "ko": "핵심종인 굴은 광범위한 해양 생물 무리의 서식지를 제공한다.",
+      "highlight": "keystone",
+      "target": "핵심; (건축) 쐐기돌"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

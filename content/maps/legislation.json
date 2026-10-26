@@ -1,0 +1,43 @@
+{
+  "lemma": "legislation",
+  "version": 1,
+  "core_ko": "법률 제정, 입법 행위; 법률",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "법률 제정, 입법 행위; 법률",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The problem has led to calls for legislation to regulate advertising.",
+      "ko": "그 문제가 광고를 규제하는 법률 제정에 대한 요구로 이어졌다.",
+      "highlight": "legislation",
+      "target": "법률 제정, 입법 행위; 법률"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "legislate",
+      "pos": "verb",
+      "ko": "법률을 제정하다",
+      "example": null
+    },
+    {
+      "lemma": "legislative",
+      "pos": "adjective",
+      "ko": "입법의",
+      "example": null
+    },
+    {
+      "lemma": "legislator",
+      "pos": "noun",
+      "ko": "국회의원, 입법자",
+      "example": null
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "lemma": "massive",
+  "version": 1,
+  "core_ko": "막대한, 거대한; 심각한",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "막대한, 거대한; 심각한",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "At the age of 24, he inherited a massive fortune.",
+      "ko": "24세에 그는 막대한 재산을 물려받았다.",
+      "highlight": "massive",
+      "target": "막대한, 거대한; 심각한"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

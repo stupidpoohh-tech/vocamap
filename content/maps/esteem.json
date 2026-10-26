@@ -1,0 +1,43 @@
+{
+  "lemma": "esteem",
+  "version": 1,
+  "core_ko": "존경, 존중; 감탄",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "존경, 존중; 감탄",
+      "en": null,
+      "note": "",
+      "chunk": null
+    },
+    {
+      "ko": "존경하다; 감탄하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "His work is highly esteemed by all his colleagues.",
+      "ko": "그의 작품은 동료들에게서 높이 존경받고 있다.",
+      "highlight": "esteemed",
+      "target": "존경하다; 감탄하다"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "highly esteem",
+      "ko": "매우 존경하다",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "esteemed",
+      "pos": "adjective",
+      "ko": "존경받는",
+      "example": null
+    }
+  ]
+}

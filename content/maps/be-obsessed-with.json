@@ -1,0 +1,24 @@
+{
+  "lemma": "be obsessed with",
+  "version": 1,
+  "core_ko": "phr. ~에 사로잡히다, ~에 집착하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~에 사로잡히다, ~에 집착하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The more you look in the mirror, the more you will be obsessed with your looks.",
+      "ko": "거울을 더 보면 볼수록 더 외모에 집착하게 될 것이다.",
+      "highlight": "be obsessed with",
+      "target": "phr. ~에 사로잡히다, ~에 집착하다"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

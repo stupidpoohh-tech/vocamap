@@ -1,0 +1,37 @@
+{
+  "lemma": "punish",
+  "version": 1,
+  "core_ko": "처벌하다, 벌주다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "처벌하다, 벌주다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "The government needs to punish the criminals heavily.",
+      "ko": "정부는 그 범죄자들을 엄중히 처벌할 필요가 있다.",
+      "highlight": "punish",
+      "target": "처벌하다, 벌주다"
+    }
+  ],
+  "collocations": [],
+  "family": [
+    {
+      "lemma": "punishment",
+      "pos": "noun",
+      "ko": "처벌, 벌",
+      "example": null
+    },
+    {
+      "lemma": "punishable",
+      "pos": "adjective",
+      "ko": "처벌해야 할",
+      "example": null
+    }
+  ]
+}

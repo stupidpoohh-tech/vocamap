@@ -1,0 +1,54 @@
+{
+  "lemma": "ensure",
+  "version": 1,
+  "core_ko": "어떤 일이 확실히 그렇게 되도록 미리 손을 써 두는 것",
+  "core_en": "to make certain that something happens or is the case",
+  "meanings": [
+    {
+      "ko": "(어떤 일이) 반드시 일어나도록 하다, 확실히 해 두다",
+      "en": "to make certain that something will happen or be true",
+      "note": "핵심 개념 그대로. 결과를 '확실한 상태'로 만들어 두는 행위다.",
+      "chunk": "ensure that everyone is safe"
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Please ensure that all the windows are locked before leaving.",
+      "ko": "나가기 전에 창문이 모두 잠겼는지 반드시 확인하세요.",
+      "highlight": "ensure that all the windows are locked",
+      "target": "~하도록 확실히 하다 (that절)"
+    },
+    {
+      "text": "Regular exercise helps ensure a longer, healthier life.",
+      "ko": "규칙적인 운동은 더 길고 건강한 삶을 보장하는 데 도움이 된다.",
+      "highlight": "ensure a longer, healthier life",
+      "target": "어떤 결과를 보장하다 (명사 목적어)"
+    },
+    {
+      "text": "The new rules ensure fair treatment for every student.",
+      "ko": "새 규칙은 모든 학생에게 공정한 대우를 보장한다.",
+      "highlight": "ensure fair treatment",
+      "target": "제도·규칙이 결과를 확실히 만들어 줌"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "ensure that + 주어 + 동사",
+      "ko": "~하도록 확실히 하다",
+      "example": "We must ensure that no one is left behind."
+    },
+    {
+      "expression": "ensure safety / quality",
+      "ko": "안전을·품질을 보장하다",
+      "example": "These checks ensure the safety of every passenger."
+    }
+  ],
+  "family": [
+    {
+      "lemma": "assurance",
+      "pos": "noun",
+      "ko": "확언, 보장",
+      "example": "He gave us his assurance that the work would be finished."
+    }
+  ]
+}

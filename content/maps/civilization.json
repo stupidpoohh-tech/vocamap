@@ -1,0 +1,43 @@
+{
+  "lemma": "civilization",
+  "version": 1,
+  "core_ko": "문명, 문명사회, 전 세계",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "문명, 문명사회, 전 세계",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "Greece is called the cradle of Western civilization.",
+      "ko": "그리스는 서양 문명의 발상지로 불린다.",
+      "highlight": "civilization",
+      "target": "문명, 문명사회, 전 세계"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "advanced civilization",
+      "ko": "고도의 문명",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "civilize",
+      "pos": "verb",
+      "ko": "문명화하다",
+      "example": null
+    },
+    {
+      "lemma": "civil",
+      "pos": "adjective",
+      "ko": "민간의, 시민의",
+      "example": null
+    }
+  ]
+}

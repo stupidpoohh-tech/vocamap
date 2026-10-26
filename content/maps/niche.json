@@ -1,0 +1,24 @@
+{
+  "lemma": "niche",
+  "version": 1,
+  "core_ko": "(꼭 알맞은) 지위, 자리, 적소; (시장의) 틈새",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "(꼭 알맞은) 지위, 자리, 적소; (시장의) 틈새",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "More diverse communities are believed to be more stable because they use a broader range of niches than species-poor communities.",
+      "ko": "더 다양한 군집은 종이 빈약한 군집보다 더 광범위한 적소를 사용하기 때문에 안정적인 것으로 여겨진다.",
+      "highlight": "niches",
+      "target": "(꼭 알맞은) 지위, 자리, 적소; (시장의) 틈새"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}

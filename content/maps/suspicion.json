@@ -1,0 +1,60 @@
+{
+  "lemma": "suspicion",
+  "version": 1,
+  "core_ko": "혐의, 의혹, 의심",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "혐의, 의혹, 의심",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "He was arrested on suspicion of fraud.",
+      "ko": "그는 사기 혐의로 체포되었다.",
+      "highlight": "suspicion",
+      "target": "혐의, 의혹, 의심"
+    }
+  ],
+  "collocations": [
+    {
+      "expression": "have a suspicion",
+      "ko": "의심을 품다",
+      "example": null
+    },
+    {
+      "expression": "under suspicion of ~",
+      "ko": "~의 혐의를 받고 있는",
+      "example": null
+    }
+  ],
+  "family": [
+    {
+      "lemma": "suspect",
+      "pos": "verb",
+      "ko": "의심하다",
+      "example": null
+    },
+    {
+      "lemma": "suspected",
+      "pos": "adjective",
+      "ko": "의심이 가는",
+      "example": null
+    },
+    {
+      "lemma": "suspicious",
+      "pos": "adjective",
+      "ko": "의심스러운, 수상한",
+      "example": null
+    },
+    {
+      "lemma": "suspiciously",
+      "pos": "adverb",
+      "ko": "수상쩍은 듯이",
+      "example": null
+    }
+  ]
+}

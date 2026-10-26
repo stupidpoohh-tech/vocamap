@@ -1,0 +1,24 @@
+{
+  "lemma": "put off",
+  "version": 1,
+  "core_ko": "phr. ~을 연기하다",
+  "core_en": null,
+  "meanings": [
+    {
+      "ko": "phr. ~을 연기하다",
+      "en": null,
+      "note": "",
+      "chunk": null
+    }
+  ],
+  "sentences": [
+    {
+      "text": "I can’t find a cable that fits. I’ll have to put off my presentation.",
+      "ko": "나는 맞는 전선을 찾을 수 없어. 나는 발표를 연기해야 해.",
+      "highlight": "put off",
+      "target": "phr. ~을 연기하다"
+    }
+  ],
+  "collocations": [],
+  "family": []
+}
